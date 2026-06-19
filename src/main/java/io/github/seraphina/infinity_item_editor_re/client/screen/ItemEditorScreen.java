@@ -25,6 +25,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -41,6 +42,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SignItem;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -52,9 +54,11 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -103,6 +107,12 @@ public class ItemEditorScreen extends Screen {
     private static final String BANNER_COLOR_TAG = "Color";
     private static final String BANNER_BASE_TAG = "Base";
     private static final int BANNER_PATTERN_ROWS = 8;
+    private static final String ENTITY_TAG = "EntityTag";
+    private static final String ENTITY_ID_TAG = "id";
+    private static final String ENTITY_CUSTOM_NAME_TAG = "CustomName";
+    private static final int SPAWN_EGG_ENTITY_ROWS = 8;
+    private static final int SPAWN_EGG_TAG_ROWS = 8;
+    private static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
     private static final Item[] BANNER_ITEMS_BY_DYE = {
             Items.WHITE_BANNER,
             Items.ORANGE_BANNER,
@@ -163,6 +173,22 @@ public class ItemEditorScreen extends Screen {
             new BannerPatternEntry("mojang", "moj"),
             new BannerPatternEntry("piglin", "pig")
     );
+    private static final List<SpawnEggTagRow> SPAWN_EGG_GENERAL_TAG_ROWS = List.of(
+            spawnEggCustomName(),
+            spawnEggFloat("health", "Health", 0.0D, 2048.0D),
+            spawnEggInt("age", "Age", -24000.0D, 24000.0D),
+            spawnEggShort("fire", "Fire", 0.0D, Short.MAX_VALUE),
+            spawnEggFloat("absorption", "AbsorptionAmount", 0.0D, 2048.0D),
+            spawnEggBoolean("no_ai", "NoAI"),
+            spawnEggBoolean("no_gravity", "NoGravity"),
+            spawnEggBoolean("invulnerable", "Invulnerable"),
+            spawnEggBoolean("silent", "Silent"),
+            spawnEggBoolean("glowing", "Glowing"),
+            spawnEggBoolean("custom_name_visible", "CustomNameVisible"),
+            spawnEggBoolean("can_pick_up_loot", "CanPickUpLoot"),
+            spawnEggBoolean("persistence_required", "PersistenceRequired"),
+            spawnEggBoolean("fall_flying", "FallFlying")
+    );
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
@@ -186,6 +212,8 @@ public class ItemEditorScreen extends Screen {
     private final String[] signLineValues = new String[SIGN_LINES];
     private String signCommandValue = "";
     private String bannerPatternFilterValue = "";
+    private String spawnEggEntityFilterValue = "";
+    private String spawnEggCustomNameValue = "";
     private String nbtFeedback = "";
     private boolean nbtFeedbackGood;
     private boolean showAllEnchantments;
@@ -207,6 +235,9 @@ public class ItemEditorScreen extends Screen {
     private int bannerPatternColor = DyeColor.BLACK.getId();
     private int bannerPatternScroll;
     private int selectedBannerPatternIndex;
+    private int spawnEggEntityScroll;
+    private int spawnEggTagScroll;
+    private int selectedSpawnEggEntityIndex;
     private int lorePainterWidth = 3;
     private int lorePainterHeight = 3;
     private boolean draggingLoreScroll;
@@ -218,6 +249,7 @@ public class ItemEditorScreen extends Screen {
     private final List<EditBox> loreBoxes = new ArrayList<>();
     private final List<EditBox> signBoxes = new ArrayList<>();
     private final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
+    private final Map<String, String> spawnEggNumberValueOverrides = new HashMap<>();
     private final Set<String> expandedNbtPaths = new HashSet<>();
     private final ItemStack enchantBook = new ItemStack(Items.ENCHANTED_BOOK);
     private final ItemStack potionIcon = new ItemStack(Items.POTION);
@@ -239,6 +271,8 @@ public class ItemEditorScreen extends Screen {
     private EditBox colorHexBox;
     private EditBox signCommandBox;
     private EditBox bannerPatternFilterBox;
+    private EditBox spawnEggEntityFilterBox;
+    private EditBox spawnEggCustomNameBox;
     private InfinityEditorButton attributeInfinityButton;
     private InfinityEditorButton attributeOperationButton;
     private InfinityEditorButton attributeSlotButton;
@@ -296,6 +330,8 @@ public class ItemEditorScreen extends Screen {
         this.colorHexBox = null;
         this.signCommandBox = null;
         this.bannerPatternFilterBox = null;
+        this.spawnEggEntityFilterBox = null;
+        this.spawnEggCustomNameBox = null;
         this.attributeInfinityButton = null;
         this.attributeOperationButton = null;
         this.attributeSlotButton = null;
@@ -321,6 +357,7 @@ public class ItemEditorScreen extends Screen {
             case COLOR -> addColorPanel();
             case SIGN -> addSignPanel();
             case BANNER -> addBannerPanel();
+            case SPAWN_EGG -> addSpawnEggPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
         }
@@ -360,6 +397,7 @@ public class ItemEditorScreen extends Screen {
             case COLOR -> renderColorPanel(guiGraphics);
             case SIGN -> renderSignPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
+            case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
             case NBT_ADVANCED -> {
@@ -410,6 +448,9 @@ public class ItemEditorScreen extends Screen {
         if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
             return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
+        if (this.activePanel == Panel.SPAWN_EGG && this.spawnEggEntityFilterBox != null && this.spawnEggEntityFilterBox.isFocused()) {
+            return this.spawnEggEntityFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
         return super.charTyped(codePoint, modifiers);
     }
 
@@ -427,6 +468,7 @@ public class ItemEditorScreen extends Screen {
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
+            case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
             case LORE_PAINTER -> handleLorePainterClick(mouseX, mouseY);
@@ -450,6 +492,17 @@ public class ItemEditorScreen extends Screen {
 
         if (this.activePanel == Panel.BANNER) {
             setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(delta));
+            return true;
+        }
+
+        if (this.activePanel == Panel.SPAWN_EGG) {
+            if (isMouseIn(mouseX, mouseY, 10, getSpawnEggEntityRowY(0) - 1, 170, SPAWN_EGG_ENTITY_ROWS * 10 + 2)) {
+                setSpawnEggEntityScroll(this.spawnEggEntityScroll - (int) Math.signum(delta));
+                rebuildWidgets();
+            } else {
+                setSpawnEggTagScroll(this.spawnEggTagScroll - (int) Math.signum(delta));
+                rebuildWidgets();
+            }
             return true;
         }
 
@@ -604,6 +657,12 @@ public class ItemEditorScreen extends Screen {
         if (isBannerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));
+            y += 30;
+        }
+
+        if (isSpawnEggItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("spawnegg")), button -> switchPanel(Panel.SPAWN_EGG)));
             y += 30;
         }
 
@@ -780,6 +839,75 @@ public class ItemEditorScreen extends Screen {
                 Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
         addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
                 Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
+    }
+
+    private void addSpawnEggPanel() {
+        this.spawnEggEntityFilterBox = addTrackedBox(legacyTextBox(10, 28, 145, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg.search"))));
+        this.spawnEggEntityFilterBox.setMaxLength(48);
+        this.spawnEggEntityFilterBox.setValue(this.spawnEggEntityFilterValue);
+        this.spawnEggEntityFilterBox.setResponder(value -> {
+            this.spawnEggEntityFilterValue = value.toLowerCase(Locale.ROOT);
+            this.spawnEggEntityScroll = 0;
+            this.selectedSpawnEggEntityIndex = 0;
+            this.spawnEggTagScroll = 0;
+            rebuildWidgets();
+            if (this.spawnEggEntityFilterBox != null) {
+                this.setFocused(this.spawnEggEntityFilterBox);
+                this.spawnEggEntityFilterBox.setFocused(true);
+                this.spawnEggEntityFilterBox.setCursorPosition(this.spawnEggEntityFilterBox.getValue().length());
+            }
+        });
+
+        int controlsX = getSpawnEggControlsX();
+        int width = getSpawnEggControlsWidth();
+        addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg.apply_entity")), button -> applySelectedSpawnEggEntity()));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 78, width, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg.sync_egg")), button -> syncSpawnEggToSelectedEntityItem()));
+
+        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg.clear_entity_tag")), button -> clearSpawnEggEntityTag()));
+        clear.active = this.previewStack.getTagElement(ENTITY_TAG) != null;
+
+        List<SpawnEggTagRow> rows = getSpawnEggTagRows();
+        setSpawnEggTagScroll(this.spawnEggTagScroll);
+        int end = Math.min(rows.size(), this.spawnEggTagScroll + SPAWN_EGG_TAG_ROWS);
+        for (int i = this.spawnEggTagScroll; i < end; i++) {
+            addSpawnEggTagControl(rows.get(i), getSpawnEggTagRowY(i - this.spawnEggTagScroll), controlsX, width);
+        }
+
+        addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                Component.literal("<"), button -> cycleSelectedSpawnEggEntity(-1)));
+        addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg.apply_entity")), button -> applySelectedSpawnEggEntity()));
+        addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                Component.literal(">"), button -> cycleSelectedSpawnEggEntity(1)));
+    }
+
+    private void addSpawnEggTagControl(SpawnEggTagRow row, int y, int controlsX, int width) {
+        if (row.type() == SpawnEggTagRowType.BOOLEAN) {
+            addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
+                    getSpawnEggBooleanText(row), button -> toggleSpawnEggBoolean(row)));
+            return;
+        }
+
+        EditBox box = addTrackedBox(legacyTextBox(controlsX + 70, y, width - 70, FIELD_HEIGHT,
+                Component.translatable(key("spawnegg." + row.translationSuffix()))));
+        box.setMaxLength(row.type() == SpawnEggTagRowType.CUSTOM_NAME ? 256 : 16);
+        box.setValue(row.type() == SpawnEggTagRowType.CUSTOM_NAME
+                ? this.spawnEggCustomNameValue
+                : getSpawnEggNumberValue(row));
+        if (row.type() == SpawnEggTagRowType.CUSTOM_NAME) {
+            this.spawnEggCustomNameBox = box;
+            box.setResponder(value -> {
+                this.spawnEggCustomNameValue = value;
+                applySpawnEggCustomName(value);
+            });
+        } else {
+            box.setFilter(value -> isAllowedSpawnEggNumber(value, row.numberType()));
+            box.setResponder(value -> applySpawnEggNumber(row, value));
+        }
     }
 
     private void addAttributesPanel() {
@@ -1231,6 +1359,58 @@ public class ItemEditorScreen extends Screen {
         renderBannerPatternLayers(guiGraphics);
     }
 
+    private void renderSpawnEggPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg")), this.midX, 15, MAIN_COLOR);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.midX, 78, 100.0F);
+        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.renderItem(this.previewStack, -8, -8);
+        guiGraphics.pose().popPose();
+
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.search")),
+                this.spawnEggEntityFilterBox.getX() + this.spawnEggEntityFilterBox.getWidth() / 2,
+                this.spawnEggEntityFilterBox.getY() - 12, MAIN_COLOR);
+
+        List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
+        clampSpawnEggEntitySelection(entities);
+        if (entities.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("spawnegg.no_match")), 12, 58, BAD_RED);
+        } else {
+            int end = Math.min(entities.size(), this.spawnEggEntityScroll + SPAWN_EGG_ENTITY_ROWS);
+            for (int i = this.spawnEggEntityScroll; i < end; i++) {
+                int y = getSpawnEggEntityRowY(i - this.spawnEggEntityScroll);
+                int color = i == this.selectedSpawnEggEntityIndex ? CONTRAST_COLOR : MAIN_COLOR;
+                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(formatSpawnEggEntityEntry(entities.get(i)), 170),
+                        12, y, color);
+            }
+        }
+
+        Component selected = entities.isEmpty()
+                ? Component.translatable(key("spawnegg.no_match"))
+                : getSpawnEggEntityName(entities.get(this.selectedSpawnEggEntityIndex));
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.selected"), selected),
+                this.midX, this.height - 78, MAIN_COLOR);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.current"), getCurrentSpawnEggEntityName()),
+                this.midX, 120, ALT_COLOR);
+
+        int controlsX = getSpawnEggControlsX();
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.tags")),
+                controlsX + getSpawnEggControlsWidth() / 2, getSpawnEggTagRowY(0) - 12, MAIN_COLOR);
+
+        List<SpawnEggTagRow> rows = getSpawnEggTagRows();
+        this.spawnEggTagScroll = Mth.clamp(this.spawnEggTagScroll, 0, Math.max(0, rows.size() - SPAWN_EGG_TAG_ROWS));
+        int end = Math.min(rows.size(), this.spawnEggTagScroll + SPAWN_EGG_TAG_ROWS);
+        for (int i = this.spawnEggTagScroll; i < end; i++) {
+            SpawnEggTagRow row = rows.get(i);
+            if (row.type() != SpawnEggTagRowType.BOOLEAN) {
+                drawRightLabel(guiGraphics, Component.translatable(key("spawnegg." + row.translationSuffix())),
+                        controlsX + 66, getSpawnEggTagRowY(i - this.spawnEggTagScroll) + 6);
+            }
+        }
+    }
+
     private void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("lore")), this.midX, 15, MAIN_COLOR);
@@ -1477,6 +1657,28 @@ public class ItemEditorScreen extends Screen {
         }
 
         this.selectedBannerPatternIndex = index;
+        return true;
+    }
+
+    private boolean handleSpawnEggClick(double mouseX, double mouseY) {
+        if (!isMouseIn(mouseX, mouseY, 10, getSpawnEggEntityRowY(0) - 1, 170, SPAWN_EGG_ENTITY_ROWS * 10 + 2)) {
+            return false;
+        }
+
+        List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
+        if (entities.isEmpty()) {
+            return false;
+        }
+
+        int row = ((int) mouseY - getSpawnEggEntityRowY(0)) / 10;
+        int index = this.spawnEggEntityScroll + row;
+        if (row < 0 || row >= SPAWN_EGG_ENTITY_ROWS || index < 0 || index >= entities.size()) {
+            return false;
+        }
+
+        this.selectedSpawnEggEntityIndex = index;
+        this.spawnEggTagScroll = 0;
+        rebuildWidgets();
         return true;
     }
 
@@ -2219,6 +2421,403 @@ public class ItemEditorScreen extends Screen {
             }
         }
         return null;
+    }
+
+    private void applySelectedSpawnEggEntity() {
+        SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
+        if (entry == null) {
+            this.status = Component.translatable(key("spawnegg.no_match"));
+            return;
+        }
+
+        writeSpawnEggEntityId(entry);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_entity_updated"), getSpawnEggEntityName(entry));
+        readSpawnEggFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    private void syncSpawnEggToSelectedEntityItem() {
+        SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
+        if (entry == null) {
+            this.status = Component.translatable(key("spawnegg.no_match"));
+            return;
+        }
+
+        SpawnEggItem eggItem = SpawnEggItem.byId(entry.type());
+        if (eggItem == null) {
+            this.status = Component.translatable(messageKey("editor_spawn_egg_no_matching_item"), getSpawnEggEntityName(entry));
+            return;
+        }
+
+        replacePreviewItem(eggItem);
+        writeSpawnEggEntityId(entry);
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_synced"), getSpawnEggEntityName(entry));
+        rebuildWidgets();
+    }
+
+    private void writeSpawnEggEntityId(SpawnEggEntityEntry entry) {
+        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
+        cleanupSpawnEggEntityTag(entityTag);
+    }
+
+    private void clearSpawnEggEntityTag() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null || !tag.contains(ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        tag.remove(ENTITY_TAG);
+        cleanupEmptyTag();
+        this.spawnEggCustomNameValue = "";
+        this.spawnEggNumberValueOverrides.clear();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_tag_cleared"));
+        readSpawnEggFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    private void toggleSpawnEggBoolean(SpawnEggTagRow row) {
+        if (!isSpawnEggItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        if (getSpawnEggBooleanValue(row)) {
+            entityTag.remove(row.tagKey());
+        } else {
+            entityTag.putBoolean(row.tagKey(), true);
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        rebuildWidgets();
+    }
+
+    private void applySpawnEggCustomName(String value) {
+        if (!isSpawnEggItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            entityTag.remove(ENTITY_CUSTOM_NAME_TAG);
+        } else {
+            entityTag.putString(ENTITY_CUSTOM_NAME_TAG, Component.Serializer.toJson(Component.literal(value)));
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+    }
+
+    private void applySpawnEggNumber(SpawnEggTagRow row, String value) {
+        if (!isSpawnEggItem(this.previewStack)) {
+            return;
+        }
+
+        String normalized = value == null ? "" : value.trim();
+        this.spawnEggNumberValueOverrides.put(row.tagKey(), normalized);
+        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        if (normalized.isEmpty()) {
+            entityTag.remove(row.tagKey());
+            this.spawnEggNumberValueOverrides.remove(row.tagKey());
+            cleanupSpawnEggEntityTag(entityTag);
+            return;
+        }
+        if (isPartialSpawnEggNumber(normalized)) {
+            return;
+        }
+
+        try {
+            double parsed = row.numberType() == SpawnEggNumberType.FLOAT
+                    ? Double.parseDouble(normalized)
+                    : Long.parseLong(normalized);
+            if (parsed < row.minValue() || parsed > row.maxValue()) {
+                this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
+                        Component.translatable(key("spawnegg." + row.translationSuffix())),
+                        formatSpawnEggNumber(row.minValue()),
+                        formatSpawnEggNumber(row.maxValue()));
+                return;
+            }
+
+            switch (row.numberType()) {
+                case BYTE -> entityTag.putByte(row.tagKey(), (byte) parsed);
+                case SHORT -> entityTag.putShort(row.tagKey(), (short) parsed);
+                case INT -> entityTag.putInt(row.tagKey(), (int) parsed);
+                case FLOAT -> entityTag.putFloat(row.tagKey(), (float) parsed);
+            }
+            cleanupSpawnEggEntityTag(entityTag);
+        } catch (NumberFormatException exception) {
+            this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
+                    Component.translatable(key("spawnegg." + row.translationSuffix())),
+                    formatSpawnEggNumber(row.minValue()),
+                    formatSpawnEggNumber(row.maxValue()));
+        }
+    }
+
+    private CompoundTag getOrCreateSpawnEggEntityTag() {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        tag.put(ENTITY_TAG, entityTag);
+        return entityTag;
+    }
+
+    private void cleanupSpawnEggEntityTag(CompoundTag entityTag) {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (entityTag.isEmpty()) {
+            tag.remove(ENTITY_TAG);
+        } else {
+            tag.put(ENTITY_TAG, entityTag);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private Component getSpawnEggBooleanText(SpawnEggTagRow row) {
+        return Component.translatable(key("spawnegg.option_state"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())),
+                Component.translatable(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
+    }
+
+    private boolean getSpawnEggBooleanValue(SpawnEggTagRow row) {
+        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        return entityTag != null && entityTag.contains(row.tagKey(), Tag.TAG_BYTE) && entityTag.getBoolean(row.tagKey());
+    }
+
+    private String getSpawnEggNumberValue(SpawnEggTagRow row) {
+        String override = this.spawnEggNumberValueOverrides.get(row.tagKey());
+        if (override != null) {
+            return override;
+        }
+
+        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        if (entityTag == null || !entityTag.contains(row.tagKey())) {
+            return "";
+        }
+
+        return switch (row.numberType()) {
+            case BYTE -> Byte.toString(entityTag.getByte(row.tagKey()));
+            case SHORT -> Short.toString(entityTag.getShort(row.tagKey()));
+            case INT -> Integer.toString(entityTag.getInt(row.tagKey()));
+            case FLOAT -> Float.toString(entityTag.getFloat(row.tagKey()));
+        };
+    }
+
+    private boolean isAllowedSpawnEggNumber(String value, SpawnEggNumberType type) {
+        if (value == null || value.isEmpty()) {
+            return true;
+        }
+        return type == SpawnEggNumberType.FLOAT
+                ? value.matches("-?\\d*(\\.\\d*)?")
+                : value.matches("-?\\d*");
+    }
+
+    private boolean isPartialSpawnEggNumber(String value) {
+        return "-".equals(value) || ".".equals(value) || "-.".equals(value);
+    }
+
+    private String formatSpawnEggNumber(double value) {
+        if (value == (long) value) {
+            return Long.toString((long) value);
+        }
+        return Double.toString(value);
+    }
+
+    private void setSpawnEggEntityScroll(int value) {
+        List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
+        int maxScroll = Math.max(0, entities.size() - SPAWN_EGG_ENTITY_ROWS);
+        this.spawnEggEntityScroll = Mth.clamp(value, 0, maxScroll);
+        clampSpawnEggEntitySelection(entities);
+        if (!entities.isEmpty()) {
+            int lastVisible = Math.min(entities.size() - 1, this.spawnEggEntityScroll + SPAWN_EGG_ENTITY_ROWS - 1);
+            this.selectedSpawnEggEntityIndex = Mth.clamp(this.selectedSpawnEggEntityIndex, this.spawnEggEntityScroll, lastVisible);
+        }
+    }
+
+    private void setSpawnEggTagScroll(int value) {
+        int maxScroll = Math.max(0, getSpawnEggTagRows().size() - SPAWN_EGG_TAG_ROWS);
+        this.spawnEggTagScroll = Mth.clamp(value, 0, maxScroll);
+    }
+
+    private void cycleSelectedSpawnEggEntity(int direction) {
+        List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
+        if (entities.isEmpty()) {
+            return;
+        }
+
+        this.selectedSpawnEggEntityIndex = Mth.positiveModulo(this.selectedSpawnEggEntityIndex + direction, entities.size());
+        this.spawnEggTagScroll = 0;
+        scrollSpawnEggSelectionIntoView(entities);
+        rebuildWidgets();
+    }
+
+    private void scrollSpawnEggSelectionIntoView(List<SpawnEggEntityEntry> entities) {
+        clampSpawnEggEntitySelection(entities);
+        if (entities.isEmpty()) {
+            return;
+        }
+
+        if (this.selectedSpawnEggEntityIndex < this.spawnEggEntityScroll) {
+            this.spawnEggEntityScroll = this.selectedSpawnEggEntityIndex;
+        } else if (this.selectedSpawnEggEntityIndex >= this.spawnEggEntityScroll + SPAWN_EGG_ENTITY_ROWS) {
+            this.spawnEggEntityScroll = this.selectedSpawnEggEntityIndex - SPAWN_EGG_ENTITY_ROWS + 1;
+        }
+        this.spawnEggEntityScroll = Mth.clamp(this.spawnEggEntityScroll, 0, Math.max(0, entities.size() - SPAWN_EGG_ENTITY_ROWS));
+    }
+
+    private void clampSpawnEggEntitySelection(List<SpawnEggEntityEntry> entities) {
+        if (entities.isEmpty()) {
+            this.selectedSpawnEggEntityIndex = 0;
+            this.spawnEggEntityScroll = 0;
+            return;
+        }
+
+        this.selectedSpawnEggEntityIndex = Mth.clamp(this.selectedSpawnEggEntityIndex, 0, entities.size() - 1);
+        this.spawnEggEntityScroll = Mth.clamp(this.spawnEggEntityScroll, 0, Math.max(0, entities.size() - SPAWN_EGG_ENTITY_ROWS));
+    }
+
+    private int getSpawnEggEntityRowY(int row) {
+        return 58 + row * 10;
+    }
+
+    private int getSpawnEggTagRowY(int row) {
+        return 138 + row * SPAWN_EGG_TAG_ROW_HEIGHT;
+    }
+
+    private int getSpawnEggControlsX() {
+        int width = getSpawnEggControlsWidth();
+        return Math.max(this.midX + 76, this.width - width - 10);
+    }
+
+    private int getSpawnEggControlsWidth() {
+        return 132;
+    }
+
+    private SpawnEggEntityEntry getSelectedSpawnEggEntityEntry() {
+        List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
+        clampSpawnEggEntitySelection(entities);
+        if (entities.isEmpty()) {
+            return null;
+        }
+        return entities.get(this.selectedSpawnEggEntityIndex);
+    }
+
+    private List<SpawnEggEntityEntry> getFilteredSpawnEggEntities() {
+        String filter = this.spawnEggEntityFilterValue == null ? "" : this.spawnEggEntityFilterValue.trim().toLowerCase(Locale.ROOT);
+        List<SpawnEggEntityEntry> entities = new ArrayList<>();
+        for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
+            if (!type.canSummon()) {
+                continue;
+            }
+
+            ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
+            if (id == null) {
+                continue;
+            }
+
+            String idString = id.toString().toLowerCase(Locale.ROOT);
+            String path = id.getPath().toLowerCase(Locale.ROOT);
+            String name = type.getDescription().getString().toLowerCase(Locale.ROOT);
+            if (filter.isEmpty() || idString.contains(filter) || path.contains(filter) || name.contains(filter)) {
+                entities.add(new SpawnEggEntityEntry(id, type));
+            }
+        }
+
+        entities.sort(Comparator
+                .comparing((SpawnEggEntityEntry entry) -> entry.type().getDescription().getString(), String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(entry -> entry.id().toString()));
+        return entities;
+    }
+
+    private String formatSpawnEggEntityEntry(SpawnEggEntityEntry entry) {
+        return getSpawnEggEntityName(entry).getString() + " (" + stripMinecraftNamespace(entry.id()) + ")";
+    }
+
+    private Component getSpawnEggEntityName(SpawnEggEntityEntry entry) {
+        return entry.type().getDescription();
+    }
+
+    private Component getCurrentSpawnEggEntityName() {
+        EntityType<?> type = getCurrentSpawnEggEntityType(this.previewStack);
+        if (type != null) {
+            return type.getDescription();
+        }
+
+        String rawId = getSpawnEggEntityIdOverride(this.previewStack);
+        return rawId.isEmpty() ? Component.translatable(key("spawnegg.default_entity")) : Component.literal(rawId);
+    }
+
+    private EntityType<?> getCurrentSpawnEggEntityType(ItemStack stack) {
+        String rawId = getSpawnEggEntityIdOverride(stack);
+        if (!rawId.isEmpty()) {
+            ResourceLocation id = ResourceLocation.tryParse(rawId);
+            EntityType<?> type = id == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(id);
+            if (type != null) {
+                return type;
+            }
+        }
+
+        if (stack.getItem() instanceof SpawnEggItem spawnEggItem) {
+            return spawnEggItem.getType(stack.getTag());
+        }
+        return null;
+    }
+
+    private String getSpawnEggEntityIdOverride(ItemStack stack) {
+        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        if (entityTag != null && entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            return entityTag.getString(ENTITY_ID_TAG);
+        }
+        return "";
+    }
+
+    private List<SpawnEggTagRow> getSpawnEggTagRows() {
+        List<SpawnEggTagRow> rows = new ArrayList<>(SPAWN_EGG_GENERAL_TAG_ROWS);
+        rows.addAll(getSpecificSpawnEggTagRows());
+        return rows;
+    }
+
+    private List<SpawnEggTagRow> getSpecificSpawnEggTagRows() {
+        SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
+        String path = entry == null ? "" : entry.id().getPath();
+        List<SpawnEggTagRow> rows = new ArrayList<>();
+        switch (path) {
+            case "chicken" -> rows.add(spawnEggInt("egg_lay_time", "EggLayTime", 0.0D, 20000.0D));
+            case "creeper" -> {
+                rows.add(spawnEggBoolean("creeper_powered", "powered"));
+                rows.add(spawnEggByte("explosion_radius", "ExplosionRadius", 0.0D, Byte.MAX_VALUE));
+                rows.add(spawnEggShort("fuse", "Fuse", 0.0D, 500.0D));
+                rows.add(spawnEggBoolean("ignited", "ignited"));
+            }
+            case "endermite" -> {
+                rows.add(spawnEggInt("life_time", "LifeTime", 0.0D, 3000.0D));
+                rows.add(spawnEggBoolean("player_spawned", "PlayerSpawned"));
+            }
+            case "parrot" -> rows.add(spawnEggInt("variant", "Variant", 0.0D, 4.0D));
+            case "pig" -> rows.add(spawnEggBoolean("saddle", "Saddle"));
+            case "sheep" -> {
+                rows.add(spawnEggInt("color", "Color", 0.0D, 15.0D));
+                rows.add(spawnEggBoolean("sheared", "Sheared"));
+            }
+            case "shulker" -> rows.add(spawnEggInt("color", "Color", 0.0D, 16.0D));
+            case "slime", "magma_cube" -> rows.add(spawnEggInt("size", "Size", 1.0D, 50.0D));
+            case "vindicator" -> rows.add(spawnEggBoolean("johnny", "Johnny"));
+            case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
+                rows.add(spawnEggBoolean("is_baby", "IsBaby"));
+                rows.add(spawnEggBoolean("can_break_doors", "CanBreakDoors"));
+                if ("zombified_piglin".equals(path)) {
+                    rows.add(spawnEggShort("anger", "Anger", 0.0D, 1000.0D));
+                }
+            }
+            default -> {
+            }
+        }
+        return rows;
     }
 
     private void updateRawNbt() {
@@ -3340,6 +3939,7 @@ public class ItemEditorScreen extends Screen {
 
         readSignFieldsFromStack(stack);
         readBannerFieldsFromStack(stack);
+        readSpawnEggFieldsFromStack(stack);
     }
 
     private String readLoreLine(String raw) {
@@ -3407,6 +4007,37 @@ public class ItemEditorScreen extends Screen {
         }
         this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
         clampBannerPatternSelection(getFilteredBannerPatterns());
+    }
+
+    private void readSpawnEggFieldsFromStack(ItemStack stack) {
+        this.spawnEggCustomNameValue = "";
+        this.spawnEggNumberValueOverrides.clear();
+        this.spawnEggTagScroll = 0;
+        if (!isSpawnEggItem(stack)) {
+            return;
+        }
+
+        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        if (entityTag != null && entityTag.contains(ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
+            this.spawnEggCustomNameValue = readSerializedComponent(entityTag.getString(ENTITY_CUSTOM_NAME_TAG)).getString();
+        }
+
+        EntityType<?> type = getCurrentSpawnEggEntityType(stack);
+        ResourceLocation id = type == null ? null : ForgeRegistries.ENTITY_TYPES.getKey(type);
+        if (id == null) {
+            clampSpawnEggEntitySelection(getFilteredSpawnEggEntities());
+            return;
+        }
+
+        List<SpawnEggEntityEntry> filtered = getFilteredSpawnEggEntities();
+        for (int i = 0; i < filtered.size(); i++) {
+            if (id.equals(filtered.get(i).id())) {
+                this.selectedSpawnEggEntityIndex = i;
+                scrollSpawnEggSelectionIntoView(filtered);
+                return;
+            }
+        }
+        clampSpawnEggEntitySelection(filtered);
     }
 
     private Component readSerializedComponent(String raw) {
@@ -3493,6 +4124,12 @@ public class ItemEditorScreen extends Screen {
         }
         if (this.bannerPatternFilterBox != null) {
             this.bannerPatternFilterValue = this.bannerPatternFilterBox.getValue();
+        }
+        if (this.spawnEggEntityFilterBox != null) {
+            this.spawnEggEntityFilterValue = this.spawnEggEntityFilterBox.getValue();
+        }
+        if (this.spawnEggCustomNameBox != null) {
+            this.spawnEggCustomNameValue = this.spawnEggCustomNameBox.getValue();
         }
     }
 
@@ -3581,6 +4218,10 @@ public class ItemEditorScreen extends Screen {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
     }
 
+    private static boolean isSpawnEggItem(ItemStack stack) {
+        return stack.getItem() instanceof SpawnEggItem;
+    }
+
     private static int getDefaultAttributeSlot(ItemStack stack) {
         if (stack.getItem() instanceof ArmorItem armorItem) {
             return getAttributeSlotNumber(armorItem.getEquipmentSlot());
@@ -3667,6 +4308,35 @@ public class ItemEditorScreen extends Screen {
         return "message." + ModSource.MODID + "." + suffix;
     }
 
+    private static SpawnEggTagRow spawnEggBoolean(String translationSuffix, String tagKey) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.BOOLEAN, null, 0.0D, 1.0D);
+    }
+
+    private static SpawnEggTagRow spawnEggCustomName() {
+        return new SpawnEggTagRow("custom_name", ENTITY_CUSTOM_NAME_TAG, SpawnEggTagRowType.CUSTOM_NAME, null, 0.0D, 0.0D);
+    }
+
+    private static SpawnEggTagRow spawnEggByte(String translationSuffix, String tagKey, double minValue, double maxValue) {
+        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.BYTE, minValue, maxValue);
+    }
+
+    private static SpawnEggTagRow spawnEggShort(String translationSuffix, String tagKey, double minValue, double maxValue) {
+        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.SHORT, minValue, maxValue);
+    }
+
+    private static SpawnEggTagRow spawnEggInt(String translationSuffix, String tagKey, double minValue, double maxValue) {
+        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.INT, minValue, maxValue);
+    }
+
+    private static SpawnEggTagRow spawnEggFloat(String translationSuffix, String tagKey, double minValue, double maxValue) {
+        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.FLOAT, minValue, maxValue);
+    }
+
+    private static SpawnEggTagRow spawnEggNumber(String translationSuffix, String tagKey,
+                                                SpawnEggNumberType numberType, double minValue, double maxValue) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType, minValue, maxValue);
+    }
+
     private enum Panel {
         ITEM,
         NBT,
@@ -3678,6 +4348,7 @@ public class ItemEditorScreen extends Screen {
         COLOR,
         SIGN,
         BANNER,
+        SPAWN_EGG,
         LORE,
         LORE_PAINTER
     }
@@ -3717,6 +4388,26 @@ public class ItemEditorScreen extends Screen {
     }
 
     private record BannerPatternEntry(String name, String hash) {
+    }
+
+    private record SpawnEggEntityEntry(ResourceLocation id, EntityType<?> type) {
+    }
+
+    private record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
+                                  SpawnEggNumberType numberType, double minValue, double maxValue) {
+    }
+
+    private enum SpawnEggTagRowType {
+        BOOLEAN,
+        NUMBER,
+        CUSTOM_NAME
+    }
+
+    private enum SpawnEggNumberType {
+        BYTE,
+        SHORT,
+        INT,
+        FLOAT
     }
 
     private static class LegacyTextEditBox extends EditBox {
