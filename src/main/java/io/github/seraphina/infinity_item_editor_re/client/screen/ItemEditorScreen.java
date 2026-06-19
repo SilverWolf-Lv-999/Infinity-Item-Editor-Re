@@ -33,6 +33,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.DyeableLeatherItem;
@@ -97,6 +98,71 @@ public class ItemEditorScreen extends Screen {
     private static final String SIGN_COLOR_TAG = "color";
     private static final String SIGN_GLOWING_TEXT_TAG = "has_glowing_text";
     private static final String LEGACY_SIGN_TEXT_TAG_PREFIX = "Text";
+    private static final String BANNER_PATTERNS_TAG = "Patterns";
+    private static final String BANNER_PATTERN_TAG = "Pattern";
+    private static final String BANNER_COLOR_TAG = "Color";
+    private static final String BANNER_BASE_TAG = "Base";
+    private static final int BANNER_PATTERN_ROWS = 8;
+    private static final Item[] BANNER_ITEMS_BY_DYE = {
+            Items.WHITE_BANNER,
+            Items.ORANGE_BANNER,
+            Items.MAGENTA_BANNER,
+            Items.LIGHT_BLUE_BANNER,
+            Items.YELLOW_BANNER,
+            Items.LIME_BANNER,
+            Items.PINK_BANNER,
+            Items.GRAY_BANNER,
+            Items.LIGHT_GRAY_BANNER,
+            Items.CYAN_BANNER,
+            Items.PURPLE_BANNER,
+            Items.BLUE_BANNER,
+            Items.BROWN_BANNER,
+            Items.GREEN_BANNER,
+            Items.RED_BANNER,
+            Items.BLACK_BANNER
+    };
+    private static final List<BannerPatternEntry> BANNER_PATTERN_ENTRIES = List.of(
+            new BannerPatternEntry("square_bottom_left", "bl"),
+            new BannerPatternEntry("square_bottom_right", "br"),
+            new BannerPatternEntry("square_top_left", "tl"),
+            new BannerPatternEntry("square_top_right", "tr"),
+            new BannerPatternEntry("stripe_bottom", "bs"),
+            new BannerPatternEntry("stripe_top", "ts"),
+            new BannerPatternEntry("stripe_left", "ls"),
+            new BannerPatternEntry("stripe_right", "rs"),
+            new BannerPatternEntry("stripe_center", "cs"),
+            new BannerPatternEntry("stripe_middle", "ms"),
+            new BannerPatternEntry("stripe_downright", "drs"),
+            new BannerPatternEntry("stripe_downleft", "dls"),
+            new BannerPatternEntry("small_stripes", "ss"),
+            new BannerPatternEntry("cross", "cr"),
+            new BannerPatternEntry("straight_cross", "sc"),
+            new BannerPatternEntry("triangle_bottom", "bt"),
+            new BannerPatternEntry("triangle_top", "tt"),
+            new BannerPatternEntry("triangles_bottom", "bts"),
+            new BannerPatternEntry("triangles_top", "tts"),
+            new BannerPatternEntry("diagonal_left", "ld"),
+            new BannerPatternEntry("diagonal_up_right", "rd"),
+            new BannerPatternEntry("diagonal_up_left", "lud"),
+            new BannerPatternEntry("diagonal_right", "rud"),
+            new BannerPatternEntry("circle", "mc"),
+            new BannerPatternEntry("rhombus", "mr"),
+            new BannerPatternEntry("half_vertical", "vh"),
+            new BannerPatternEntry("half_horizontal", "hh"),
+            new BannerPatternEntry("half_vertical_right", "vhr"),
+            new BannerPatternEntry("half_horizontal_bottom", "hhb"),
+            new BannerPatternEntry("border", "bo"),
+            new BannerPatternEntry("curly_border", "cbo"),
+            new BannerPatternEntry("gradient", "gra"),
+            new BannerPatternEntry("gradient_up", "gru"),
+            new BannerPatternEntry("bricks", "bri"),
+            new BannerPatternEntry("globe", "glb"),
+            new BannerPatternEntry("creeper", "cre"),
+            new BannerPatternEntry("skull", "sku"),
+            new BannerPatternEntry("flower", "flo"),
+            new BannerPatternEntry("mojang", "moj"),
+            new BannerPatternEntry("piglin", "pig")
+    );
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
@@ -119,6 +185,7 @@ public class ItemEditorScreen extends Screen {
     private String colorHexValue;
     private final String[] signLineValues = new String[SIGN_LINES];
     private String signCommandValue = "";
+    private String bannerPatternFilterValue = "";
     private String nbtFeedback = "";
     private boolean nbtFeedbackGood;
     private boolean showAllEnchantments;
@@ -136,6 +203,10 @@ public class ItemEditorScreen extends Screen {
     private int loreScroll;
     private int attributeSlot = 1;
     private int attributeOperation;
+    private int bannerBaseColor;
+    private int bannerPatternColor = DyeColor.BLACK.getId();
+    private int bannerPatternScroll;
+    private int selectedBannerPatternIndex;
     private int lorePainterWidth = 3;
     private int lorePainterHeight = 3;
     private boolean draggingLoreScroll;
@@ -167,6 +238,7 @@ public class ItemEditorScreen extends Screen {
     private EditBox attributeDecimalBox;
     private EditBox colorHexBox;
     private EditBox signCommandBox;
+    private EditBox bannerPatternFilterBox;
     private InfinityEditorButton attributeInfinityButton;
     private InfinityEditorButton attributeOperationButton;
     private InfinityEditorButton attributeSlotButton;
@@ -223,6 +295,7 @@ public class ItemEditorScreen extends Screen {
         this.attributeDecimalBox = null;
         this.colorHexBox = null;
         this.signCommandBox = null;
+        this.bannerPatternFilterBox = null;
         this.attributeInfinityButton = null;
         this.attributeOperationButton = null;
         this.attributeSlotButton = null;
@@ -247,6 +320,7 @@ public class ItemEditorScreen extends Screen {
             case ATTRIBUTES -> addAttributesPanel();
             case COLOR -> addColorPanel();
             case SIGN -> addSignPanel();
+            case BANNER -> addBannerPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
         }
@@ -285,6 +359,7 @@ public class ItemEditorScreen extends Screen {
             case ATTRIBUTES -> renderAttributesPanel(guiGraphics, mouseX, mouseY, partialTick);
             case COLOR -> renderColorPanel(guiGraphics);
             case SIGN -> renderSignPanel(guiGraphics);
+            case BANNER -> renderBannerPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
             case NBT_ADVANCED -> {
@@ -332,6 +407,9 @@ public class ItemEditorScreen extends Screen {
         if (this.activePanel == Panel.POTION && this.potionFilterBox != null && this.potionFilterBox.isFocused()) {
             return this.potionFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
+        if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
+            return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
         return super.charTyped(codePoint, modifiers);
     }
 
@@ -348,6 +426,7 @@ public class ItemEditorScreen extends Screen {
             case POTION -> handlePotionClick(mouseX, mouseY);
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
+            case BANNER -> handleBannerClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
             case LORE_PAINTER -> handleLorePainterClick(mouseX, mouseY);
@@ -366,6 +445,11 @@ public class ItemEditorScreen extends Screen {
 
         if (this.activePanel == Panel.LORE) {
             setLoreScroll(this.loreScroll - (int) Math.signum(delta));
+            return true;
+        }
+
+        if (this.activePanel == Panel.BANNER) {
+            setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(delta));
             return true;
         }
 
@@ -517,6 +601,12 @@ public class ItemEditorScreen extends Screen {
             y += 30;
         }
 
+        if (isBannerEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));
+            y += 30;
+        }
+
         if (canShowEnchantingButton(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("enchanting")), button -> switchPanel(Panel.ENCHANTMENTS)));
@@ -650,6 +740,46 @@ public class ItemEditorScreen extends Screen {
         this.signBoxes.add(this.signCommandBox);
 
         addFormatButtons();
+    }
+
+    private void addBannerPanel() {
+        this.bannerPatternFilterBox = addTrackedBox(legacyTextBox(10, 28, 125, FIELD_HEIGHT,
+                Component.translatable(key("banner.search"))));
+        this.bannerPatternFilterBox.setMaxLength(32);
+        this.bannerPatternFilterBox.setValue(this.bannerPatternFilterValue);
+        this.bannerPatternFilterBox.setResponder(value -> {
+            this.bannerPatternFilterValue = value.toLowerCase(Locale.ROOT);
+            this.bannerPatternScroll = 0;
+            this.selectedBannerPatternIndex = 0;
+        });
+
+        int controlsX = Math.max(this.midX + 76, this.width - 142);
+        int width = 132;
+        addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.base"), getDyeColorName(getBannerBaseColor())),
+                button -> cycleBannerBaseColor(Screen.hasShiftDown() ? -1 : 1)));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 78, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.pattern_color"), getDyeColorName(getBannerPatternColor())),
+                button -> cycleBannerPatternColor(Screen.hasShiftDown() ? -1 : 1)));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.swap")), button -> swapBannerAndShield()));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 130, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
+
+        InfinityEditorButton remove = addRenderableWidget(new InfinityEditorButton(controlsX, 156, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.remove")), button -> removeLastBannerPattern()));
+        remove.active = getBannerPatternCount() > 0;
+
+        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, 182, width, FIELD_HEIGHT,
+                Component.translatable(key("banner.clear")), button -> clearBannerPatterns()));
+        clear.active = getBannerPatternCount() > 0;
+
+        addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                Component.literal("<"), button -> cycleSelectedBannerPattern(-1)));
+        addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
+        addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
     }
 
     private void addAttributesPanel() {
@@ -1064,6 +1194,43 @@ public class ItemEditorScreen extends Screen {
         }
     }
 
+    private void renderBannerPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("banner")), this.midX, 15, MAIN_COLOR);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.midX, 78, 100.0F);
+        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.renderItem(this.previewStack, -8, -8);
+        guiGraphics.pose().popPose();
+
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("banner.search")),
+                this.bannerPatternFilterBox.getX() + this.bannerPatternFilterBox.getWidth() / 2,
+                this.bannerPatternFilterBox.getY() - 12, MAIN_COLOR);
+
+        List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
+        clampBannerPatternSelection(patterns);
+        if (patterns.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_match")), 12, 58, BAD_RED);
+        } else {
+            int end = Math.min(patterns.size(), this.bannerPatternScroll + BANNER_PATTERN_ROWS);
+            for (int i = this.bannerPatternScroll; i < end; i++) {
+                int y = getBannerPatternRowY(i - this.bannerPatternScroll);
+                int color = i == this.selectedBannerPatternIndex ? CONTRAST_COLOR : MAIN_COLOR;
+                Component name = getBannerPatternName(patterns.get(i), getBannerPatternColor());
+                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(name.getString(), 145), 12, y, color);
+            }
+        }
+
+        Component selected = patterns.isEmpty()
+                ? Component.translatable(key("banner.no_match"))
+                : getBannerPatternName(patterns.get(this.selectedBannerPatternIndex), getBannerPatternColor());
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("banner.selected"), selected),
+                this.midX, this.height - 78, MAIN_COLOR);
+
+        renderBannerPatternLayers(guiGraphics);
+    }
+
     private void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("lore")), this.midX, 15, MAIN_COLOR);
@@ -1293,6 +1460,26 @@ public class ItemEditorScreen extends Screen {
         return true;
     }
 
+    private boolean handleBannerClick(double mouseX, double mouseY) {
+        if (!isMouseIn(mouseX, mouseY, 10, getBannerPatternRowY(0) - 1, 150, BANNER_PATTERN_ROWS * 10 + 2)) {
+            return false;
+        }
+
+        List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
+        if (patterns.isEmpty()) {
+            return false;
+        }
+
+        int row = ((int) mouseY - getBannerPatternRowY(0)) / 10;
+        int index = this.bannerPatternScroll + row;
+        if (row < 0 || row >= BANNER_PATTERN_ROWS || index < 0 || index >= patterns.size()) {
+            return false;
+        }
+
+        this.selectedBannerPatternIndex = index;
+        return true;
+    }
+
     private boolean handleLoreClick(double mouseX, double mouseY) {
         if (isMouseIn(mouseX, mouseY, this.width - 15, 50, 11, this.height - 99)) {
             this.draggingLoreScroll = true;
@@ -1450,6 +1637,9 @@ public class ItemEditorScreen extends Screen {
             applyLoreToStack();
             if (this.activePanel == Panel.SIGN) {
                 applySignToStack();
+            }
+            if (this.activePanel == Panel.BANNER) {
+                readBannerFieldsFromStack(this.previewStack);
             }
             this.rawNbtValue = getInitialNbt(this.previewStack);
             return true;
@@ -1729,6 +1919,306 @@ public class ItemEditorScreen extends Screen {
         for (int i = 0; i < SIGN_LINES; i++) {
             blockEntity.remove(LEGACY_SIGN_TEXT_TAG_PREFIX + (i + 1));
         }
+    }
+
+    private void addSelectedBannerPattern() {
+        if (!isBannerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
+        clampBannerPatternSelection(patterns);
+        if (patterns.isEmpty()) {
+            this.status = Component.translatable(key("banner.no_match"));
+            return;
+        }
+
+        BannerPatternEntry entry = patterns.get(this.selectedBannerPatternIndex);
+        DyeColor color = getBannerPatternColor();
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag blockEntity = getOrCreateBannerBlockEntityTag();
+        if (this.previewStack.is(Items.SHIELD) && !blockEntity.contains(BANNER_BASE_TAG, Tag.TAG_INT)) {
+            blockEntity.putInt(BANNER_BASE_TAG, getBannerBaseColor().getId());
+        }
+
+        ListTag bannerPatterns = blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)
+                ? blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND).copy()
+                : new ListTag();
+        CompoundTag patternTag = new CompoundTag();
+        patternTag.putString(BANNER_PATTERN_TAG, entry.hash());
+        patternTag.putInt(BANNER_COLOR_TAG, color.getId());
+        bannerPatterns.add(patternTag);
+        blockEntity.put(BANNER_PATTERNS_TAG, bannerPatterns);
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_banner_pattern_added"), getBannerPatternName(entry, color));
+        rebuildWidgets();
+    }
+
+    private void removeLastBannerPattern() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (!blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag patterns = blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
+        if (patterns.isEmpty()) {
+            return;
+        }
+
+        patterns.remove(patterns.size() - 1);
+        if (patterns.isEmpty()) {
+            blockEntity.remove(BANNER_PATTERNS_TAG);
+        } else {
+            blockEntity.put(BANNER_PATTERNS_TAG, patterns);
+        }
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_banner_pattern_removed"));
+        rebuildWidgets();
+    }
+
+    private void clearBannerPatterns() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (!blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        blockEntity.remove(BANNER_PATTERNS_TAG);
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_banner_patterns_cleared"));
+        rebuildWidgets();
+    }
+
+    private void cycleBannerBaseColor(int direction) {
+        DyeColor color = DyeColor.byId(Mth.positiveModulo(getBannerBaseColor().getId() + direction, DyeColor.values().length));
+        setBannerBaseColor(color);
+        this.status = Component.translatable(messageKey("editor_banner_base_updated"), getDyeColorName(color));
+        rebuildWidgets();
+    }
+
+    private void cycleBannerPatternColor(int direction) {
+        this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor + direction, DyeColor.values().length);
+        rebuildWidgets();
+    }
+
+    private void cycleSelectedBannerPattern(int direction) {
+        List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
+        if (patterns.isEmpty()) {
+            return;
+        }
+
+        this.selectedBannerPatternIndex = Mth.positiveModulo(this.selectedBannerPatternIndex + direction, patterns.size());
+        scrollBannerPatternSelectionIntoView(patterns);
+    }
+
+    private void setBannerPatternScroll(int value) {
+        List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
+        int maxScroll = Math.max(0, patterns.size() - BANNER_PATTERN_ROWS);
+        this.bannerPatternScroll = Mth.clamp(value, 0, maxScroll);
+        clampBannerPatternSelection(patterns);
+        if (!patterns.isEmpty()) {
+            int lastVisible = Math.min(patterns.size() - 1, this.bannerPatternScroll + BANNER_PATTERN_ROWS - 1);
+            this.selectedBannerPatternIndex = Mth.clamp(this.selectedBannerPatternIndex, this.bannerPatternScroll, lastVisible);
+        }
+    }
+
+    private void scrollBannerPatternSelectionIntoView(List<BannerPatternEntry> patterns) {
+        clampBannerPatternSelection(patterns);
+        if (patterns.isEmpty()) {
+            return;
+        }
+
+        if (this.selectedBannerPatternIndex < this.bannerPatternScroll) {
+            this.bannerPatternScroll = this.selectedBannerPatternIndex;
+        } else if (this.selectedBannerPatternIndex >= this.bannerPatternScroll + BANNER_PATTERN_ROWS) {
+            this.bannerPatternScroll = this.selectedBannerPatternIndex - BANNER_PATTERN_ROWS + 1;
+        }
+        this.bannerPatternScroll = Mth.clamp(this.bannerPatternScroll, 0, Math.max(0, patterns.size() - BANNER_PATTERN_ROWS));
+    }
+
+    private void clampBannerPatternSelection(List<BannerPatternEntry> patterns) {
+        if (patterns.isEmpty()) {
+            this.selectedBannerPatternIndex = 0;
+            this.bannerPatternScroll = 0;
+            return;
+        }
+
+        this.selectedBannerPatternIndex = Mth.clamp(this.selectedBannerPatternIndex, 0, patterns.size() - 1);
+        this.bannerPatternScroll = Mth.clamp(this.bannerPatternScroll, 0, Math.max(0, patterns.size() - BANNER_PATTERN_ROWS));
+    }
+
+    private int getBannerPatternRowY(int row) {
+        return 58 + row * 10;
+    }
+
+    private List<BannerPatternEntry> getFilteredBannerPatterns() {
+        String filter = this.bannerPatternFilterValue == null ? "" : this.bannerPatternFilterValue.trim().toLowerCase(Locale.ROOT);
+        if (filter.isEmpty()) {
+            return new ArrayList<>(BANNER_PATTERN_ENTRIES);
+        }
+
+        DyeColor color = getBannerPatternColor();
+        List<BannerPatternEntry> patterns = new ArrayList<>();
+        for (BannerPatternEntry entry : BANNER_PATTERN_ENTRIES) {
+            String idName = entry.name().toLowerCase(Locale.ROOT);
+            String spacedName = idName.replace('_', ' ');
+            String hash = entry.hash().toLowerCase(Locale.ROOT);
+            String displayName = getBannerPatternName(entry, color).getString().toLowerCase(Locale.ROOT);
+            if (idName.contains(filter) || spacedName.contains(filter) || hash.contains(filter) || displayName.contains(filter)) {
+                patterns.add(entry);
+            }
+        }
+        return patterns;
+    }
+
+    private Component getBannerPatternName(BannerPatternEntry entry, DyeColor color) {
+        return Component.translatable("block.minecraft.banner." + entry.name() + "." + color.getName());
+    }
+
+    private void renderBannerPatternLayers(GuiGraphics guiGraphics) {
+        ListTag patterns = getBannerPatterns();
+        int x = this.midX - 70;
+        int y = 124;
+        guiGraphics.drawString(this.font, Component.translatable(key("banner.layers")), x, y, MAIN_COLOR);
+        if (patterns.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_layers")), x, y + 12, ALT_COLOR);
+            return;
+        }
+
+        int first = Math.max(0, patterns.size() - 7);
+        for (int i = first; i < patterns.size(); i++) {
+            CompoundTag patternTag = patterns.getCompound(i);
+            DyeColor color = DyeColor.byId(patternTag.getInt(BANNER_COLOR_TAG));
+            BannerPatternEntry entry = getBannerPatternEntry(patternTag.getString(BANNER_PATTERN_TAG));
+            Component name = entry == null
+                    ? Component.literal(patternTag.getString(BANNER_PATTERN_TAG))
+                    : getBannerPatternName(entry, color);
+            String text = (i + 1) + ". " + name.getString();
+            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text, 150), x, y + 12 + (i - first) * 10, MAIN_COLOR);
+        }
+    }
+
+    private void swapBannerAndShield() {
+        if (!isBannerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        DyeColor baseColor = getBannerBaseColor();
+        if (this.previewStack.is(Items.SHIELD)) {
+            replacePreviewItem(BANNER_ITEMS_BY_DYE[baseColor.getId()]);
+            removeBannerBaseColorTag();
+        } else {
+            replacePreviewItem(Items.SHIELD);
+            CompoundTag tag = this.previewStack.getOrCreateTag();
+            CompoundTag blockEntity = getOrCreateBannerBlockEntityTag();
+            blockEntity.putInt(BANNER_BASE_TAG, baseColor.getId());
+            cleanupBlockEntityTag(tag, blockEntity);
+        }
+
+        this.bannerBaseColor = getBannerBaseColor().getId();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_banner_swapped"));
+        rebuildWidgets();
+    }
+
+    private void setBannerBaseColor(DyeColor color) {
+        this.bannerBaseColor = color.getId();
+        if (this.previewStack.is(Items.SHIELD)) {
+            CompoundTag tag = this.previewStack.getOrCreateTag();
+            CompoundTag blockEntity = getOrCreateBannerBlockEntityTag();
+            blockEntity.putInt(BANNER_BASE_TAG, color.getId());
+            cleanupBlockEntityTag(tag, blockEntity);
+        } else if (this.previewStack.getItem() instanceof BannerItem) {
+            replacePreviewItem(BANNER_ITEMS_BY_DYE[color.getId()]);
+            removeBannerBaseColorTag();
+        }
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void replacePreviewItem(Item item) {
+        CompoundTag tag = this.previewStack.getTag() == null ? null : this.previewStack.getTag().copy();
+        int count = this.previewStack.getCount() <= 0 ? 1 : this.previewStack.getCount();
+        int damage = this.previewStack.getDamageValue();
+        this.previewStack = new ItemStack(item, count);
+        this.previewStack.setTag(tag);
+        this.damageValue = Integer.toString(Math.min(getDamageMaxForField(this.previewStack), Math.max(0, damage)));
+        this.previewStack.setDamageValue(Integer.parseInt(this.damageValue));
+        ResourceLocation id = ForgeRegistries.ITEMS.getKey(item);
+        this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
+        this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
+    }
+
+    private void removeBannerBaseColorTag() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        blockEntity.remove(BANNER_BASE_TAG);
+        cleanupBlockEntityTag(tag, blockEntity);
+    }
+
+    private DyeColor getBannerBaseColor() {
+        if (this.previewStack.getItem() instanceof BannerItem bannerItem) {
+            return bannerItem.getColor();
+        }
+        if (this.previewStack.is(Items.SHIELD)) {
+            CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
+            if (blockEntity != null && blockEntity.contains(BANNER_BASE_TAG, Tag.TAG_INT)) {
+                return DyeColor.byId(blockEntity.getInt(BANNER_BASE_TAG));
+            }
+        }
+        return DyeColor.WHITE;
+    }
+
+    private DyeColor getBannerPatternColor() {
+        this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
+        return DyeColor.byId(this.bannerPatternColor);
+    }
+
+    private Component getDyeColorName(DyeColor color) {
+        return Component.translatable("color.minecraft." + color.getName());
+    }
+
+    private int getBannerPatternCount() {
+        return getBannerPatterns().size();
+    }
+
+    private ListTag getBannerPatterns() {
+        CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity == null || !blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+            return new ListTag();
+        }
+        return blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
+    }
+
+    private CompoundTag getOrCreateBannerBlockEntityTag() {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        tag.put(BLOCK_ENTITY_TAG, blockEntity);
+        return blockEntity;
+    }
+
+    private BannerPatternEntry getBannerPatternEntry(String hash) {
+        for (BannerPatternEntry entry : BANNER_PATTERN_ENTRIES) {
+            if (entry.hash().equals(hash)) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private void updateRawNbt() {
@@ -2849,6 +3339,7 @@ public class ItemEditorScreen extends Screen {
         }
 
         readSignFieldsFromStack(stack);
+        readBannerFieldsFromStack(stack);
     }
 
     private String readLoreLine(String raw) {
@@ -2903,6 +3394,19 @@ public class ItemEditorScreen extends Screen {
                 this.signCommandValue = clickEvent.getValue();
             }
         }
+    }
+
+    private void readBannerFieldsFromStack(ItemStack stack) {
+        this.bannerBaseColor = DyeColor.WHITE.getId();
+        if (isBannerEditableItem(stack)) {
+            this.bannerBaseColor = getBannerBaseColor().getId();
+            ListTag patterns = getBannerPatterns();
+            if (!patterns.isEmpty()) {
+                this.bannerPatternColor = DyeColor.byId(patterns.getCompound(patterns.size() - 1).getInt(BANNER_COLOR_TAG)).getId();
+            }
+        }
+        this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
+        clampBannerPatternSelection(getFilteredBannerPatterns());
     }
 
     private Component readSerializedComponent(String raw) {
@@ -2987,6 +3491,9 @@ public class ItemEditorScreen extends Screen {
         if (this.signCommandBox != null) {
             this.signCommandValue = this.signCommandBox.getValue();
         }
+        if (this.bannerPatternFilterBox != null) {
+            this.bannerPatternFilterValue = this.bannerPatternFilterBox.getValue();
+        }
     }
 
     private CompoundTag parseNbt(String nbt) throws CommandSyntaxException {
@@ -3068,6 +3575,10 @@ public class ItemEditorScreen extends Screen {
 
     private static boolean isSignItem(ItemStack stack) {
         return stack.getItem() instanceof SignItem;
+    }
+
+    private static boolean isBannerEditableItem(ItemStack stack) {
+        return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
     }
 
     private static int getDefaultAttributeSlot(ItemStack stack) {
@@ -3166,6 +3677,7 @@ public class ItemEditorScreen extends Screen {
         ATTRIBUTES,
         COLOR,
         SIGN,
+        BANNER,
         LORE,
         LORE_PAINTER
     }
@@ -3202,6 +3714,9 @@ public class ItemEditorScreen extends Screen {
     }
 
     private record NbtRow(String path, String displayText, boolean isExpandable, int depth) {
+    }
+
+    private record BannerPatternEntry(String name, String hash) {
     }
 
     private static class LegacyTextEditBox extends EditBox {
