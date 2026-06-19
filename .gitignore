@@ -1,0 +1,12 @@
+build/
+.gradle/
+runs/
+.idea/
+checkstyleidea.tmp/
+out/
+tmp/
+bin/
+.vscode/
+run/
+SRG/
+run-data/
