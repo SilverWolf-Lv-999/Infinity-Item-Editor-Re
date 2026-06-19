@@ -24,6 +24,7 @@
   "screen.infinity_item_editor_re.armorstand": "盔甲架编辑",
   "screen.infinity_item_editor_re.firework": "烟花编辑",
   "screen.infinity_item_editor_re.container": "容器编辑",
+  "screen.infinity_item_editor_re.container.inventory_clone": "物品栏副本",
   "screen.infinity_item_editor_re.banner": "旗帜编辑",
   "screen.infinity_item_editor_re.book": "书本编辑",
   "screen.infinity_item_editor_re.hideflags": "隐藏标签",

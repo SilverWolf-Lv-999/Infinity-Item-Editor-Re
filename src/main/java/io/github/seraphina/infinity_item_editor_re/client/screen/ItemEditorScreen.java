@@ -678,7 +678,7 @@ public class ItemEditorScreen extends Screen {
 
         if (isContainerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
-                    Component.translatable(key("container")), button -> switchPanel(Panel.CONTAINER)));
+                    Component.translatable(key("container")), button -> openContainerItemEditor()));
             y += 30;
         }
 
@@ -2076,6 +2076,25 @@ public class ItemEditorScreen extends Screen {
         this.activePanel = panel;
         this.status = Component.empty();
         rebuildWidgets();
+    }
+
+    private void openContainerItemEditor() {
+        if (this.minecraft == null || this.minecraft.player == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true) || !isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+        this.status = Component.empty();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.minecraft.setScreen(ContainerItemScreen.create(this, this.minecraft.player, this.previewStack));
+    }
+
+    void refreshAfterContainerEdit() {
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.containerSlotNbtValue = getContainerSelectedSlotNbt();
+        this.nbtFeedback = "";
     }
 
     private void goBack() {

@@ -24,6 +24,7 @@
   "screen.infinity_item_editor_re.armorstand": "Armor Stand Editor",
   "screen.infinity_item_editor_re.firework": "Firework Editor",
   "screen.infinity_item_editor_re.container": "Container Editor",
+  "screen.infinity_item_editor_re.container.inventory_clone": "Inventory Clone",
   "screen.infinity_item_editor_re.banner": "Banner Editor",
   "screen.infinity_item_editor_re.book": "Book Editor",
   "screen.infinity_item_editor_re.hideflags": "Hide Flags",
