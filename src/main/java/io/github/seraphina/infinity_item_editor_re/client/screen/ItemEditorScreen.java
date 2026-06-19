@@ -31,17 +31,22 @@ import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeMod;
@@ -102,9 +107,46 @@ public class ItemEditorScreen extends Screen {
     private static final String BANNER_COLOR_TAG = "Color";
     private static final String BANNER_BASE_TAG = "Base";
     private static final int BANNER_PATTERN_ROWS = 8;
+    private static final String BOOK_TITLE_TAG = "title";
+    private static final String BOOK_AUTHOR_TAG = "author";
+    private static final String BOOK_GENERATION_TAG = "generation";
+    private static final String BOOK_RESOLVED_TAG = "resolved";
+    private static final String BOOK_PAGES_TAG = "pages";
+    private static final int MAX_BOOK_GENERATION = 3;
+    private static final String SKULL_OWNER_TAG = "SkullOwner";
+    private static final String SKULL_OWNER_ID_TAG = "Id";
+    private static final String SKULL_OWNER_NAME_TAG = "Name";
+    private static final String SKULL_PROPERTIES_TAG = "Properties";
+    private static final String SKULL_TEXTURES_TAG = "textures";
+    private static final String SKULL_TEXTURE_VALUE_TAG = "Value";
+    private static final String SKULL_TEXTURE_SIGNATURE_TAG = "Signature";
     private static final String ENTITY_TAG = "EntityTag";
     private static final String ENTITY_ID_TAG = "id";
     private static final String ENTITY_CUSTOM_NAME_TAG = "CustomName";
+    private static final String ARMOR_STAND_SHOW_ARMS_TAG = "ShowArms";
+    private static final String ARMOR_STAND_SMALL_TAG = "Small";
+    private static final String ARMOR_STAND_INVISIBLE_TAG = "Invisible";
+    private static final String ARMOR_STAND_NO_BASE_PLATE_TAG = "NoBasePlate";
+    private static final String ARMOR_STAND_MARKER_TAG = "Marker";
+    private static final String ARMOR_STAND_NO_GRAVITY_TAG = "NoGravity";
+    private static final String ARMOR_STAND_INVULNERABLE_TAG = "Invulnerable";
+    private static final String FIREWORKS_TAG = "Fireworks";
+    private static final String FIREWORK_FLIGHT_TAG = "Flight";
+    private static final String FIREWORK_EXPLOSIONS_TAG = "Explosions";
+    private static final String FIREWORK_EXPLOSION_TAG = "Explosion";
+    private static final String FIREWORK_TYPE_TAG = "Type";
+    private static final String FIREWORK_COLORS_TAG = "Colors";
+    private static final String FIREWORK_FADE_COLORS_TAG = "FadeColors";
+    private static final String FIREWORK_FLICKER_TAG = "Flicker";
+    private static final String FIREWORK_TRAIL_TAG = "Trail";
+    private static final int MAX_FIREWORK_FLIGHT = 4;
+    private static final int FIREWORK_EXPLOSION_TYPES = 5;
+    private static final String CONTAINER_ITEMS_TAG = "Items";
+    private static final String CONTAINER_SLOT_TAG = "Slot";
+    private static final int CONTAINER_ROWS = 3;
+    private static final int CONTAINER_COLUMNS = 9;
+    private static final int CONTAINER_SIZE = CONTAINER_ROWS * CONTAINER_COLUMNS;
+    private static final int CONTAINER_SLOT_PIXEL_SIZE = 18;
     private static final int SPAWN_EGG_ENTITY_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
@@ -130,6 +172,13 @@ public class ItemEditorScreen extends Screen {
     private String colorHexValue;
     private final String[] signLineValues = new String[SIGN_LINES];
     private String signCommandValue = "";
+    private String bookTitleValue = "";
+    private String bookAuthorValue = "";
+    private String headOwnerValue = "";
+    private String headUuidValue = "";
+    private String headTextureValue = "";
+    private String headTextureSignatureValue = "";
+    private String containerSlotNbtValue = "{}";
     private String bannerPatternFilterValue = "";
     private String spawnEggEntityFilterValue = "";
     private String spawnEggCustomNameValue = "";
@@ -142,6 +191,7 @@ public class ItemEditorScreen extends Screen {
     private boolean syncingColorControls;
     private boolean lorePainterDragging;
     private boolean lorePainterPreview;
+    private CompoundTag rememberedSignedBookData;
     private int rotOff;
     private int mouseDist;
     private int midX;
@@ -154,12 +204,18 @@ public class ItemEditorScreen extends Screen {
     private int bannerPatternColor = DyeColor.BLACK.getId();
     private int bannerPatternScroll;
     private int selectedBannerPatternIndex;
+    private int fireworkExplosionType;
+    private int fireworkColor = DyeColor.RED.getId();
+    private int fireworkFadeColor = -1;
+    private int selectedContainerSlot;
     private int spawnEggEntityScroll;
     private int spawnEggTagScroll;
     private int selectedSpawnEggEntityIndex;
     private int lorePainterWidth = 3;
     private int lorePainterHeight = 3;
     private boolean draggingLoreScroll;
+    private boolean fireworkFlicker;
+    private boolean fireworkTrail;
 
     private final List<String> loreValues = new ArrayList<>();
     private final List<List<LorePixel>> lorePainterRows = new ArrayList<>();
@@ -189,6 +245,13 @@ public class ItemEditorScreen extends Screen {
     private EditBox attributeDecimalBox;
     private EditBox colorHexBox;
     private EditBox signCommandBox;
+    private EditBox bookTitleBox;
+    private EditBox bookAuthorBox;
+    private EditBox headOwnerBox;
+    private EditBox headUuidBox;
+    private EditBox headTextureBox;
+    private EditBox headTextureSignatureBox;
+    private EditBox containerSlotNbtBox;
     private EditBox bannerPatternFilterBox;
     private EditBox spawnEggEntityFilterBox;
     private EditBox spawnEggCustomNameBox;
@@ -248,6 +311,13 @@ public class ItemEditorScreen extends Screen {
         this.attributeDecimalBox = null;
         this.colorHexBox = null;
         this.signCommandBox = null;
+        this.bookTitleBox = null;
+        this.bookAuthorBox = null;
+        this.headOwnerBox = null;
+        this.headUuidBox = null;
+        this.headTextureBox = null;
+        this.headTextureSignatureBox = null;
+        this.containerSlotNbtBox = null;
         this.bannerPatternFilterBox = null;
         this.spawnEggEntityFilterBox = null;
         this.spawnEggCustomNameBox = null;
@@ -275,8 +345,13 @@ public class ItemEditorScreen extends Screen {
             case ATTRIBUTES -> addAttributesPanel();
             case COLOR -> addColorPanel();
             case SIGN -> addSignPanel();
+            case HEAD -> addHeadPanel();
+            case ARMOR_STAND -> addArmorStandPanel();
+            case FIREWORK -> addFireworkPanel();
+            case CONTAINER -> addContainerPanel();
             case BANNER -> addBannerPanel();
             case SPAWN_EGG -> addSpawnEggPanel();
+            case BOOK -> addBookPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
         }
@@ -315,8 +390,13 @@ public class ItemEditorScreen extends Screen {
             case ATTRIBUTES -> renderAttributesPanel(guiGraphics, mouseX, mouseY, partialTick);
             case COLOR -> renderColorPanel(guiGraphics);
             case SIGN -> renderSignPanel(guiGraphics);
+            case HEAD -> renderHeadPanel(guiGraphics);
+            case ARMOR_STAND -> renderArmorStandPanel(guiGraphics);
+            case FIREWORK -> renderFireworkPanel(guiGraphics);
+            case CONTAINER -> renderContainerPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
             case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
+            case BOOK -> renderBookPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
             case NBT_ADVANCED -> {
@@ -349,6 +429,10 @@ public class ItemEditorScreen extends Screen {
             }
             if (this.activePanel == Panel.COLOR) {
                 applyColorFromHex(true);
+                return true;
+            }
+            if (this.activePanel == Panel.CONTAINER) {
+                updateContainerSlotFromNbt();
                 return true;
             }
         }
@@ -386,6 +470,7 @@ public class ItemEditorScreen extends Screen {
             case POTION -> handlePotionClick(mouseX, mouseY);
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
+            case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
             case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
@@ -573,6 +658,30 @@ public class ItemEditorScreen extends Screen {
             y += 30;
         }
 
+        if (isPlayerHeadItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("head")), button -> switchPanel(Panel.HEAD)));
+            y += 30;
+        }
+
+        if (isArmorStandItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND)));
+            y += 30;
+        }
+
+        if (isFireworkEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("firework")), button -> switchPanel(Panel.FIREWORK)));
+            y += 30;
+        }
+
+        if (isContainerEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("container")), button -> switchPanel(Panel.CONTAINER)));
+            y += 30;
+        }
+
         if (isBannerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));
@@ -594,6 +703,12 @@ public class ItemEditorScreen extends Screen {
         if (isPotionItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("potion")), button -> switchPanel(Panel.POTION)));
+            y += 30;
+        }
+
+        if (isBookEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("book")), button -> switchPanel(Panel.BOOK)));
         }
     }
 
@@ -718,6 +833,191 @@ public class ItemEditorScreen extends Screen {
         this.signBoxes.add(this.signCommandBox);
 
         addFormatButtons();
+    }
+
+    private void addBookPanel() {
+        boolean written = this.previewStack.is(Items.WRITTEN_BOOK);
+        int fieldWidth = Math.max(120, Math.min(220, this.width - 160));
+        int x = this.midX - fieldWidth / 2;
+
+        this.bookTitleBox = addTrackedBox(legacyTextBox(x, 70, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("book.title"))));
+        this.bookTitleBox.setMaxLength(100);
+        this.bookTitleBox.setValue(this.bookTitleValue == null ? "" : this.bookTitleValue);
+        this.bookTitleBox.setResponder(value -> {
+            this.bookTitleValue = value;
+            applyBookMetadataToStack();
+        });
+        this.mainTextBoxes.add(this.bookTitleBox);
+
+        this.bookAuthorBox = addTrackedBox(legacyTextBox(x, 100, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("book.author"))));
+        this.bookAuthorBox.setMaxLength(100);
+        this.bookAuthorBox.setValue(this.bookAuthorValue == null ? "" : this.bookAuthorValue);
+        this.bookAuthorBox.setResponder(value -> {
+            this.bookAuthorValue = value;
+            applyBookMetadataToStack();
+        });
+        this.mainTextBoxes.add(this.bookAuthorBox);
+
+        InfinityEditorButton generation = addRenderableWidget(new InfinityEditorButton(this.midX - 75, 140, 150, FIELD_HEIGHT,
+                Component.translatable(key("book.generation"), getBookGeneration()), button -> cycleBookGeneration()));
+        generation.active = written;
+
+        InfinityEditorButton resolved = addRenderableWidget(new InfinityEditorButton(this.midX - 75, 170, 150, FIELD_HEIGHT,
+                getBookResolvedText(), button -> toggleBookResolved()));
+        resolved.active = written;
+
+        addRenderableWidget(new InfinityEditorButton(this.midX - 75, 200, 150, FIELD_HEIGHT,
+                getBookSignButtonText(), button -> toggleBookSignedState()));
+
+        addFormatButtons();
+    }
+
+    private void addHeadPanel() {
+        int fieldWidth = Math.max(180, Math.min(320, this.width - 160));
+        int x = this.midX - fieldWidth / 2;
+
+        this.headOwnerBox = addTrackedBox(legacyTextBox(x, 64, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("head.owner"))));
+        this.headOwnerBox.setMaxLength(64);
+        this.headOwnerBox.setValue(this.headOwnerValue == null ? "" : this.headOwnerValue);
+        this.headOwnerBox.setResponder(value -> {
+            this.headOwnerValue = value;
+            applyHeadToStack();
+        });
+        this.mainTextBoxes.add(this.headOwnerBox);
+
+        this.headUuidBox = addTrackedBox(legacyTextBox(x, 94, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("head.uuid"))));
+        this.headUuidBox.setMaxLength(36);
+        this.headUuidBox.setValue(this.headUuidValue == null ? "" : this.headUuidValue);
+        this.headUuidBox.setResponder(value -> {
+            this.headUuidValue = value;
+            applyHeadToStack();
+        });
+        this.mainTextBoxes.add(this.headUuidBox);
+
+        this.headTextureBox = addTrackedBox(legacyTextBox(x, 124, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("head.texture"))));
+        this.headTextureBox.setMaxLength(4096);
+        this.headTextureBox.setValue(this.headTextureValue == null ? "" : this.headTextureValue);
+        this.headTextureBox.setResponder(value -> {
+            this.headTextureValue = value;
+            applyHeadToStack();
+        });
+        this.mainTextBoxes.add(this.headTextureBox);
+
+        this.headTextureSignatureBox = addTrackedBox(legacyTextBox(x, 154, fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("head.signature"))));
+        this.headTextureSignatureBox.setMaxLength(4096);
+        this.headTextureSignatureBox.setValue(this.headTextureSignatureValue == null ? "" : this.headTextureSignatureValue);
+        this.headTextureSignatureBox.setResponder(value -> {
+            this.headTextureSignatureValue = value;
+            applyHeadToStack();
+        });
+        this.mainTextBoxes.add(this.headTextureSignatureBox);
+
+        addRenderableWidget(new InfinityEditorButton(this.midX - 105, 190, 100, FIELD_HEIGHT,
+                Component.translatable(key("head.random_uuid")), button -> randomizeHeadUuid()));
+        addRenderableWidget(new InfinityEditorButton(this.midX + 5, 190, 100, FIELD_HEIGHT,
+                Component.translatable(key("head.clear_owner")), button -> clearHeadOwner()));
+    }
+
+    private void addArmorStandPanel() {
+        int x = this.midX - 75;
+        int y = 54;
+        addArmorStandToggleButton(x, y, "show_arms", ARMOR_STAND_SHOW_ARMS_TAG);
+        addArmorStandToggleButton(x, y + 26, "small", ARMOR_STAND_SMALL_TAG);
+        addArmorStandToggleButton(x, y + 52, "invisible", ARMOR_STAND_INVISIBLE_TAG);
+        addArmorStandToggleButton(x, y + 78, "no_base_plate", ARMOR_STAND_NO_BASE_PLATE_TAG);
+        addArmorStandToggleButton(x, y + 104, "marker", ARMOR_STAND_MARKER_TAG);
+        addArmorStandToggleButton(x, y + 130, "no_gravity", ARMOR_STAND_NO_GRAVITY_TAG);
+        addArmorStandToggleButton(x, y + 156, "invulnerable", ARMOR_STAND_INVULNERABLE_TAG);
+        addRenderableWidget(new InfinityEditorButton(x, y + 190, 150, FIELD_HEIGHT,
+                Component.translatable(key("armorstand.clear_entity_tag")), button -> clearArmorStandEntityTag()));
+    }
+
+    private void addArmorStandToggleButton(int x, int y, String translationSuffix, String tagKey) {
+        addRenderableWidget(new InfinityEditorButton(x, y, 150, FIELD_HEIGHT,
+                getArmorStandToggleText(translationSuffix, tagKey), button -> toggleArmorStandFlag(tagKey, translationSuffix)));
+    }
+
+    private void addFireworkPanel() {
+        int x = this.midX - 78;
+        int y = 52;
+        int width = 156;
+
+        if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                    Component.translatable(key("firework.flight"), getFireworkFlight()), button -> cycleFireworkFlight()));
+            y += 26;
+        }
+
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.type"), getFireworkTypeName(this.fireworkExplosionType)),
+                button -> cycleFireworkExplosionType(Screen.hasShiftDown() ? -1 : 1)));
+        y += 26;
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.flicker." + (this.fireworkFlicker ? 1 : 0))),
+                button -> toggleFireworkFlicker()));
+        y += 26;
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.trail." + (this.fireworkTrail ? 1 : 0))),
+                button -> toggleFireworkTrail()));
+        y += 26;
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.color"), getDyeColorName(getFireworkDyeColor(this.fireworkColor))),
+                button -> cycleFireworkColor(false, Screen.hasShiftDown() ? -1 : 1)));
+        y += 26;
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.fade_color"), getFireworkFadeColorText()),
+                button -> cycleFireworkColor(true, Screen.hasShiftDown() ? -1 : 1)));
+        y += 26;
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                Component.translatable(key("firework.random_colors")), button -> randomizeFireworkColors()));
+        y += 26;
+
+        if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                    Component.translatable(key("firework.add_explosion")), button -> addFireworkExplosion()));
+            y += 26;
+            InfinityEditorButton remove = addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                    Component.translatable(key("firework.remove_explosion")), button -> removeLastFireworkExplosion()));
+            remove.active = getFireworkExplosionCount() > 0;
+            y += 26;
+            InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                    Component.translatable(key("firework.clear_fireworks")), button -> clearFireworkData()));
+            clear.active = hasFireworkData();
+        } else {
+            InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
+                    Component.translatable(key("firework.clear_explosion")), button -> clearFireworkData()));
+            clear.active = hasFireworkData();
+        }
+    }
+
+    private void addContainerPanel() {
+        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, CONTAINER_SIZE - 1);
+        int boxWidth = Math.min(300, Math.max(180, this.width - 40));
+        this.containerSlotNbtBox = addTrackedBox(legacyTextBox(this.midX - boxWidth / 2, 132, boxWidth, FIELD_HEIGHT,
+                Component.translatable(key("container.slot_nbt"))));
+        this.containerSlotNbtBox.setMaxLength(20000);
+        this.containerSlotNbtBox.setValue(this.containerSlotNbtValue == null ? getContainerSelectedSlotNbt() : this.containerSlotNbtValue);
+        this.containerSlotNbtBox.setResponder(value -> this.containerSlotNbtValue = value);
+
+        int controlsWidth = 270;
+        int x = this.midX - controlsWidth / 2;
+        addRenderableWidget(new InfinityEditorButton(x, 158, 24, FIELD_HEIGHT,
+                Component.literal("<"), button -> cycleContainerSlot(-1)));
+        addRenderableWidget(new InfinityEditorButton(x + 28, 158, 24, FIELD_HEIGHT,
+                Component.literal(">"), button -> cycleContainerSlot(1)));
+        addRenderableWidget(new InfinityEditorButton(x + 58, 158, 84, FIELD_HEIGHT,
+                Component.translatable(key("container.update_slot")), button -> updateContainerSlotFromNbt()));
+        addRenderableWidget(new InfinityEditorButton(x + 146, 158, 58, FIELD_HEIGHT,
+                Component.translatable(key("container.clear_slot")), button -> clearContainerSlot()));
+        InfinityEditorButton clearAll = addRenderableWidget(new InfinityEditorButton(x + 208, 158, 62, FIELD_HEIGHT,
+                Component.translatable(key("container.clear_all")), button -> clearContainerItems()));
+        clearAll.active = getContainerItemCount() > 0;
     }
 
     private void addBannerPanel() {
@@ -1081,6 +1381,57 @@ public class ItemEditorScreen extends Screen {
         renderSimpleItemPanelTitle(guiGraphics, "hideflags", 40);
     }
 
+    private void renderBookPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        renderSmallItem(guiGraphics, this.midX, 40);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("book")), this.midX, 15, MAIN_COLOR);
+        if (this.bookTitleBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("book.title")), this.bookTitleBox.getX() - 5, this.bookTitleBox.getY() + 6);
+        }
+        if (this.bookAuthorBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("book.author")), this.bookAuthorBox.getX() - 5, this.bookAuthorBox.getY() + 6);
+        }
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("book.pages"), getBookPageCount()),
+                this.midX, 128, CONTRAST_COLOR);
+    }
+
+    private void renderHeadPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        renderPrettyNbt(guiGraphics);
+        renderSmallItem(guiGraphics, this.midX, 36);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("head")), this.midX, 15, MAIN_COLOR);
+        if (this.headOwnerBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("head.owner")), this.headOwnerBox.getX() - 5, this.headOwnerBox.getY() + 6);
+        }
+        if (this.headUuidBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("head.uuid")), this.headUuidBox.getX() - 5, this.headUuidBox.getY() + 6);
+        }
+        if (this.headTextureBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("head.texture")), this.headTextureBox.getX() - 5, this.headTextureBox.getY() + 6);
+        }
+        if (this.headTextureSignatureBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("head.signature")),
+                    this.headTextureSignatureBox.getX() - 5, this.headTextureSignatureBox.getY() + 6);
+        }
+    }
+
+    private void renderArmorStandPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        renderPrettyNbt(guiGraphics);
+        renderSmallItem(guiGraphics, this.midX, 36);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("armorstand")), this.midX, 15, MAIN_COLOR);
+    }
+
+    private void renderFireworkPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        renderPrettyNbt(guiGraphics);
+        renderSmallItem(guiGraphics, this.midX, 36);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("firework")), this.midX, 15, MAIN_COLOR);
+        int infoX = Math.min(this.width - 155, this.midX + 96);
+        guiGraphics.drawString(this.font, Component.translatable(key("firework.explosions"), getFireworkExplosionCount()),
+                infoX, 58, CONTRAST_COLOR);
+    }
+
     private void renderSimpleItemPanelTitle(GuiGraphics guiGraphics, String titleKey, int itemY) {
         renderSmallItem(guiGraphics, this.midX, itemY);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key(titleKey)), this.midX, 15, MAIN_COLOR);
@@ -1238,6 +1589,39 @@ public class ItemEditorScreen extends Screen {
         if (this.signCommandBox != null) {
             drawRightLabel(guiGraphics, Component.translatable(key("sign.command")),
                     this.signCommandBox.getX() - 5, this.signCommandBox.getY() + 6);
+        }
+    }
+
+    private void renderContainerPanel(GuiGraphics guiGraphics) {
+        renderSmallItem(guiGraphics, this.midX, 34);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("container")), this.midX, 15, MAIN_COLOR);
+
+        int gridX = getContainerGridX();
+        int gridY = getContainerGridY();
+        for (int slot = 0; slot < CONTAINER_SIZE; slot++) {
+            int x = gridX + (slot % CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
+            int y = gridY + (slot / CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
+            boolean selected = slot == this.selectedContainerSlot;
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, selected ? CONTRAST_COLOR : 0xFF555555);
+            guiGraphics.fill(x, y, x + ITEM_SIZE, y + ITEM_SIZE, 0xFF1C1C1C);
+
+            ItemStack slotStack = getContainerSlotItem(slot);
+            if (!slotStack.isEmpty()) {
+                guiGraphics.renderItem(slotStack, x, y);
+                guiGraphics.renderItemDecorations(this.font, slotStack, x, y);
+            }
+        }
+
+        Component selected = Component.translatable(key("container.slot"), this.selectedContainerSlot + 1);
+        Component itemCount = Component.translatable(key("container.items"), getContainerItemCount());
+        int infoY = gridY + CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 6;
+        guiGraphics.drawString(this.font, selected, gridX, infoY, MAIN_COLOR);
+        guiGraphics.drawString(this.font, itemCount,
+                gridX + CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE - this.font.width(itemCount), infoY, ALT_COLOR);
+        if (this.containerSlotNbtBox != null) {
+            guiGraphics.drawCenteredString(this.font, Component.translatable(key("container.slot_nbt")),
+                    this.containerSlotNbtBox.getX() + this.containerSlotNbtBox.getWidth() / 2,
+                    this.containerSlotNbtBox.getY() - 12, MAIN_COLOR);
         }
     }
 
@@ -1479,6 +1863,22 @@ public class ItemEditorScreen extends Screen {
             if (isMouseIn(mouseX, mouseY, this.midX - 9, 27, 18, 18)) {
                 guiGraphics.renderTooltip(this.font, this.previewStack, mouseX, mouseY);
             }
+        } else if (this.activePanel == Panel.CONTAINER) {
+            int slot = getHoveredContainerSlot(mouseX, mouseY);
+            if (slot >= 0) {
+                ItemStack slotStack = getContainerSlotItem(slot);
+                if (!slotStack.isEmpty()) {
+                    guiGraphics.renderTooltip(this.font, slotStack, mouseX, mouseY);
+                } else {
+                    guiGraphics.renderTooltip(this.font, Component.translatable(key("container.empty_slot")), mouseX, mouseY);
+                }
+                return;
+            }
+            if (this.containerSlotNbtBox != null && this.containerSlotNbtBox.getValue().length() > 20
+                    && isMouseIn(mouseX, mouseY, this.containerSlotNbtBox.getX(), this.containerSlotNbtBox.getY(),
+                    this.containerSlotNbtBox.getWidth(), this.containerSlotNbtBox.getHeight())) {
+                guiGraphics.renderTooltip(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
+            }
         } else if (this.activePanel == Panel.LORE_PAINTER) {
             if (this.lorePainterScaleButton != null && isMouseIn(mouseX, mouseY,
                     this.lorePainterScaleButton.getX(), this.lorePainterScaleButton.getY(),
@@ -1556,6 +1956,31 @@ public class ItemEditorScreen extends Screen {
         addDyeToColor(colors[index]);
         syncColorControlsFromStack();
         this.status = Component.translatable(messageKey("editor_color_updated"), this.colorHexValue);
+        return true;
+    }
+
+    private boolean handleContainerClick(double mouseX, double mouseY) {
+        int gridX = getContainerGridX();
+        int gridY = getContainerGridY();
+        int gridWidth = CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE;
+        int gridHeight = CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE;
+        if (!isMouseIn(mouseX, mouseY, gridX - 1, gridY - 1, gridWidth + 2, gridHeight + 2)) {
+            return false;
+        }
+
+        int column = ((int) mouseX - gridX) / CONTAINER_SLOT_PIXEL_SIZE;
+        int row = ((int) mouseY - gridY) / CONTAINER_SLOT_PIXEL_SIZE;
+        int slot = column + row * CONTAINER_COLUMNS;
+        if (column < 0 || column >= CONTAINER_COLUMNS || row < 0 || row >= CONTAINER_ROWS || slot < 0 || slot >= CONTAINER_SIZE) {
+            return false;
+        }
+
+        this.selectedContainerSlot = slot;
+        this.containerSlotNbtValue = getContainerSelectedSlotNbt();
+        if (this.containerSlotNbtBox != null) {
+            this.containerSlotNbtBox.setValue(this.containerSlotNbtValue);
+            this.containerSlotNbtBox.setCursorPosition(0);
+        }
         return true;
     }
 
@@ -1758,6 +2183,12 @@ public class ItemEditorScreen extends Screen {
             applyLoreToStack();
             if (this.activePanel == Panel.SIGN) {
                 applySignToStack();
+            }
+            if (this.activePanel == Panel.BOOK) {
+                applyBookMetadataToStack();
+            }
+            if (this.activePanel == Panel.HEAD) {
+                applyHeadToStack();
             }
             if (this.activePanel == Panel.BANNER) {
                 readBannerFieldsFromStack(this.previewStack);
@@ -1991,6 +2422,704 @@ public class ItemEditorScreen extends Screen {
         removeLegacySignText(blockEntity);
         cleanupBlockEntityTag(tag, blockEntity);
         this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void applyBookMetadataToStack() {
+        if (!this.previewStack.is(Items.WRITTEN_BOOK)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        tag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
+        tag.putString(BOOK_AUTHOR_TAG, this.bookAuthorValue == null ? "" : this.bookAuthorValue);
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void cycleBookGeneration() {
+        if (!this.previewStack.is(Items.WRITTEN_BOOK)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        int next = Mth.positiveModulo(tag.getInt(BOOK_GENERATION_TAG) + 1, MAX_BOOK_GENERATION + 1);
+        if (next == 0) {
+            tag.remove(BOOK_GENERATION_TAG);
+        } else {
+            tag.putInt(BOOK_GENERATION_TAG, next);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_book_generation_updated"), next);
+        rebuildWidgets();
+    }
+
+    private void toggleBookResolved() {
+        if (!this.previewStack.is(Items.WRITTEN_BOOK)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        if (tag.getBoolean(BOOK_RESOLVED_TAG)) {
+            tag.remove(BOOK_RESOLVED_TAG);
+        } else {
+            tag.putBoolean(BOOK_RESOLVED_TAG, true);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_book_resolved_updated"));
+        rebuildWidgets();
+    }
+
+    private void toggleBookSignedState() {
+        captureFieldValues();
+        if (this.previewStack.is(Items.WRITTEN_BOOK)) {
+            unsignBook();
+        } else if (this.previewStack.is(Items.WRITABLE_BOOK)) {
+            signBook();
+        }
+    }
+
+    private void unsignBook() {
+        CompoundTag originalTag = this.previewStack.getTag();
+        this.rememberedSignedBookData = originalTag == null ? new CompoundTag() : originalTag.copy();
+        ItemStack writableBook = new ItemStack(Items.WRITABLE_BOOK, Math.max(1, this.previewStack.getCount()));
+        CompoundTag writableTag = originalTag == null ? null : originalTag.copy();
+        if (writableTag != null) {
+            convertWrittenPagesToWritable(writableTag);
+            writableTag.remove(BOOK_TITLE_TAG);
+            writableTag.remove(BOOK_AUTHOR_TAG);
+            writableTag.remove(BOOK_GENERATION_TAG);
+            writableTag.remove(BOOK_RESOLVED_TAG);
+            if (writableTag.isEmpty()) {
+                writableTag = null;
+            }
+        }
+        writableBook.setTag(writableTag);
+        this.previewStack = writableBook;
+        readMainFieldsFromStack(this.previewStack);
+        this.bookTitleValue = this.rememberedSignedBookData.getString(BOOK_TITLE_TAG);
+        this.bookAuthorValue = this.rememberedSignedBookData.getString(BOOK_AUTHOR_TAG);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_book_unsigned"));
+        rebuildWidgets();
+    }
+
+    private void signBook() {
+        ItemStack writtenBook = new ItemStack(Items.WRITTEN_BOOK, Math.max(1, this.previewStack.getCount()));
+        CompoundTag writableTag = this.previewStack.getTag();
+        CompoundTag signedTag = writableTag == null ? new CompoundTag() : writableTag.copy();
+        convertWritablePagesToWritten(signedTag);
+
+        int generation = 0;
+        boolean resolved = false;
+        if (this.rememberedSignedBookData != null) {
+            generation = Mth.clamp(this.rememberedSignedBookData.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+            resolved = this.rememberedSignedBookData.getBoolean(BOOK_RESOLVED_TAG);
+        }
+
+        signedTag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
+        signedTag.putString(BOOK_AUTHOR_TAG, this.bookAuthorValue == null ? "" : this.bookAuthorValue);
+        if (generation == 0) {
+            signedTag.remove(BOOK_GENERATION_TAG);
+        } else {
+            signedTag.putInt(BOOK_GENERATION_TAG, generation);
+        }
+        if (resolved) {
+            signedTag.putBoolean(BOOK_RESOLVED_TAG, true);
+        } else {
+            signedTag.remove(BOOK_RESOLVED_TAG);
+        }
+
+        writtenBook.setTag(signedTag.isEmpty() ? null : signedTag);
+        this.previewStack = writtenBook;
+        this.rememberedSignedBookData = null;
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_book_signed"));
+        rebuildWidgets();
+    }
+
+    private void convertWrittenPagesToWritable(CompoundTag tag) {
+        if (!tag.contains(BOOK_PAGES_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag pages = tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING);
+        ListTag converted = new ListTag();
+        for (int i = 0; i < pages.size(); i++) {
+            converted.add(StringTag.valueOf(readSerializedComponent(pages.getString(i)).getString()));
+        }
+        tag.put(BOOK_PAGES_TAG, converted);
+    }
+
+    private void convertWritablePagesToWritten(CompoundTag tag) {
+        if (!tag.contains(BOOK_PAGES_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag pages = tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING);
+        ListTag converted = new ListTag();
+        for (int i = 0; i < pages.size(); i++) {
+            converted.add(StringTag.valueOf(Component.Serializer.toJson(readBookPageComponent(pages.getString(i)))));
+        }
+        tag.put(BOOK_PAGES_TAG, converted);
+    }
+
+    private Component readBookPageComponent(String raw) {
+        Component parsed = readSerializedComponent(raw);
+        if (!parsed.getString().equals(raw) || isProbablyJsonText(raw)) {
+            return parsed;
+        }
+        return Component.literal(raw);
+    }
+
+    private boolean isProbablyJsonText(String raw) {
+        String value = raw == null ? "" : raw.trim();
+        return value.startsWith("{") || value.startsWith("[") || value.startsWith("\"");
+    }
+
+    private void applyHeadToStack() {
+        if (!isPlayerHeadItem(this.previewStack)) {
+            return;
+        }
+
+        String ownerName = normalizeHeadText(this.headOwnerValue);
+        String uuidText = normalizeHeadText(this.headUuidValue);
+        String textureValue = normalizeHeadText(this.headTextureValue);
+        String textureSignature = normalizeHeadText(this.headTextureSignatureValue);
+        UUID uuid = parseUuidOrNull(uuidText);
+
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        if (ownerName.isEmpty() && uuidText.isEmpty() && textureValue.isEmpty()) {
+            tag.remove(SKULL_OWNER_TAG);
+            cleanupEmptyTag();
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
+        if (textureValue.isEmpty() && uuid == null && !ownerName.isEmpty()) {
+            tag.putString(SKULL_OWNER_TAG, ownerName);
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
+        CompoundTag skullOwner = new CompoundTag();
+        if (!ownerName.isEmpty()) {
+            skullOwner.putString(SKULL_OWNER_NAME_TAG, ownerName);
+        }
+        if (uuid != null) {
+            skullOwner.putUUID(SKULL_OWNER_ID_TAG, uuid);
+        }
+        if (!textureValue.isEmpty()) {
+            CompoundTag properties = new CompoundTag();
+            ListTag textures = new ListTag();
+            CompoundTag texture = new CompoundTag();
+            texture.putString(SKULL_TEXTURE_VALUE_TAG, textureValue);
+            if (!textureSignature.isEmpty()) {
+                texture.putString(SKULL_TEXTURE_SIGNATURE_TAG, textureSignature);
+            }
+            textures.add(texture);
+            properties.put(SKULL_TEXTURES_TAG, textures);
+            skullOwner.put(SKULL_PROPERTIES_TAG, properties);
+        }
+
+        tag.put(SKULL_OWNER_TAG, skullOwner);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void clearHeadOwner() {
+        this.headOwnerValue = "";
+        this.headUuidValue = "";
+        this.headTextureValue = "";
+        this.headTextureSignatureValue = "";
+        if (this.headOwnerBox != null) {
+            this.headOwnerBox.setValue("");
+        }
+        if (this.headUuidBox != null) {
+            this.headUuidBox.setValue("");
+        }
+        if (this.headTextureBox != null) {
+            this.headTextureBox.setValue("");
+        }
+        if (this.headTextureSignatureBox != null) {
+            this.headTextureSignatureBox.setValue("");
+        }
+        applyHeadToStack();
+        this.status = Component.translatable(messageKey("editor_head_cleared"));
+    }
+
+    private void randomizeHeadUuid() {
+        this.headUuidValue = UUID.randomUUID().toString();
+        if (this.headUuidBox != null) {
+            this.headUuidBox.setValue(this.headUuidValue);
+        }
+        applyHeadToStack();
+        this.status = Component.translatable(messageKey("editor_head_uuid_randomized"));
+    }
+
+    private void toggleArmorStandFlag(String tagKey, String translationSuffix) {
+        if (!isArmorStandItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateArmorStandEntityTag();
+        if (entityTag.getBoolean(tagKey)) {
+            entityTag.remove(tagKey);
+        } else {
+            entityTag.putBoolean(tagKey, true);
+        }
+        cleanupArmorStandEntityTag(entityTag);
+        this.status = Component.translatable(messageKey("editor_armor_stand_updated"),
+                Component.translatable(key("armorstand." + translationSuffix + ".label")));
+        rebuildWidgets();
+    }
+
+    private void clearArmorStandEntityTag() {
+        if (!isArmorStandItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null || !tag.contains(ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        CompoundTag currentEntityTag = tag.getCompound(ENTITY_TAG);
+        CompoundTag clearedEntityTag = new CompoundTag();
+        if (currentEntityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            clearedEntityTag.putString(ENTITY_ID_TAG, currentEntityTag.getString(ENTITY_ID_TAG));
+        }
+        if (clearedEntityTag.isEmpty()) {
+            tag.remove(ENTITY_TAG);
+        } else {
+            tag.put(ENTITY_TAG, clearedEntityTag);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_armor_stand_cleared"));
+        rebuildWidgets();
+    }
+
+    private CompoundTag getOrCreateArmorStandEntityTag() {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        tag.put(ENTITY_TAG, entityTag);
+        return entityTag;
+    }
+
+    private void cleanupArmorStandEntityTag(CompoundTag entityTag) {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (entityTag.isEmpty()) {
+            tag.remove(ENTITY_TAG);
+        } else {
+            tag.put(ENTITY_TAG, entityTag);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private Component getArmorStandToggleText(String translationSuffix, String tagKey) {
+        return Component.translatable(key("armorstand." + translationSuffix + "." + (getArmorStandFlag(tagKey) ? 1 : 0)));
+    }
+
+    private boolean getArmorStandFlag(String tagKey) {
+        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        return entityTag != null && entityTag.getBoolean(tagKey);
+    }
+
+    private void cycleFireworkFlight() {
+        if (!this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            return;
+        }
+
+        CompoundTag fireworks = getOrCreateFireworksTag();
+        int next = getFireworkFlight() + 1;
+        if (next > MAX_FIREWORK_FLIGHT) {
+            next = 1;
+        }
+        fireworks.putByte(FIREWORK_FLIGHT_TAG, (byte) next);
+        cleanupFireworksTag(fireworks);
+        this.status = Component.translatable(messageKey("editor_firework_flight_updated"), next);
+        rebuildWidgets();
+    }
+
+    private void cycleFireworkExplosionType(int direction) {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        this.fireworkExplosionType = Mth.positiveModulo(this.fireworkExplosionType + direction, FIREWORK_EXPLOSION_TYPES);
+        applyFireworkControlsToStack();
+        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        rebuildWidgets();
+    }
+
+    private void toggleFireworkFlicker() {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        this.fireworkFlicker = !this.fireworkFlicker;
+        applyFireworkControlsToStack();
+        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        rebuildWidgets();
+    }
+
+    private void toggleFireworkTrail() {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        this.fireworkTrail = !this.fireworkTrail;
+        applyFireworkControlsToStack();
+        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        rebuildWidgets();
+    }
+
+    private void cycleFireworkColor(boolean fade, int direction) {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        int colorCount = DyeColor.values().length;
+        if (fade) {
+            int selected = this.fireworkFadeColor < 0 ? 0 : this.fireworkFadeColor + 1;
+            selected = Mth.positiveModulo(selected + direction, colorCount + 1);
+            this.fireworkFadeColor = selected == 0 ? -1 : selected - 1;
+        } else {
+            this.fireworkColor = Mth.positiveModulo(this.fireworkColor + direction, colorCount);
+        }
+        applyFireworkControlsToStack();
+        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        rebuildWidgets();
+    }
+
+    private void randomizeFireworkColors() {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        int colorCount = DyeColor.values().length;
+        this.fireworkColor = ThreadLocalRandom.current().nextInt(colorCount);
+        this.fireworkFadeColor = ThreadLocalRandom.current().nextInt(colorCount + 1) - 1;
+        applyFireworkControlsToStack();
+        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        rebuildWidgets();
+    }
+
+    private void addFireworkExplosion() {
+        if (!this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            return;
+        }
+
+        CompoundTag fireworks = getOrCreateFireworksTag();
+        if (!fireworks.contains(FIREWORK_FLIGHT_TAG, Tag.TAG_BYTE)) {
+            fireworks.putByte(FIREWORK_FLIGHT_TAG, (byte) getFireworkFlight());
+        }
+        ListTag explosions = fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)
+                ? fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).copy()
+                : new ListTag();
+        explosions.add(createFireworkExplosionTag());
+        fireworks.put(FIREWORK_EXPLOSIONS_TAG, explosions);
+        cleanupFireworksTag(fireworks);
+        this.status = Component.translatable(messageKey("editor_firework_explosion_added"), explosions.size());
+        rebuildWidgets();
+    }
+
+    private void removeLastFireworkExplosion() {
+        if (!this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            return;
+        }
+
+        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        if (explosions.isEmpty()) {
+            return;
+        }
+
+        explosions.remove(explosions.size() - 1);
+        if (explosions.isEmpty()) {
+            fireworks.remove(FIREWORK_EXPLOSIONS_TAG);
+        } else {
+            fireworks.put(FIREWORK_EXPLOSIONS_TAG, explosions);
+        }
+        cleanupFireworksTag(fireworks);
+        readFireworkFieldsFromStack(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_firework_explosion_removed"));
+        rebuildWidgets();
+    }
+
+    private void clearFireworkData() {
+        if (!isFireworkEditableItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            tag.remove(FIREWORKS_TAG);
+        } else {
+            tag.remove(FIREWORK_EXPLOSION_TAG);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        readFireworkFieldsFromStack(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_firework_cleared"));
+        rebuildWidgets();
+    }
+
+    private void applyFireworkControlsToStack() {
+        if (this.previewStack.is(Items.FIREWORK_STAR)) {
+            this.previewStack.getOrCreateTag().put(FIREWORK_EXPLOSION_TAG, createFireworkExplosionTag());
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
+        if (!this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            return;
+        }
+
+        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        if (explosions.isEmpty()) {
+            return;
+        }
+
+        explosions.set(explosions.size() - 1, createFireworkExplosionTag());
+        fireworks.put(FIREWORK_EXPLOSIONS_TAG, explosions);
+        cleanupFireworksTag(fireworks);
+    }
+
+    private CompoundTag createFireworkExplosionTag() {
+        CompoundTag explosion = new CompoundTag();
+        explosion.putByte(FIREWORK_TYPE_TAG, (byte) Mth.clamp(this.fireworkExplosionType, 0, FIREWORK_EXPLOSION_TYPES - 1));
+        explosion.putIntArray(FIREWORK_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkColor))});
+        if (this.fireworkFadeColor >= 0) {
+            explosion.putIntArray(FIREWORK_FADE_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkFadeColor))});
+        }
+        if (this.fireworkFlicker) {
+            explosion.putBoolean(FIREWORK_FLICKER_TAG, true);
+        }
+        if (this.fireworkTrail) {
+            explosion.putBoolean(FIREWORK_TRAIL_TAG, true);
+        }
+        return explosion;
+    }
+
+    private CompoundTag getOrCreateFireworksTag() {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag fireworks = tag.getCompound(FIREWORKS_TAG);
+        tag.put(FIREWORKS_TAG, fireworks);
+        return fireworks;
+    }
+
+    private void cleanupFireworksTag(CompoundTag fireworks) {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (fireworks.isEmpty()) {
+            tag.remove(FIREWORKS_TAG);
+        } else {
+            tag.put(FIREWORKS_TAG, fireworks);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void cycleContainerSlot(int direction) {
+        this.selectedContainerSlot = Mth.positiveModulo(this.selectedContainerSlot + direction, CONTAINER_SIZE);
+        this.containerSlotNbtValue = getContainerSelectedSlotNbt();
+        if (this.containerSlotNbtBox != null) {
+            this.containerSlotNbtBox.setValue(this.containerSlotNbtValue);
+            this.containerSlotNbtBox.setCursorPosition(0);
+        }
+    }
+
+    private void updateContainerSlotFromNbt() {
+        if (!isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        captureFieldValues();
+        try {
+            ItemStack slotStack = parseContainerSlotItem(this.containerSlotNbtValue);
+            setContainerSlotItem(this.selectedContainerSlot, slotStack);
+            this.containerSlotNbtValue = getContainerSlotNbt(slotStack);
+            this.status = slotStack.isEmpty()
+                    ? Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1)
+                    : Component.translatable(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
+            rebuildWidgets();
+        } catch (CommandSyntaxException exception) {
+            this.status = Component.translatable(messageKey("editor_invalid_nbt"), exception.getMessage());
+        } catch (IllegalArgumentException exception) {
+            this.status = Component.literal(exception.getMessage());
+        }
+    }
+
+    private ItemStack parseContainerSlotItem(String value) throws CommandSyntaxException {
+        String trimmed = value == null ? "" : value.trim();
+        if (trimmed.isEmpty() || "{}".equals(trimmed)) {
+            return ItemStack.EMPTY;
+        }
+
+        CompoundTag itemTag = TagParser.parseTag(trimmed);
+        ItemStack slotStack = ItemStack.of(itemTag);
+        if (slotStack.isEmpty()) {
+            throw new IllegalArgumentException(Component.translatable(messageKey("editor_container_invalid_item")).getString());
+        }
+        return slotStack;
+    }
+
+    private void clearContainerSlot() {
+        if (!isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        setContainerSlotItem(this.selectedContainerSlot, ItemStack.EMPTY);
+        this.containerSlotNbtValue = "{}";
+        this.status = Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1);
+        rebuildWidgets();
+    }
+
+    private void clearContainerItems() {
+        if (!isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        blockEntity.remove(CONTAINER_ITEMS_TAG);
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.containerSlotNbtValue = "{}";
+        this.status = Component.translatable(messageKey("editor_container_cleared"));
+        rebuildWidgets();
+    }
+
+    private void setContainerSlotItem(int slot, ItemStack slotStack) {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag blockEntity = tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)
+                ? tag.getCompound(BLOCK_ENTITY_TAG)
+                : new CompoundTag();
+        ListTag currentItems = blockEntity.contains(CONTAINER_ITEMS_TAG, Tag.TAG_LIST)
+                ? blockEntity.getList(CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND)
+                : new ListTag();
+        List<CompoundTag> updatedItems = new ArrayList<>();
+        for (int i = 0; i < currentItems.size(); i++) {
+            CompoundTag itemTag = currentItems.getCompound(i);
+            if ((itemTag.getByte(CONTAINER_SLOT_TAG) & 255) != slot) {
+                updatedItems.add(itemTag.copy());
+            }
+        }
+
+        if (!slotStack.isEmpty()) {
+            CompoundTag itemTag = slotStack.save(new CompoundTag());
+            itemTag.putByte(CONTAINER_SLOT_TAG, (byte) slot);
+            updatedItems.add(itemTag);
+        }
+
+        updatedItems.sort(Comparator.comparingInt(itemTag -> itemTag.getByte(CONTAINER_SLOT_TAG) & 255));
+        ListTag items = new ListTag();
+        for (CompoundTag itemTag : updatedItems) {
+            items.add(itemTag);
+        }
+
+        if (items.isEmpty()) {
+            blockEntity.remove(CONTAINER_ITEMS_TAG);
+        } else {
+            blockEntity.put(CONTAINER_ITEMS_TAG, items);
+        }
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private ItemStack getContainerSlotItem(int slot) {
+        if (!isContainerEditableItem(this.previewStack)) {
+            return ItemStack.EMPTY;
+        }
+
+        ListTag items = getContainerItemsList();
+        ItemStack found = ItemStack.EMPTY;
+        for (int i = 0; i < items.size(); i++) {
+            CompoundTag itemTag = items.getCompound(i);
+            if ((itemTag.getByte(CONTAINER_SLOT_TAG) & 255) == slot) {
+                found = ItemStack.of(itemTag);
+            }
+        }
+        return found;
+    }
+
+    private ListTag getContainerItemsList() {
+        CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity == null || !blockEntity.contains(CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
+            return new ListTag();
+        }
+        return blockEntity.getList(CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND);
+    }
+
+    private int getContainerItemCount() {
+        int count = 0;
+        for (int slot = 0; slot < CONTAINER_SIZE; slot++) {
+            if (!getContainerSlotItem(slot).isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private String getContainerSelectedSlotNbt() {
+        return getContainerSlotNbt(getContainerSlotItem(this.selectedContainerSlot));
+    }
+
+    private String getContainerSlotNbt(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return "{}";
+        }
+        return stack.save(new CompoundTag()).toString();
+    }
+
+    private int getContainerGridX() {
+        return this.midX - (CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE) / 2;
+    }
+
+    private int getContainerGridY() {
+        return 48;
+    }
+
+    private int getHoveredContainerSlot(int mouseX, int mouseY) {
+        int gridX = getContainerGridX();
+        int gridY = getContainerGridY();
+        if (!isMouseIn(mouseX, mouseY, gridX - 1, gridY - 1,
+                CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE + 2,
+                CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 2)) {
+            return -1;
+        }
+
+        int column = (mouseX - gridX) / CONTAINER_SLOT_PIXEL_SIZE;
+        int row = (mouseY - gridY) / CONTAINER_SLOT_PIXEL_SIZE;
+        int slot = column + row * CONTAINER_COLUMNS;
+        return column < 0 || column >= CONTAINER_COLUMNS || row < 0 || row >= CONTAINER_ROWS ? -1 : slot;
     }
 
     private MutableComponent createSignLineComponent(int line) {
@@ -3755,7 +4884,11 @@ public class ItemEditorScreen extends Screen {
         }
 
         readSignFieldsFromStack(stack);
+        readBookFieldsFromStack(stack);
+        readHeadFieldsFromStack(stack);
         readBannerFieldsFromStack(stack);
+        readFireworkFieldsFromStack(stack);
+        readContainerFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
     }
 
@@ -3811,6 +4944,119 @@ public class ItemEditorScreen extends Screen {
                 this.signCommandValue = clickEvent.getValue();
             }
         }
+    }
+
+    private void readBookFieldsFromStack(ItemStack stack) {
+        this.bookTitleValue = "";
+        this.bookAuthorValue = "";
+        if (!isBookEditableItem(stack)) {
+            this.rememberedSignedBookData = null;
+            return;
+        }
+
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        this.bookTitleValue = tag.getString(BOOK_TITLE_TAG);
+        this.bookAuthorValue = tag.getString(BOOK_AUTHOR_TAG);
+    }
+
+    private void readHeadFieldsFromStack(ItemStack stack) {
+        this.headOwnerValue = "";
+        this.headUuidValue = "";
+        this.headTextureValue = "";
+        this.headTextureSignatureValue = "";
+        if (!isPlayerHeadItem(stack)) {
+            return;
+        }
+
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (tag.contains(SKULL_OWNER_TAG, Tag.TAG_STRING)) {
+            this.headOwnerValue = tag.getString(SKULL_OWNER_TAG);
+            return;
+        }
+
+        if (!tag.contains(SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        CompoundTag skullOwner = tag.getCompound(SKULL_OWNER_TAG);
+        if (skullOwner.contains(SKULL_OWNER_NAME_TAG, Tag.TAG_STRING)) {
+            this.headOwnerValue = skullOwner.getString(SKULL_OWNER_NAME_TAG);
+        }
+        if (skullOwner.hasUUID(SKULL_OWNER_ID_TAG)) {
+            this.headUuidValue = skullOwner.getUUID(SKULL_OWNER_ID_TAG).toString();
+        }
+        CompoundTag properties = skullOwner.getCompound(SKULL_PROPERTIES_TAG);
+        if (properties.contains(SKULL_TEXTURES_TAG, Tag.TAG_LIST)) {
+            ListTag textures = properties.getList(SKULL_TEXTURES_TAG, Tag.TAG_COMPOUND);
+            if (!textures.isEmpty()) {
+                CompoundTag texture = textures.getCompound(0);
+                this.headTextureValue = texture.getString(SKULL_TEXTURE_VALUE_TAG);
+                this.headTextureSignatureValue = texture.getString(SKULL_TEXTURE_SIGNATURE_TAG);
+            }
+        }
+    }
+
+    private void readFireworkFieldsFromStack(ItemStack stack) {
+        this.fireworkExplosionType = 0;
+        this.fireworkColor = DyeColor.RED.getId();
+        this.fireworkFadeColor = -1;
+        this.fireworkFlicker = false;
+        this.fireworkTrail = false;
+        if (!isFireworkEditableItem(stack)) {
+            return;
+        }
+
+        CompoundTag explosion = getFireworkExplosionForFields(stack);
+        if (explosion == null) {
+            return;
+        }
+
+        this.fireworkExplosionType = Mth.clamp(explosion.getByte(FIREWORK_TYPE_TAG), 0, FIREWORK_EXPLOSION_TYPES - 1);
+        this.fireworkFlicker = explosion.getBoolean(FIREWORK_FLICKER_TAG);
+        this.fireworkTrail = explosion.getBoolean(FIREWORK_TRAIL_TAG);
+
+        int[] colors = explosion.getIntArray(FIREWORK_COLORS_TAG);
+        if (colors.length > 0) {
+            this.fireworkColor = getNearestFireworkDyeColorId(colors[0]);
+        }
+        int[] fadeColors = explosion.getIntArray(FIREWORK_FADE_COLORS_TAG);
+        if (fadeColors.length > 0) {
+            this.fireworkFadeColor = getNearestFireworkDyeColorId(fadeColors[0]);
+        }
+    }
+
+    private void readContainerFieldsFromStack(ItemStack stack) {
+        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, CONTAINER_SIZE - 1);
+        if (!isContainerEditableItem(stack)) {
+            this.containerSlotNbtValue = "{}";
+            return;
+        }
+        this.containerSlotNbtValue = getContainerSlotNbt(getContainerSlotItem(this.selectedContainerSlot));
+    }
+
+    private CompoundTag getFireworkExplosionForFields(ItemStack stack) {
+        if (stack.is(Items.FIREWORK_STAR)) {
+            CompoundTag tag = stack.getTag();
+            if (tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND)) {
+                return tag.getCompound(FIREWORK_EXPLOSION_TAG);
+            }
+            return null;
+        }
+
+        CompoundTag fireworks = stack.getTagElement(FIREWORKS_TAG);
+        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+            return null;
+        }
+        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        return explosions.isEmpty() ? null : explosions.getCompound(explosions.size() - 1);
     }
 
     private void readBannerFieldsFromStack(ItemStack stack) {
@@ -3939,6 +5185,27 @@ public class ItemEditorScreen extends Screen {
         if (this.signCommandBox != null) {
             this.signCommandValue = this.signCommandBox.getValue();
         }
+        if (this.bookTitleBox != null) {
+            this.bookTitleValue = this.bookTitleBox.getValue();
+        }
+        if (this.bookAuthorBox != null) {
+            this.bookAuthorValue = this.bookAuthorBox.getValue();
+        }
+        if (this.headOwnerBox != null) {
+            this.headOwnerValue = this.headOwnerBox.getValue();
+        }
+        if (this.headUuidBox != null) {
+            this.headUuidValue = this.headUuidBox.getValue();
+        }
+        if (this.headTextureBox != null) {
+            this.headTextureValue = this.headTextureBox.getValue();
+        }
+        if (this.headTextureSignatureBox != null) {
+            this.headTextureSignatureValue = this.headTextureSignatureBox.getValue();
+        }
+        if (this.containerSlotNbtBox != null) {
+            this.containerSlotNbtValue = this.containerSlotNbtBox.getValue();
+        }
         if (this.bannerPatternFilterBox != null) {
             this.bannerPatternFilterValue = this.bannerPatternFilterBox.getValue();
         }
@@ -4037,6 +5304,137 @@ public class ItemEditorScreen extends Screen {
 
     private static boolean isSpawnEggItem(ItemStack stack) {
         return stack.getItem() instanceof SpawnEggItem;
+    }
+
+    private static boolean isPlayerHeadItem(ItemStack stack) {
+        return stack.getItem() instanceof PlayerHeadItem;
+    }
+
+    private static boolean isArmorStandItem(ItemStack stack) {
+        return stack.is(Items.ARMOR_STAND);
+    }
+
+    private static boolean isFireworkEditableItem(ItemStack stack) {
+        return stack.is(Items.FIREWORK_ROCKET) || stack.is(Items.FIREWORK_STAR);
+    }
+
+    private static boolean isContainerEditableItem(ItemStack stack) {
+        if (!(stack.getItem() instanceof BlockItem blockItem)) {
+            return false;
+        }
+        Block block = blockItem.getBlock();
+        return block instanceof ChestBlock || block instanceof ShulkerBoxBlock;
+    }
+
+    private static boolean isBookEditableItem(ItemStack stack) {
+        return stack.is(Items.WRITTEN_BOOK) || stack.is(Items.WRITABLE_BOOK);
+    }
+
+    private int getBookGeneration() {
+        CompoundTag tag = this.previewStack.getTag();
+        return tag == null ? 0 : Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+    }
+
+    private int getBookPageCount() {
+        CompoundTag tag = this.previewStack.getTag();
+        return tag == null ? 0 : tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING).size();
+    }
+
+    private Component getBookResolvedText() {
+        CompoundTag tag = this.previewStack.getTag();
+        boolean resolved = tag != null && tag.getBoolean(BOOK_RESOLVED_TAG);
+        return Component.translatable(key("book.resolved." + (resolved ? 1 : 0)));
+    }
+
+    private Component getBookSignButtonText() {
+        if (this.previewStack.is(Items.WRITTEN_BOOK)) {
+            return Component.translatable(key("book.unsign"));
+        }
+        return Component.translatable(key(this.rememberedSignedBookData == null ? "book.sign" : "book.resign"));
+    }
+
+    private int getFireworkFlight() {
+        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        if (fireworks == null) {
+            return 1;
+        }
+        return Mth.clamp(fireworks.getByte(FIREWORK_FLIGHT_TAG), 1, MAX_FIREWORK_FLIGHT);
+    }
+
+    private int getFireworkExplosionCount() {
+        if (this.previewStack.is(Items.FIREWORK_STAR)) {
+            CompoundTag tag = this.previewStack.getTag();
+            return tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) ? 1 : 0;
+        }
+
+        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+            return 0;
+        }
+        return fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).size();
+    }
+
+    private boolean hasFireworkData() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return false;
+        }
+        if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
+            return tag.contains(FIREWORKS_TAG, Tag.TAG_COMPOUND) && !tag.getCompound(FIREWORKS_TAG).isEmpty();
+        }
+        return tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) && !tag.getCompound(FIREWORK_EXPLOSION_TAG).isEmpty();
+    }
+
+    private Component getFireworkTypeName(int type) {
+        return Component.translatable(key("firework.type." + Mth.clamp(type, 0, FIREWORK_EXPLOSION_TYPES - 1)));
+    }
+
+    private Component getFireworkFadeColorText() {
+        if (this.fireworkFadeColor < 0) {
+            return Component.translatable(key("firework.fade.none"));
+        }
+        return getDyeColorName(getFireworkDyeColor(this.fireworkFadeColor));
+    }
+
+    private DyeColor getFireworkDyeColor(int colorId) {
+        return DyeColor.byId(Mth.positiveModulo(colorId, DyeColor.values().length));
+    }
+
+    private static int getFireworkRgb(DyeColor color) {
+        return color.getFireworkColor();
+    }
+
+    private static int getNearestFireworkDyeColorId(int rgb) {
+        int normalized = rgb & 0xFFFFFF;
+        DyeColor closest = DyeColor.WHITE;
+        int closestDistance = Integer.MAX_VALUE;
+        for (DyeColor color : DyeColor.values()) {
+            int dyeRgb = getFireworkRgb(color);
+            int red = getRed(normalized) - getRed(dyeRgb);
+            int green = getGreen(normalized) - getGreen(dyeRgb);
+            int blue = getBlue(normalized) - getBlue(dyeRgb);
+            int distance = red * red + green * green + blue * blue;
+            if (distance < closestDistance) {
+                closest = color;
+                closestDistance = distance;
+            }
+        }
+        return closest.getId();
+    }
+
+    private static String normalizeHeadText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static UUID parseUuidOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value.trim());
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private static int getDefaultAttributeSlot(ItemStack stack) {

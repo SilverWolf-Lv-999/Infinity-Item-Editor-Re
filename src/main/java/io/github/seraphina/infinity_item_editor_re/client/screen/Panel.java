@@ -10,8 +10,13 @@ enum Panel {
     ATTRIBUTES,
     COLOR,
     SIGN,
+    HEAD,
+    ARMOR_STAND,
+    FIREWORK,
+    CONTAINER,
     BANNER,
     SPAWN_EGG,
+    BOOK,
     LORE,
     LORE_PAINTER
 }
