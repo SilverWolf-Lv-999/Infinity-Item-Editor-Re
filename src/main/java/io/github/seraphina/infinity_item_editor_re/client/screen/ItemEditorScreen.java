@@ -7,11 +7,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.SharedConstants;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -63,7 +59,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.IntConsumer;
 
 @OnlyIn(Dist.CLIENT)
 public class ItemEditorScreen extends Screen {
@@ -113,82 +108,6 @@ public class ItemEditorScreen extends Screen {
     private static final int SPAWN_EGG_ENTITY_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
-    private static final Item[] BANNER_ITEMS_BY_DYE = {
-            Items.WHITE_BANNER,
-            Items.ORANGE_BANNER,
-            Items.MAGENTA_BANNER,
-            Items.LIGHT_BLUE_BANNER,
-            Items.YELLOW_BANNER,
-            Items.LIME_BANNER,
-            Items.PINK_BANNER,
-            Items.GRAY_BANNER,
-            Items.LIGHT_GRAY_BANNER,
-            Items.CYAN_BANNER,
-            Items.PURPLE_BANNER,
-            Items.BLUE_BANNER,
-            Items.BROWN_BANNER,
-            Items.GREEN_BANNER,
-            Items.RED_BANNER,
-            Items.BLACK_BANNER
-    };
-    private static final List<BannerPatternEntry> BANNER_PATTERN_ENTRIES = List.of(
-            new BannerPatternEntry("square_bottom_left", "bl"),
-            new BannerPatternEntry("square_bottom_right", "br"),
-            new BannerPatternEntry("square_top_left", "tl"),
-            new BannerPatternEntry("square_top_right", "tr"),
-            new BannerPatternEntry("stripe_bottom", "bs"),
-            new BannerPatternEntry("stripe_top", "ts"),
-            new BannerPatternEntry("stripe_left", "ls"),
-            new BannerPatternEntry("stripe_right", "rs"),
-            new BannerPatternEntry("stripe_center", "cs"),
-            new BannerPatternEntry("stripe_middle", "ms"),
-            new BannerPatternEntry("stripe_downright", "drs"),
-            new BannerPatternEntry("stripe_downleft", "dls"),
-            new BannerPatternEntry("small_stripes", "ss"),
-            new BannerPatternEntry("cross", "cr"),
-            new BannerPatternEntry("straight_cross", "sc"),
-            new BannerPatternEntry("triangle_bottom", "bt"),
-            new BannerPatternEntry("triangle_top", "tt"),
-            new BannerPatternEntry("triangles_bottom", "bts"),
-            new BannerPatternEntry("triangles_top", "tts"),
-            new BannerPatternEntry("diagonal_left", "ld"),
-            new BannerPatternEntry("diagonal_up_right", "rd"),
-            new BannerPatternEntry("diagonal_up_left", "lud"),
-            new BannerPatternEntry("diagonal_right", "rud"),
-            new BannerPatternEntry("circle", "mc"),
-            new BannerPatternEntry("rhombus", "mr"),
-            new BannerPatternEntry("half_vertical", "vh"),
-            new BannerPatternEntry("half_horizontal", "hh"),
-            new BannerPatternEntry("half_vertical_right", "vhr"),
-            new BannerPatternEntry("half_horizontal_bottom", "hhb"),
-            new BannerPatternEntry("border", "bo"),
-            new BannerPatternEntry("curly_border", "cbo"),
-            new BannerPatternEntry("gradient", "gra"),
-            new BannerPatternEntry("gradient_up", "gru"),
-            new BannerPatternEntry("bricks", "bri"),
-            new BannerPatternEntry("globe", "glb"),
-            new BannerPatternEntry("creeper", "cre"),
-            new BannerPatternEntry("skull", "sku"),
-            new BannerPatternEntry("flower", "flo"),
-            new BannerPatternEntry("mojang", "moj"),
-            new BannerPatternEntry("piglin", "pig")
-    );
-    private static final List<SpawnEggTagRow> SPAWN_EGG_GENERAL_TAG_ROWS = List.of(
-            spawnEggCustomName(),
-            spawnEggFloat("health", "Health", 0.0D, 2048.0D),
-            spawnEggInt("age", "Age", -24000.0D, 24000.0D),
-            spawnEggShort("fire", "Fire", 0.0D, Short.MAX_VALUE),
-            spawnEggFloat("absorption", "AbsorptionAmount", 0.0D, 2048.0D),
-            spawnEggBoolean("no_ai", "NoAI"),
-            spawnEggBoolean("no_gravity", "NoGravity"),
-            spawnEggBoolean("invulnerable", "Invulnerable"),
-            spawnEggBoolean("silent", "Silent"),
-            spawnEggBoolean("glowing", "Glowing"),
-            spawnEggBoolean("custom_name_visible", "CustomNameVisible"),
-            spawnEggBoolean("can_pick_up_loot", "CanPickUpLoot"),
-            spawnEggBoolean("persistence_required", "PersistenceRequired"),
-            spawnEggBoolean("fall_flying", "FallFlying")
-    );
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
@@ -2268,12 +2187,12 @@ public class ItemEditorScreen extends Screen {
     private List<BannerPatternEntry> getFilteredBannerPatterns() {
         String filter = this.bannerPatternFilterValue == null ? "" : this.bannerPatternFilterValue.trim().toLowerCase(Locale.ROOT);
         if (filter.isEmpty()) {
-            return new ArrayList<>(BANNER_PATTERN_ENTRIES);
+            return new ArrayList<>(BannerPatternCatalog.PATTERNS);
         }
 
         DyeColor color = getBannerPatternColor();
         List<BannerPatternEntry> patterns = new ArrayList<>();
-        for (BannerPatternEntry entry : BANNER_PATTERN_ENTRIES) {
+        for (BannerPatternEntry entry : BannerPatternCatalog.PATTERNS) {
             String idName = entry.name().toLowerCase(Locale.ROOT);
             String spacedName = idName.replace('_', ' ');
             String hash = entry.hash().toLowerCase(Locale.ROOT);
@@ -2319,7 +2238,7 @@ public class ItemEditorScreen extends Screen {
 
         DyeColor baseColor = getBannerBaseColor();
         if (this.previewStack.is(Items.SHIELD)) {
-            replacePreviewItem(BANNER_ITEMS_BY_DYE[baseColor.getId()]);
+            replacePreviewItem(BannerPatternCatalog.ITEMS_BY_DYE[baseColor.getId()]);
             removeBannerBaseColorTag();
         } else {
             replacePreviewItem(Items.SHIELD);
@@ -2343,7 +2262,7 @@ public class ItemEditorScreen extends Screen {
             blockEntity.putInt(BANNER_BASE_TAG, color.getId());
             cleanupBlockEntityTag(tag, blockEntity);
         } else if (this.previewStack.getItem() instanceof BannerItem) {
-            replacePreviewItem(BANNER_ITEMS_BY_DYE[color.getId()]);
+            replacePreviewItem(BannerPatternCatalog.ITEMS_BY_DYE[color.getId()]);
             removeBannerBaseColorTag();
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
@@ -2415,7 +2334,7 @@ public class ItemEditorScreen extends Screen {
     }
 
     private BannerPatternEntry getBannerPatternEntry(String hash) {
-        for (BannerPatternEntry entry : BANNER_PATTERN_ENTRIES) {
+        for (BannerPatternEntry entry : BannerPatternCatalog.PATTERNS) {
             if (entry.hash().equals(hash)) {
                 return entry;
             }
@@ -2777,46 +2696,10 @@ public class ItemEditorScreen extends Screen {
     }
 
     private List<SpawnEggTagRow> getSpawnEggTagRows() {
-        List<SpawnEggTagRow> rows = new ArrayList<>(SPAWN_EGG_GENERAL_TAG_ROWS);
-        rows.addAll(getSpecificSpawnEggTagRows());
-        return rows;
-    }
-
-    private List<SpawnEggTagRow> getSpecificSpawnEggTagRows() {
         SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
         String path = entry == null ? "" : entry.id().getPath();
-        List<SpawnEggTagRow> rows = new ArrayList<>();
-        switch (path) {
-            case "chicken" -> rows.add(spawnEggInt("egg_lay_time", "EggLayTime", 0.0D, 20000.0D));
-            case "creeper" -> {
-                rows.add(spawnEggBoolean("creeper_powered", "powered"));
-                rows.add(spawnEggByte("explosion_radius", "ExplosionRadius", 0.0D, Byte.MAX_VALUE));
-                rows.add(spawnEggShort("fuse", "Fuse", 0.0D, 500.0D));
-                rows.add(spawnEggBoolean("ignited", "ignited"));
-            }
-            case "endermite" -> {
-                rows.add(spawnEggInt("life_time", "LifeTime", 0.0D, 3000.0D));
-                rows.add(spawnEggBoolean("player_spawned", "PlayerSpawned"));
-            }
-            case "parrot" -> rows.add(spawnEggInt("variant", "Variant", 0.0D, 4.0D));
-            case "pig" -> rows.add(spawnEggBoolean("saddle", "Saddle"));
-            case "sheep" -> {
-                rows.add(spawnEggInt("color", "Color", 0.0D, 15.0D));
-                rows.add(spawnEggBoolean("sheared", "Sheared"));
-            }
-            case "shulker" -> rows.add(spawnEggInt("color", "Color", 0.0D, 16.0D));
-            case "slime", "magma_cube" -> rows.add(spawnEggInt("size", "Size", 1.0D, 50.0D));
-            case "vindicator" -> rows.add(spawnEggBoolean("johnny", "Johnny"));
-            case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
-                rows.add(spawnEggBoolean("is_baby", "IsBaby"));
-                rows.add(spawnEggBoolean("can_break_doors", "CanBreakDoors"));
-                if ("zombified_piglin".equals(path)) {
-                    rows.add(spawnEggShort("anger", "Anger", 0.0D, 1000.0D));
-                }
-            }
-            default -> {
-            }
-        }
+        List<SpawnEggTagRow> rows = new ArrayList<>(SpawnEggTagRows.GENERAL);
+        rows.addAll(SpawnEggTagRows.forEntity(path));
         return rows;
     }
 
@@ -3844,77 +3727,11 @@ public class ItemEditorScreen extends Screen {
     }
 
     private List<Component> getPrettyNbtLines() {
-        CompoundTag tag = this.previewStack.getTag();
-        if (tag == null || tag.isEmpty()) {
-            return List.of(Component.literal(ChatFormatting.DARK_PURPLE + "{}"));
-        }
-        List<Component> lines = new ArrayList<>();
-        appendPrettyTagLines(lines, tag, 0, "");
-        return lines;
-    }
-
-    private void appendPrettyTagLines(List<Component> lines, Tag tag, int depth, String name) {
-        String indent = "  ".repeat(depth);
-        if (tag instanceof CompoundTag compoundTag) {
-            if (!name.isEmpty()) {
-                lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + name + ": {"));
-            } else {
-                lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + "{"));
-            }
-            for (String key : compoundTag.getAllKeys()) {
-                appendPrettyTagLines(lines, compoundTag.get(key), depth + 1, key);
-            }
-            lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + "}"));
-        } else if (tag instanceof ListTag listTag) {
-            lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + name + ": ["));
-            for (int i = 0; i < listTag.size(); i++) {
-                appendPrettyTagLines(lines, listTag.get(i), depth + 1, Integer.toString(i));
-            }
-            lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + "]"));
-        } else {
-            lines.add(Component.literal(ChatFormatting.DARK_PURPLE + indent + name + ": " + tag));
-        }
+        return NbtFormatter.prettyLines(this.previewStack.getTag());
     }
 
     private List<NbtRow> buildNbtRows() {
-        List<NbtRow> rows = new ArrayList<>();
-        CompoundTag tag = this.previewStack.getTag();
-        if (tag == null || tag.isEmpty()) {
-            rows.add(new NbtRow("tag", "tag: {}", false, 0));
-            return rows;
-        }
-        addNbtRows(rows, "tag", "tag", tag, 0);
-        return rows;
-    }
-
-    private void addNbtRows(List<NbtRow> rows, String path, String name, Tag tag, int depth) {
-        boolean expandable = tag instanceof CompoundTag || tag instanceof ListTag;
-        String prefix = expandable ? (this.expandedNbtPaths.contains(path) ? "- " : "+ ") : "  ";
-        rows.add(new NbtRow(path, prefix + name + ": " + summarizeTag(tag), expandable, depth));
-        if (!expandable || !this.expandedNbtPaths.contains(path)) {
-            return;
-        }
-
-        if (tag instanceof CompoundTag compoundTag) {
-            for (String key : compoundTag.getAllKeys()) {
-                addNbtRows(rows, path + "." + key, key, compoundTag.get(key), depth + 1);
-            }
-        } else if (tag instanceof ListTag listTag) {
-            for (int i = 0; i < listTag.size(); i++) {
-                addNbtRows(rows, path + "[" + i + "]", "[" + i + "]", listTag.get(i), depth + 1);
-            }
-        }
-    }
-
-    private String summarizeTag(Tag tag) {
-        if (tag instanceof CompoundTag compoundTag) {
-            return "{" + compoundTag.getAllKeys().size() + "}";
-        }
-        if (tag instanceof ListTag listTag) {
-            return "[" + listTag.size() + "]";
-        }
-        String value = tag.toString();
-        return value.length() > 120 ? value.substring(0, 117) + "..." : value;
+        return NbtFormatter.rows(this.previewStack.getTag(), this.expandedNbtPaths);
     }
 
     private int getNbtAdvancedVisibleRows() {
@@ -4308,498 +4125,4 @@ public class ItemEditorScreen extends Screen {
         return "message." + ModSource.MODID + "." + suffix;
     }
 
-    private static SpawnEggTagRow spawnEggBoolean(String translationSuffix, String tagKey) {
-        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.BOOLEAN, null, 0.0D, 1.0D);
-    }
-
-    private static SpawnEggTagRow spawnEggCustomName() {
-        return new SpawnEggTagRow("custom_name", ENTITY_CUSTOM_NAME_TAG, SpawnEggTagRowType.CUSTOM_NAME, null, 0.0D, 0.0D);
-    }
-
-    private static SpawnEggTagRow spawnEggByte(String translationSuffix, String tagKey, double minValue, double maxValue) {
-        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.BYTE, minValue, maxValue);
-    }
-
-    private static SpawnEggTagRow spawnEggShort(String translationSuffix, String tagKey, double minValue, double maxValue) {
-        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.SHORT, minValue, maxValue);
-    }
-
-    private static SpawnEggTagRow spawnEggInt(String translationSuffix, String tagKey, double minValue, double maxValue) {
-        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.INT, minValue, maxValue);
-    }
-
-    private static SpawnEggTagRow spawnEggFloat(String translationSuffix, String tagKey, double minValue, double maxValue) {
-        return spawnEggNumber(translationSuffix, tagKey, SpawnEggNumberType.FLOAT, minValue, maxValue);
-    }
-
-    private static SpawnEggTagRow spawnEggNumber(String translationSuffix, String tagKey,
-                                                SpawnEggNumberType numberType, double minValue, double maxValue) {
-        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType, minValue, maxValue);
-    }
-
-    private enum Panel {
-        ITEM,
-        NBT,
-        NBT_ADVANCED,
-        HIDE_FLAGS,
-        ENCHANTMENTS,
-        POTION,
-        ATTRIBUTES,
-        COLOR,
-        SIGN,
-        BANNER,
-        SPAWN_EGG,
-        LORE,
-        LORE_PAINTER
-    }
-
-    private enum HideFlag {
-        ENCHANTMENTS(1, "flag.enchantment"),
-        ATTRIBUTE_MODIFIERS(2, "flag.attributemod"),
-        UNBREAKABLE(4, "flag.unbreakable"),
-        CAN_DESTROY(8, "flag.candestroy"),
-        CAN_PLACE_ON(16, "flag.canplaceon"),
-        ITEM_INFO(32, "flag.iteminfo");
-
-        private final int mask;
-        private final String translationKey;
-
-        HideFlag(int mask, String translationKey) {
-            this.mask = mask;
-            this.translationKey = translationKey;
-        }
-
-        public int mask() {
-            return this.mask;
-        }
-
-        public String translationKey() {
-            return this.translationKey;
-        }
-    }
-
-    private record EnchantmentEntry(ResourceLocation id, Enchantment enchantment, int level) {
-    }
-
-    private record AttributeEntry(int tagIndex, String attributeName, Attribute attribute, double amount, int operation, String slotName) {
-    }
-
-    private record NbtRow(String path, String displayText, boolean isExpandable, int depth) {
-    }
-
-    private record BannerPatternEntry(String name, String hash) {
-    }
-
-    private record SpawnEggEntityEntry(ResourceLocation id, EntityType<?> type) {
-    }
-
-    private record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
-                                  SpawnEggNumberType numberType, double minValue, double maxValue) {
-    }
-
-    private enum SpawnEggTagRowType {
-        BOOLEAN,
-        NUMBER,
-        CUSTOM_NAME
-    }
-
-    private enum SpawnEggNumberType {
-        BYTE,
-        SHORT,
-        INT,
-        FLOAT
-    }
-
-    private static class LegacyTextEditBox extends EditBox {
-        private int legacyMaxLength = 32;
-
-        private LegacyTextEditBox(Font font, int x, int y, int width, int height, Component message) {
-            super(font, x, y, width, height, message);
-        }
-
-        @Override
-        public void setMaxLength(int maxLength) {
-            this.legacyMaxLength = maxLength;
-            super.setMaxLength(maxLength);
-        }
-
-        @Override
-        public boolean charTyped(char codePoint, int modifiers) {
-            if (!this.active || !canConsumeInput()) {
-                return false;
-            }
-            if (isLegacyAllowedCharacter(codePoint)) {
-                insertText(Character.toString(codePoint));
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public void insertText(String text) {
-            if (!this.active) {
-                return;
-            }
-
-            String filtered = filterLegacyText(text);
-            String value = getValue();
-            int[] range = getSelectionRange();
-            int room = this.legacyMaxLength - value.length() + (range[1] - range[0]);
-            if (room < filtered.length()) {
-                filtered = filtered.substring(0, Math.max(0, room));
-            }
-
-            String next = value.substring(0, range[0]) + filtered + value.substring(range[1]);
-            super.setValue(next);
-            int cursor = range[0] + filtered.length();
-            setCursorPosition(cursor);
-            setHighlightPos(cursor);
-        }
-
-        private int[] getSelectionRange() {
-            String highlighted = getHighlighted();
-            int cursor = getCursorPosition();
-            if (highlighted.isEmpty()) {
-                return new int[]{cursor, cursor};
-            }
-
-            String value = getValue();
-            int length = highlighted.length();
-            int start;
-            int end;
-            if (cursor >= length && value.substring(cursor - length, cursor).equals(highlighted)) {
-                start = cursor - length;
-                end = cursor;
-            } else {
-                start = cursor;
-                end = Math.min(value.length(), cursor + length);
-            }
-            return new int[]{Math.min(start, end), Math.max(start, end)};
-        }
-
-        private static String filterLegacyText(String input) {
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < input.length(); i++) {
-                char character = input.charAt(i);
-                if (isLegacyAllowedCharacter(character)) {
-                    builder.append(character);
-                }
-            }
-            return builder.toString();
-        }
-
-        private static boolean isLegacyAllowedCharacter(char character) {
-            return SharedConstants.isAllowedChatCharacter(character) || character == ChatFormatting.PREFIX_CODE;
-        }
-    }
-
-    private static class FixedDigitEditBox extends EditBox {
-        private static final int DISABLED_COLOR = 0xFF707070;
-
-        private final Font font;
-        private final int digits;
-        private final int minValue;
-        private final int maxValue;
-        private int digitCursor;
-        private int cursorFrame;
-
-        private FixedDigitEditBox(Font font, int x, int y, int width, int height, int digits, int minValue, int maxValue) {
-            super(font, x, y, width, height, Component.empty());
-            this.font = font;
-            this.digits = Math.max(1, digits);
-            this.minValue = minValue;
-            this.maxValue = maxValue;
-            super.setMaxLength(this.digits + (minValue < 0 ? 1 : 0));
-            super.setTextColor(MAIN_COLOR);
-            super.setTextColorUneditable(DISABLED_COLOR);
-            setFixedValue(minValue);
-        }
-
-        @Override
-        public void tick() {
-            this.cursorFrame++;
-        }
-
-        @Override
-        public void setValue(String value) {
-            setFixedValue(parseFixedValue(value));
-        }
-
-        @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            if (!this.active || !canConsumeInput()) {
-                return false;
-            }
-
-            if (Screen.isCopy(keyCode)) {
-                Minecraft.getInstance().keyboardHandler.setClipboard(getValue());
-                return true;
-            }
-            if (Screen.isPaste(keyCode)) {
-                return true;
-            }
-            if (Screen.isCut(keyCode)) {
-                Minecraft.getInstance().keyboardHandler.setClipboard(getValue());
-                setFixedValue(0);
-                return true;
-            }
-
-            return switch (keyCode) {
-                case 259, 261 -> {
-                    replaceDigit('0');
-                    yield true;
-                }
-                case 262 -> {
-                    moveDigitCursor(1);
-                    yield true;
-                }
-                case 263 -> {
-                    moveDigitCursor(-1);
-                    yield true;
-                }
-                case 268 -> {
-                    setDigitCursorPosition(0);
-                    yield true;
-                }
-                case 269 -> {
-                    setDigitCursorPosition(this.digits - 1);
-                    yield true;
-                }
-                default -> false;
-            };
-        }
-
-        @Override
-        public boolean charTyped(char codePoint, int modifiers) {
-            if (!this.active || !canConsumeInput()) {
-                return false;
-            }
-
-            if (codePoint == '-' && this.minValue < 0) {
-                setFixedValue(-Math.abs(parseFixedValue(getValue())));
-                return true;
-            }
-            if (codePoint == '+' && this.maxValue >= 0) {
-                setFixedValue(Math.abs(parseFixedValue(getValue())));
-                return true;
-            }
-            if (codePoint >= '0' && codePoint <= '9') {
-                replaceDigit(codePoint);
-                moveDigitCursor(1);
-                return true;
-            }
-            return true;
-        }
-
-        @Override
-        public void onClick(double mouseX, double mouseY) {
-            int localX = Mth.floor(mouseX) - getX() - 4;
-            String value = getValue();
-            int cursor = this.font.plainSubstrByWidth(value, Math.max(0, localX)).length();
-            if (value.startsWith("-")) {
-                cursor--;
-            }
-            setDigitCursorPosition(cursor);
-        }
-
-        @Override
-        public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-            if (!isVisible()) {
-                return;
-            }
-
-            int color = this.active ? MAIN_COLOR : DISABLED_COLOR;
-            guiGraphics.fill(getX() - 1, getY() - 1, getX() + getWidth() + 1, getY() + getHeight() + 1, color);
-            guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), ALT_COLOR);
-
-            String value = getValue();
-            int textX = getX() + 4;
-            int textY = getY() + (getHeight() - 8) / 2;
-            int cursorStringPosition = getCursorStringPosition();
-            int cursorX = textX;
-
-            if (!value.isEmpty()) {
-                String beforeCursor = value.substring(0, Math.min(cursorStringPosition, value.length()));
-                if (!beforeCursor.isEmpty()) {
-                    cursorX = guiGraphics.drawString(this.font, beforeCursor, textX, textY, color, true) - 1;
-                }
-
-                if (cursorStringPosition < value.length()) {
-                    guiGraphics.drawString(this.font, value.substring(cursorStringPosition), cursorX, textY, color, true);
-                }
-            }
-
-            if (isFocused() && this.cursorFrame / 6 % 2 == 0) {
-                guiGraphics.drawString(this.font, "_", cursorX, textY, CONTRAST_COLOR, true);
-            }
-        }
-
-        private void replaceDigit(char digit) {
-            char[] characters = getDigitCharacters();
-            characters[this.digitCursor] = digit;
-            int value = parseFixedValue(new String(characters));
-            if (getValue().startsWith("-")) {
-                value = -value;
-            }
-            int cursor = this.digitCursor;
-            setFixedValue(value);
-            setDigitCursorPosition(cursor);
-        }
-
-        private void moveDigitCursor(int amount) {
-            setDigitCursorPosition(this.digitCursor + amount);
-        }
-
-        private void setDigitCursorPosition(int position) {
-            this.digitCursor = Mth.clamp(position, 0, this.digits - 1);
-            syncSuperCursor();
-        }
-
-        private void setFixedValue(int value) {
-            int clamped = Mth.clamp(value, this.minValue, this.maxValue);
-            super.setValue(formatFixedValue(clamped));
-            this.digitCursor = Mth.clamp(this.digitCursor, 0, this.digits - 1);
-            syncSuperCursor();
-        }
-
-        private void syncSuperCursor() {
-            int cursor = getCursorStringPosition();
-            super.setCursorPosition(cursor);
-            super.setHighlightPos(cursor);
-        }
-
-        private int getCursorStringPosition() {
-            return getValue().startsWith("-") ? this.digitCursor + 1 : this.digitCursor;
-        }
-
-        private char[] getDigitCharacters() {
-            String value = getValue();
-            String rawDigits = value.startsWith("-") ? value.substring(1) : value;
-            if (rawDigits.length() < this.digits) {
-                rawDigits = "0".repeat(this.digits - rawDigits.length()) + rawDigits;
-            } else if (rawDigits.length() > this.digits) {
-                rawDigits = rawDigits.substring(rawDigits.length() - this.digits);
-            }
-            return rawDigits.toCharArray();
-        }
-
-        private String formatFixedValue(int value) {
-            boolean negative = value < 0;
-            String rawDigits = Integer.toString(Math.abs(value));
-            if (rawDigits.length() < this.digits) {
-                rawDigits = "0".repeat(this.digits - rawDigits.length()) + rawDigits;
-            }
-            return negative ? "-" + rawDigits : rawDigits;
-        }
-
-        private int parseFixedValue(String value) {
-            if (value == null || value.isBlank()) {
-                return 0;
-            }
-
-            boolean negative = value.startsWith("-");
-            long parsed = 0L;
-            for (int i = negative ? 1 : 0; i < value.length(); i++) {
-                char character = value.charAt(i);
-                if (character >= '0' && character <= '9') {
-                    parsed = parsed * 10L + character - '0';
-                    if (parsed > Integer.MAX_VALUE) {
-                        return negative ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-                    }
-                }
-            }
-            return (int) (negative ? -parsed : parsed);
-        }
-    }
-
-    private static class ColorSlider extends AbstractSliderButton {
-        private final Component label;
-        private final IntConsumer responder;
-
-        private ColorSlider(int x, int y, int width, int height, Component label, int value, IntConsumer responder) {
-            super(x, y, width, height, Component.empty(), Mth.clamp(value, 0, 255) / 255.0D);
-            this.label = label;
-            this.responder = responder;
-            updateMessage();
-        }
-
-        private int getIntValue() {
-            return Mth.clamp((int) Math.round(this.value * 255.0D), 0, 255);
-        }
-
-        private void setIntValue(int value) {
-            this.value = Mth.clamp(value, 0, 255) / 255.0D;
-            updateMessage();
-        }
-
-        @Override
-        protected void updateMessage() {
-            setMessage(Component.literal(this.label.getString() + ": " + getIntValue()));
-        }
-
-        @Override
-        protected void applyValue() {
-            this.responder.accept(getIntValue());
-        }
-    }
-
-    private static class LorePixel {
-        private DyeColor color;
-        private LoreSymbol symbol;
-
-        private LorePixel() {
-            this(DyeColor.WHITE, LoreSymbol.FULL_BLOCK);
-        }
-
-        private LorePixel(DyeColor color, LoreSymbol symbol) {
-            this.color = color;
-            this.symbol = symbol;
-        }
-
-        private LorePixel copy() {
-            return new LorePixel(this.color, this.symbol);
-        }
-
-        private String format() {
-            ChatFormatting formatting = ChatFormatting.getById(15 - this.color.getId());
-            return (formatting == null ? ChatFormatting.WHITE : formatting).toString();
-        }
-
-        @Override
-        public String toString() {
-            if (this.symbol.whitespace()) {
-                return this.symbol.symbol();
-            }
-            return format() + this.symbol.symbol();
-        }
-    }
-
-    private enum LoreSymbol {
-        FULL_BLOCK("fullblock", "\u2588", false),
-        MEDIUM_SHADE("mediumshade", "\u2592", false),
-        DARK_SHADE("darkshade", "\u2593", false),
-        FULL_SPACE("fullspace", ChatFormatting.BOLD + " " + ChatFormatting.RESET + " ", true);
-
-        private final String nameKey;
-        private final String symbol;
-        private final boolean whitespace;
-
-        LoreSymbol(String nameKey, String symbol, boolean whitespace) {
-            this.nameKey = nameKey;
-            this.symbol = symbol;
-            this.whitespace = whitespace;
-        }
-
-        private String nameKey() {
-            return this.nameKey;
-        }
-
-        private String symbol() {
-            return this.symbol;
-        }
-
-        private boolean whitespace() {
-            return this.whitespace;
-        }
-    }
 }
