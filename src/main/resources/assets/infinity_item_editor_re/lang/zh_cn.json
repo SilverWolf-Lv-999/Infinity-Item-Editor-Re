@@ -1,0 +1,18 @@
+{
+  "key.categories.infinity_item_editor_re": "无限物品编辑器 Re",
+  "key.infinity_item_editor_re.open_editor": "编辑当前物品",
+  "key.infinity_item_editor_re.copy_target": "复制目标",
+  "key.infinity_item_editor_re.save_realm": "将当前物品保存到领域",
+  "itemGroup.infinity_item_editor_re.realm": "无限 - 领域",
+  "itemGroup.infinity_item_editor_re.unavailable": "无限 - 不可用",
+  "itemGroup.infinity_item_editor_re.banners": "无限 - 旗帜",
+  "itemGroup.infinity_item_editor_re.skulls": "无限 - 头颅",
+  "itemGroup.infinity_item_editor_re.thief": "无限 - 窃取",
+  "itemGroup.infinity_item_editor_re.fireworks": "无限 - 烟花",
+  "itemGroup.infinity_item_editor_re.void": "无限 - 虚空",
+  "message.infinity_item_editor_re.editor_not_ported": "物品编辑 GUI 还没有完成移植。",
+  "message.infinity_item_editor_re.copy_no_target": "请对准方块、玩家、生物或盔甲架来复制。",
+  "message.infinity_item_editor_re.copy_requires_creative": "复制到物品栏需要处于创造模式。",
+  "message.infinity_item_editor_re.copy_empty_block": "这个方块没有提供可复制的物品栈。",
+  "message.infinity_item_editor_re.copying": "正在复制 %s"
+}

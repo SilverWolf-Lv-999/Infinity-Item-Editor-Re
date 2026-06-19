@@ -1,0 +1,18 @@
+{
+  "key.categories.infinity_item_editor_re": "Infinity Item Editor Re",
+  "key.infinity_item_editor_re.open_editor": "Edit Current Item",
+  "key.infinity_item_editor_re.copy_target": "Copy Target",
+  "key.infinity_item_editor_re.save_realm": "Save Current Item to Realm",
+  "itemGroup.infinity_item_editor_re.realm": "Infinity - Realm",
+  "itemGroup.infinity_item_editor_re.unavailable": "Infinity - Unavailable",
+  "itemGroup.infinity_item_editor_re.banners": "Infinity - Banners",
+  "itemGroup.infinity_item_editor_re.skulls": "Infinity - Heads",
+  "itemGroup.infinity_item_editor_re.thief": "Infinity - Thief",
+  "itemGroup.infinity_item_editor_re.fireworks": "Infinity - Fireworks",
+  "itemGroup.infinity_item_editor_re.void": "Infinity - Void",
+  "message.infinity_item_editor_re.editor_not_ported": "The item editor GUI has not been ported yet.",
+  "message.infinity_item_editor_re.copy_no_target": "Look at a block, player, mob, or armor stand to copy it.",
+  "message.infinity_item_editor_re.copy_requires_creative": "Copying to inventory requires creative mode.",
+  "message.infinity_item_editor_re.copy_empty_block": "That block did not provide an item stack.",
+  "message.infinity_item_editor_re.copying": "Copying %s"
+}
