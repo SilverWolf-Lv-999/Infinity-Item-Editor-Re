@@ -5,6 +5,7 @@ import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
+import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
@@ -18,7 +19,10 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.TagParser;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -35,6 +39,7 @@ import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -44,6 +49,7 @@ import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -83,8 +89,17 @@ public class ItemEditorScreen extends Screen {
     private static final String ATTRIBUTE_MODIFIERS_TAG = "AttributeModifiers";
     private static final String CUSTOM_POTION_COLOR_TAG = PotionUtils.TAG_CUSTOM_POTION_COLOR;
     private static final String MAP_COLOR_TAG = "MapColor";
+    private static final int SIGN_LINES = 4;
+    private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
+    private static final String SIGN_FRONT_TEXT_TAG = "front_text";
+    private static final String SIGN_MESSAGES_TAG = "messages";
+    private static final String SIGN_FILTERED_MESSAGES_TAG = "filtered_messages";
+    private static final String SIGN_COLOR_TAG = "color";
+    private static final String SIGN_GLOWING_TEXT_TAG = "has_glowing_text";
+    private static final String LEGACY_SIGN_TEXT_TAG_PREFIX = "Text";
 
     private final ItemStack originalStack;
+    private final int targetContainerSlot;
     private ItemStack previewStack;
     private Panel activePanel = Panel.ITEM;
     private Component status = Component.empty();
@@ -102,6 +117,8 @@ public class ItemEditorScreen extends Screen {
     private String attributeAmountValue = "0";
     private String attributeDecimalValue = "0";
     private String colorHexValue;
+    private final String[] signLineValues = new String[SIGN_LINES];
+    private String signCommandValue = "";
     private String nbtFeedback = "";
     private boolean nbtFeedbackGood;
     private boolean showAllEnchantments;
@@ -128,6 +145,7 @@ public class ItemEditorScreen extends Screen {
     private final List<EditBox> tickingBoxes = new ArrayList<>();
     private final List<EditBox> mainTextBoxes = new ArrayList<>();
     private final List<EditBox> loreBoxes = new ArrayList<>();
+    private final List<EditBox> signBoxes = new ArrayList<>();
     private final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
     private final Set<String> expandedNbtPaths = new HashSet<>();
     private final ItemStack enchantBook = new ItemStack(Items.ENCHANTED_BOOK);
@@ -148,6 +166,7 @@ public class ItemEditorScreen extends Screen {
     private EditBox attributeAmountBox;
     private EditBox attributeDecimalBox;
     private EditBox colorHexBox;
+    private EditBox signCommandBox;
     private InfinityEditorButton attributeInfinityButton;
     private InfinityEditorButton attributeOperationButton;
     private InfinityEditorButton attributeSlotButton;
@@ -163,8 +182,13 @@ public class ItemEditorScreen extends Screen {
     private ColorSlider blueSlider;
 
     public ItemEditorScreen(ItemStack stack) {
+        this(stack, -1);
+    }
+
+    public ItemEditorScreen(ItemStack stack, int targetContainerSlot) {
         super(Component.translatable(key("item")));
         this.originalStack = stack.copy();
+        this.targetContainerSlot = targetContainerSlot;
         this.previewStack = stack.copy();
         this.expandedNbtPaths.add("tag");
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
@@ -183,6 +207,7 @@ public class ItemEditorScreen extends Screen {
         this.tickingBoxes.clear();
         this.mainTextBoxes.clear();
         this.loreBoxes.clear();
+        this.signBoxes.clear();
         this.loreActionButtons.clear();
         this.itemIdBox = null;
         this.countBox = null;
@@ -197,6 +222,7 @@ public class ItemEditorScreen extends Screen {
         this.attributeAmountBox = null;
         this.attributeDecimalBox = null;
         this.colorHexBox = null;
+        this.signCommandBox = null;
         this.attributeInfinityButton = null;
         this.attributeOperationButton = null;
         this.attributeSlotButton = null;
@@ -220,6 +246,7 @@ public class ItemEditorScreen extends Screen {
             case POTION -> addPotionPanel();
             case ATTRIBUTES -> addAttributesPanel();
             case COLOR -> addColorPanel();
+            case SIGN -> addSignPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
         }
@@ -257,6 +284,7 @@ public class ItemEditorScreen extends Screen {
             case POTION -> renderPotionPanel(guiGraphics, mouseX, mouseY, partialTick);
             case ATTRIBUTES -> renderAttributesPanel(guiGraphics, mouseX, mouseY, partialTick);
             case COLOR -> renderColorPanel(guiGraphics);
+            case SIGN -> renderSignPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
             case NBT_ADVANCED -> {
@@ -483,6 +511,12 @@ public class ItemEditorScreen extends Screen {
             y += 30;
         }
 
+        if (isSignItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("sign")), button -> switchPanel(Panel.SIGN)));
+            y += 30;
+        }
+
         if (canShowEnchantingButton(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("enchanting")), button -> switchPanel(Panel.ENCHANTMENTS)));
@@ -585,6 +619,37 @@ public class ItemEditorScreen extends Screen {
         addRenderableWidget(new InfinityEditorButton(15, this.height - 90, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("potion.showparticles." + (this.showPotionParticles ? 1 : 0))),
                 button -> togglePotionParticles()));
+    }
+
+    private void addSignPanel() {
+        int fieldWidth = Math.max(120, Math.min(220, this.width - 160));
+        int x = this.midX - fieldWidth / 2;
+
+        for (int i = 0; i < SIGN_LINES; i++) {
+            int line = i;
+            EditBox lineBox = addTrackedBox(legacyTextBox(x, 60 + 30 * i, fieldWidth, FIELD_HEIGHT,
+                    Component.translatable(key("sign.line"), line + 1)));
+            lineBox.setMaxLength(384);
+            lineBox.setValue(getSignLineValue(line));
+            lineBox.setResponder(value -> {
+                this.signLineValues[line] = value;
+                applySignToStack();
+            });
+            this.signBoxes.add(lineBox);
+        }
+
+        int commandWidth = Math.max(120, Math.min(260, this.width - 120));
+        this.signCommandBox = addTrackedBox(legacyTextBox(this.midX - commandWidth / 2, 190, commandWidth, FIELD_HEIGHT,
+                Component.translatable(key("sign.command"))));
+        this.signCommandBox.setMaxLength(512);
+        this.signCommandBox.setValue(this.signCommandValue == null ? "" : this.signCommandValue);
+        this.signCommandBox.setResponder(value -> {
+            this.signCommandValue = value;
+            applySignToStack();
+        });
+        this.signBoxes.add(this.signCommandBox);
+
+        addFormatButtons();
     }
 
     private void addAttributesPanel() {
@@ -985,6 +1050,20 @@ public class ItemEditorScreen extends Screen {
         }
     }
 
+    private void renderSignPanel(GuiGraphics guiGraphics) {
+        renderSmallItem(guiGraphics, this.midX, 35);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("sign")), this.midX, 15, MAIN_COLOR);
+
+        for (int i = 0; i < SIGN_LINES && i < this.signBoxes.size(); i++) {
+            EditBox box = this.signBoxes.get(i);
+            drawRightLabel(guiGraphics, Component.translatable(key("sign.line"), i + 1), box.getX() - 5, box.getY() + 6);
+        }
+        if (this.signCommandBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("sign.command")),
+                    this.signCommandBox.getX() - 5, this.signCommandBox.getY() + 6);
+        }
+    }
+
     private void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("lore")), this.midX, 15, MAIN_COLOR);
@@ -1296,9 +1375,16 @@ public class ItemEditorScreen extends Screen {
         }
 
         int selected = this.minecraft.player.getInventory().selected;
+        int containerSlot = this.targetContainerSlot >= 0
+                ? this.targetContainerSlot
+                : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
         ItemStack inventoryStack = this.previewStack.copy();
-        this.minecraft.player.getInventory().items.set(selected, inventoryStack);
-        this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), 36 + selected);
+        if (!PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, inventoryStack)) {
+            this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
+            return;
+        }
+
+        this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), containerSlot);
         this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
     }
 
@@ -1356,11 +1442,15 @@ public class ItemEditorScreen extends Screen {
 
     private boolean applyMainFieldsToStack(boolean updateStatus) {
         try {
+            captureFieldValues();
             tryApplyItemId(true);
             tryApplyCount(true);
             tryApplyDamage(true);
             applyNameToStack();
             applyLoreToStack();
+            if (this.activePanel == Panel.SIGN) {
+                applySignToStack();
+            }
             this.rawNbtValue = getInitialNbt(this.previewStack);
             return true;
         } catch (IllegalArgumentException exception) {
@@ -1549,6 +1639,96 @@ public class ItemEditorScreen extends Screen {
         }
         applyLoreToStack();
         rebuildWidgets();
+    }
+
+    private void applySignToStack() {
+        if (!isSignItem(this.previewStack)) {
+            return;
+        }
+
+        boolean hasContent = hasSignContent();
+        CompoundTag tag = hasContent ? this.previewStack.getOrCreateTag() : this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (!hasContent) {
+            blockEntity.remove(SIGN_FRONT_TEXT_TAG);
+            removeLegacySignText(blockEntity);
+            cleanupBlockEntityTag(tag, blockEntity);
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
+        CompoundTag frontText = blockEntity.getCompound(SIGN_FRONT_TEXT_TAG);
+        ListTag messages = new ListTag();
+        for (int i = 0; i < SIGN_LINES; i++) {
+            messages.add(StringTag.valueOf(Component.Serializer.toJson(createSignLineComponent(i))));
+        }
+
+        frontText.put(SIGN_MESSAGES_TAG, messages);
+        frontText.remove(SIGN_FILTERED_MESSAGES_TAG);
+        if (!frontText.contains(SIGN_COLOR_TAG, Tag.TAG_STRING)) {
+            frontText.putString(SIGN_COLOR_TAG, "black");
+        }
+        if (!frontText.contains(SIGN_GLOWING_TEXT_TAG, Tag.TAG_BYTE)) {
+            frontText.putBoolean(SIGN_GLOWING_TEXT_TAG, false);
+        }
+
+        blockEntity.put(SIGN_FRONT_TEXT_TAG, frontText);
+        removeLegacySignText(blockEntity);
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private MutableComponent createSignLineComponent(int line) {
+        MutableComponent component = Component.literal(getSignLineValue(line));
+        if (line == 0) {
+            String command = getNormalizedSignCommand();
+            if (!command.isEmpty()) {
+                component.setStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command)));
+            }
+        }
+        return component;
+    }
+
+    private boolean hasSignContent() {
+        if (!getNormalizedSignCommand().isEmpty()) {
+            return true;
+        }
+        for (int i = 0; i < SIGN_LINES; i++) {
+            if (!getSignLineValue(i).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String getSignLineValue(int line) {
+        if (line < 0 || line >= this.signLineValues.length || this.signLineValues[line] == null) {
+            return "";
+        }
+        return this.signLineValues[line];
+    }
+
+    private String getNormalizedSignCommand() {
+        return this.signCommandValue == null ? "" : this.signCommandValue.trim();
+    }
+
+    private void cleanupBlockEntityTag(CompoundTag tag, CompoundTag blockEntity) {
+        if (blockEntity.isEmpty()) {
+            tag.remove(BLOCK_ENTITY_TAG);
+        } else {
+            tag.put(BLOCK_ENTITY_TAG, blockEntity);
+        }
+        cleanupEmptyTag();
+    }
+
+    private static void removeLegacySignText(CompoundTag blockEntity) {
+        for (int i = 0; i < SIGN_LINES; i++) {
+            blockEntity.remove(LEGACY_SIGN_TEXT_TAG_PREFIX + (i + 1));
+        }
     }
 
     private void updateRawNbt() {
@@ -2563,6 +2743,11 @@ public class ItemEditorScreen extends Screen {
                 return box;
             }
         }
+        for (EditBox box : this.signBoxes) {
+            if (box.isFocused()) {
+                return box;
+            }
+        }
         if (this.rawNbtBox != null && this.rawNbtBox.isFocused()) {
             return this.rawNbtBox;
         }
@@ -2662,6 +2847,8 @@ public class ItemEditorScreen extends Screen {
                 this.loreValues.add(readLoreLine(lore.getString(i)));
             }
         }
+
+        readSignFieldsFromStack(stack);
     }
 
     private String readLoreLine(String raw) {
@@ -2670,6 +2857,68 @@ public class ItemEditorScreen extends Screen {
             return component == null ? raw : component.getString();
         } catch (RuntimeException exception) {
             return raw;
+        }
+    }
+
+    private void readSignFieldsFromStack(ItemStack stack) {
+        Arrays.fill(this.signLineValues, "");
+        this.signCommandValue = "";
+        if (!isSignItem(stack)) {
+            return;
+        }
+
+        CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity == null) {
+            return;
+        }
+
+        boolean readModernMessages = false;
+        if (blockEntity.contains(SIGN_FRONT_TEXT_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag frontText = blockEntity.getCompound(SIGN_FRONT_TEXT_TAG);
+            if (frontText.contains(SIGN_MESSAGES_TAG, Tag.TAG_LIST)) {
+                ListTag messages = frontText.getList(SIGN_MESSAGES_TAG, Tag.TAG_STRING);
+                for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
+                    readSignLine(i, messages.getString(i));
+                }
+                readModernMessages = !messages.isEmpty();
+            }
+        }
+
+        if (!readModernMessages) {
+            for (int i = 0; i < SIGN_LINES; i++) {
+                String key = LEGACY_SIGN_TEXT_TAG_PREFIX + (i + 1);
+                if (blockEntity.contains(key, Tag.TAG_STRING)) {
+                    readSignLine(i, blockEntity.getString(key));
+                }
+            }
+        }
+    }
+
+    private void readSignLine(int line, String raw) {
+        Component component = readSerializedComponent(raw);
+        this.signLineValues[line] = component.getString();
+        if (line == 0) {
+            ClickEvent clickEvent = component.getStyle().getClickEvent();
+            if (clickEvent != null && clickEvent.getAction() == ClickEvent.Action.RUN_COMMAND) {
+                this.signCommandValue = clickEvent.getValue();
+            }
+        }
+    }
+
+    private Component readSerializedComponent(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Component.empty();
+        }
+        try {
+            Component component = Component.Serializer.fromJson(raw);
+            return component == null ? Component.literal(raw) : component;
+        } catch (RuntimeException exception) {
+            try {
+                Component component = Component.Serializer.fromJsonLenient(raw);
+                return component == null ? Component.literal(raw) : component;
+            } catch (RuntimeException ignored) {
+                return Component.literal(raw);
+            }
         }
     }
 
@@ -2731,6 +2980,12 @@ public class ItemEditorScreen extends Screen {
         }
         if (this.colorHexBox != null) {
             this.colorHexValue = this.colorHexBox.getValue();
+        }
+        for (int i = 0; i < SIGN_LINES && i < this.signBoxes.size(); i++) {
+            this.signLineValues[i] = this.signBoxes.get(i).getValue();
+        }
+        if (this.signCommandBox != null) {
+            this.signCommandValue = this.signCommandBox.getValue();
         }
     }
 
@@ -2809,6 +3064,10 @@ public class ItemEditorScreen extends Screen {
 
     private static boolean isMapItem(ItemStack stack) {
         return stack.is(Items.MAP) || stack.is(Items.FILLED_MAP);
+    }
+
+    private static boolean isSignItem(ItemStack stack) {
+        return stack.getItem() instanceof SignItem;
     }
 
     private static int getDefaultAttributeSlot(ItemStack stack) {
@@ -2906,6 +3165,7 @@ public class ItemEditorScreen extends Screen {
         POTION,
         ATTRIBUTES,
         COLOR,
+        SIGN,
         LORE,
         LORE_PAINTER
     }
