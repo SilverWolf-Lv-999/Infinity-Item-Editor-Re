@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.screen.ItemEditorScreen;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.netty.channel.ChannelDuplexHandler;
@@ -58,7 +59,12 @@ public final class ClientForgeEvents {
         }
 
         while (ClientKeyMappings.OPEN_EDITOR.consumeClick()) {
-            minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".editor_not_ported"), true);
+            ItemStack heldStack = minecraft.player.getMainHandItem();
+            if (heldStack.isEmpty()) {
+                minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".editor_no_item"), true);
+            } else {
+                minecraft.setScreen(new ItemEditorScreen(heldStack.copy()));
+            }
         }
 
         while (ClientKeyMappings.COPY_TARGET.consumeClick()) {
