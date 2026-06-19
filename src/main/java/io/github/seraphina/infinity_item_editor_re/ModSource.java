@@ -2,6 +2,8 @@ package io.github.seraphina.infinity_item_editor_re;
 
 import com.mojang.logging.LogUtils;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
+import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
+import io.github.seraphina.infinity_item_editor_re.data.voids.VoidConsumer;
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -22,6 +24,8 @@ public class ModSource {
 
     public static File dataDir;
     public static RealmController realmController;
+    public static final VoidBuffer voidBuffer = new VoidBuffer();
+    private static boolean voidConsumerStarted;
 
     public ModSource(FMLJavaModLoadingContext context) {
         IEventBus modEventBus = context.getModEventBus();
@@ -35,6 +39,7 @@ public class ModSource {
         ensureDirectory(new File(dataDir, "void"));
         migrateOldRealmFile();
         realmController = new RealmController(dataDir);
+        startVoidConsumer();
     }
 
     public static synchronized RealmController getRealmController() {
@@ -66,5 +71,16 @@ public class ModSource {
         } catch (IOException exception) {
             LOGGER.error("Failed to migrate old realm file {}", oldRealmFile.getAbsolutePath(), exception);
         }
+    }
+
+    private static void startVoidConsumer() {
+        if (voidConsumerStarted) {
+            return;
+        }
+
+        Thread voidThread = new Thread(new VoidConsumer(voidBuffer), "Infinity Item Editor Void Consumer");
+        voidThread.setDaemon(true);
+        voidThread.start();
+        voidConsumerStarted = true;
     }
 }

@@ -3,6 +3,7 @@ package io.github.seraphina.infinity_item_editor_re.init;
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
+import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -190,7 +191,15 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        output.accept(Items.BLACK_STAINED_GLASS);
+        List<ItemStack> stacks = new ArrayList<>();
+        VoidController.loadVoidToList(stacks);
+
+        if (stacks.isEmpty()) {
+            output.accept(Items.BLACK_STAINED_GLASS);
+            return;
+        }
+
+        output.acceptAll(stacks);
     }
 
     private static ItemStack createPlayerHead(String owner) {
