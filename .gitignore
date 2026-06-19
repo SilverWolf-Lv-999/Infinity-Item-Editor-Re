@@ -10,3 +10,4 @@ bin/
 run/
 SRG/
 run-data/
+build_temp/

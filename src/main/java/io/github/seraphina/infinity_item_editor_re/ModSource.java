@@ -1,41 +1,70 @@
 package io.github.seraphina.infinity_item_editor_re;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.MapColor;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
+import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
+import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 @Mod(ModSource.MODID)
 public class ModSource {
     public static final String MODID = "infinity_item_editor_re";
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final String NAME = "Infinity Item Editor Re";
+    public static final String VERSION = "0.0.1";
+    public static final Logger LOGGER = LogUtils.getLogger();
+
+    public static File dataDir;
+    public static RealmController realmController;
 
     public ModSource(FMLJavaModLoadingContext context) {
         IEventBus modEventBus = context.getModEventBus();
-        context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
+        context.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
+    }
+
+    public static synchronized void initClientStorage(File minecraftDirectory) {
+        dataDir = new File(minecraftDirectory, "infinity-data");
+        ensureDirectory(dataDir);
+        ensureDirectory(new File(dataDir, "void"));
+        migrateOldRealmFile();
+        realmController = new RealmController(dataDir);
+    }
+
+    public static synchronized RealmController getRealmController() {
+        return realmController;
+    }
+
+    private static void ensureDirectory(File directory) {
+        if (!directory.exists() && !directory.mkdirs()) {
+            LOGGER.warn("Failed to create directory {}", directory.getAbsolutePath());
+        }
+    }
+
+    private static void migrateOldRealmFile() {
+        File oldRealmFile = new File(dataDir, "infinity.nbt");
+        File newRealmFile = new File(dataDir, "realm.nbt");
+
+        if (!oldRealmFile.exists()) {
+            return;
+        }
+
+        if (newRealmFile.exists()) {
+            LOGGER.warn("Found old realm file {}, but {} already exists.", oldRealmFile.getName(), newRealmFile.getName());
+            return;
+        }
+
+        try {
+            Files.move(oldRealmFile.toPath(), newRealmFile.toPath());
+            LOGGER.info("Renamed old realm file {} to {}.", oldRealmFile.getName(), newRealmFile.getName());
+        } catch (IOException exception) {
+            LOGGER.error("Failed to migrate old realm file {}", oldRealmFile.getAbsolutePath(), exception);
+        }
     }
 }
