@@ -3,6 +3,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -2187,8 +2188,10 @@ public class ItemEditorScreen extends Screen {
 
         RealmController realmController = ModSource.getOrCreateRealmController(this.minecraft.gameDirectory);
         if (realmController != null) {
-            realmController.addItemStack(this.minecraft.player, this.previewStack.copy());
-            this.status = Component.translatable(messageKey("editor_saved"), this.previewStack.getHoverName());
+            if (realmController.addItemStack(this.minecraft.player, this.previewStack.copy())) {
+                CreativeTabRefresher.refreshRealm(this.minecraft);
+                this.status = Component.translatable(messageKey("editor_saved"), this.previewStack.getHoverName());
+            }
         }
     }
 

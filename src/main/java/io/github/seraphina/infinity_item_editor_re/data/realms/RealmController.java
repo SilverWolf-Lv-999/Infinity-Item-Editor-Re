@@ -70,9 +70,9 @@ public class RealmController {
         }
     }
 
-    public void addItemStack(Player player, ItemStack stack) {
+    public boolean addItemStack(Player player, ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
-            return;
+            return false;
         }
 
         ItemStack savedStack = stack.copy();
@@ -81,7 +81,7 @@ public class RealmController {
                 player.sendSystemMessage(Component.literal("Didn't add ")
                         .append(savedStack.getHoverName())
                         .append(Component.literal(", as it seems to already exist in the Infinity Realm.")));
-                return;
+                return false;
             }
         }
 
@@ -90,11 +90,12 @@ public class RealmController {
         player.sendSystemMessage(Component.literal("Added ")
                 .append(savedStack.getHoverName())
                 .append(Component.literal(" to Infinity Realm.")));
+        return true;
     }
 
-    public void removeItemStack(Player player, ItemStack stack) {
+    public boolean removeItemStack(Player player, ItemStack stack) {
         if (stack == null || stack.isEmpty()) {
-            return;
+            return false;
         }
 
         for (ItemStack existingStack : stackList) {
@@ -104,9 +105,10 @@ public class RealmController {
                 player.sendSystemMessage(Component.literal("Banished ")
                         .append(stack.getHoverName())
                         .append(Component.literal(" from the Infinity Realm.")));
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     public List<ItemStack> getStackList() {

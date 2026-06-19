@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.ItemEditorScreen;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
@@ -64,7 +65,9 @@ public final class ClientForgeEvents {
             RealmController realmController = ModSource.getOrCreateRealmController(minecraft.gameDirectory);
             if (realmController != null) {
                 ItemStack heldStack = minecraft.player.getMainHandItem();
-                realmController.addItemStack(minecraft.player, heldStack.copy());
+                if (realmController.addItemStack(minecraft.player, heldStack.copy())) {
+                    CreativeTabRefresher.refreshRealm(minecraft);
+                }
             }
         }
 
@@ -207,10 +210,14 @@ public final class ClientForgeEvents {
 
         RealmController realmController = ModSource.getOrCreateRealmController(minecraft.gameDirectory);
         if (realmController != null) {
+            boolean realmChanged;
             if (isRealmCreativeTabSlot(minecraft, screen, slot)) {
-                realmController.removeItemStack(minecraft.player, stack);
+                realmChanged = realmController.removeItemStack(minecraft.player, stack);
             } else {
-                realmController.addItemStack(minecraft.player, stack.copy());
+                realmChanged = realmController.addItemStack(minecraft.player, stack.copy());
+            }
+            if (realmChanged) {
+                CreativeTabRefresher.refreshRealm(minecraft);
             }
         }
 
@@ -355,7 +362,9 @@ public final class ClientForgeEvents {
         if (controlDown) {
             RealmController realmController = ModSource.getOrCreateRealmController(minecraft.gameDirectory);
             if (realmController != null) {
-                realmController.addItemStack(minecraft.player, stack.copy());
+                if (realmController.addItemStack(minecraft.player, stack.copy())) {
+                    CreativeTabRefresher.refreshRealm(minecraft);
+                }
             }
         }
 
