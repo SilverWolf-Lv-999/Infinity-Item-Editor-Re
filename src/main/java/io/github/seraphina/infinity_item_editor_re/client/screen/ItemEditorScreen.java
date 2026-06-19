@@ -465,7 +465,7 @@ public class ItemEditorScreen extends Screen {
 
     private void addSpecialButtons() {
         int y = 175;
-        if (this.previewStack.isDamageableItem()) {
+        if (!this.previewStack.isEmpty()) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     getUnbreakableText(), button -> toggleUnbreakable()));
             y += 30;
@@ -1781,19 +1781,27 @@ public class ItemEditorScreen extends Screen {
     }
 
     private List<Enchantment> getFilteredEnchantments(ItemStack stack) {
-        List<Enchantment> enchantments = new ArrayList<>();
+        List<Enchantment> matchingEnchantments = new ArrayList<>();
+        List<Enchantment> applicableMatchingEnchantments = new ArrayList<>();
+        boolean hasApplicableEnchantments = false;
         String filter = this.enchantFilterValue == null ? "" : this.enchantFilterValue.trim().toLowerCase(Locale.ROOT);
         for (Enchantment enchantment : ForgeRegistries.ENCHANTMENTS.getValues()) {
-            if (!this.showAllEnchantments && !canApplyEnchantment(stack, enchantment)) {
-                continue;
-            }
+            boolean applicable = canApplyEnchantment(stack, enchantment);
+            hasApplicableEnchantments |= applicable;
             ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
             String name = Component.translatable(enchantment.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
             String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
             if (filter.isEmpty() || name.contains(filter) || idString.contains(filter)) {
-                enchantments.add(enchantment);
+                matchingEnchantments.add(enchantment);
+                if (applicable) {
+                    applicableMatchingEnchantments.add(enchantment);
+                }
             }
         }
+
+        List<Enchantment> enchantments = this.showAllEnchantments || !hasApplicableEnchantments
+                ? matchingEnchantments
+                : applicableMatchingEnchantments;
         enchantments.sort(Comparator.comparing(enchantment -> Component.translatable(enchantment.getDescriptionId()).getString(),
                 String.CASE_INSENSITIVE_ORDER));
         return enchantments;
@@ -2792,7 +2800,7 @@ public class ItemEditorScreen extends Screen {
     }
 
     private static boolean canShowEnchantingButton(ItemStack stack) {
-        return stack.isEnchantable() || stack.is(Items.ENCHANTED_BOOK) || stack.is(Items.BOOK);
+        return !stack.isEmpty();
     }
 
     private static boolean isPotionItem(ItemStack stack) {
