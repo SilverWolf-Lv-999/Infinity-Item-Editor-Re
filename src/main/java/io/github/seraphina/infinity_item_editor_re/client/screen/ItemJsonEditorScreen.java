@@ -94,8 +94,15 @@ final class ItemJsonEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 256 && this.jsonBox != null && this.jsonBox.closeCompletions()) {
+            return true;
+        }
         if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
             returnToLastScreen();
+            return true;
+        }
+        if (Screen.hasControlDown() && Screen.hasAltDown() && keyCode == 76) {
+            formatJson();
             return true;
         }
         if (Screen.hasControlDown() && keyCode == 83) {
@@ -317,6 +324,7 @@ final class ItemJsonEditorScreen extends Screen {
         private int errorLine = -1;
         private int ticks;
         private int selectedCompletion;
+        private boolean completionSelectionArmed;
         private boolean draggingSelection;
 
         JsonCodeEditBox(Font font, int x, int y, int width, int height, Component hint) {
@@ -341,6 +349,15 @@ final class ItemJsonEditorScreen extends Screen {
 
         String getValue() {
             return this.text;
+        }
+
+        boolean closeCompletions() {
+            if (this.completions.isEmpty()) {
+                return false;
+            }
+            this.completions.clear();
+            this.completionSelectionArmed = false;
+            return true;
         }
 
         void clearError() {
@@ -409,8 +426,11 @@ final class ItemJsonEditorScreen extends Screen {
             if (!isFocused()) {
                 return false;
             }
+            if (keyCode == 256 && closeCompletions()) {
+                return true;
+            }
             if (keyCode == 258) {
-                if (!Screen.hasShiftDown() && applySelectedCompletion()) {
+                if (!Screen.hasShiftDown() && this.completionSelectionArmed && applySelectedCompletion()) {
                     return true;
                 }
                 if (Screen.hasShiftDown()) {
@@ -421,16 +441,22 @@ final class ItemJsonEditorScreen extends Screen {
                 return true;
             }
             if (Screen.hasControlDown() && keyCode == 32) {
-                rebuildCompletions();
+                rebuildCompletions(true);
+                this.completionSelectionArmed = !this.completions.isEmpty();
                 return true;
             }
             if (!this.completions.isEmpty() && keyCode == 264) {
                 this.selectedCompletion = (this.selectedCompletion + 1) % this.completions.size();
+                this.completionSelectionArmed = true;
                 return true;
             }
             if (!this.completions.isEmpty() && keyCode == 265) {
                 this.selectedCompletion = (this.selectedCompletion + this.completions.size() - 1) % this.completions.size();
+                this.completionSelectionArmed = true;
                 return true;
+            }
+            if (!this.completions.isEmpty() && this.completionSelectionArmed && (keyCode == 257 || keyCode == 335)) {
+                return applySelectedCompletion();
             }
             return handleEditKey(keyCode);
         }
@@ -531,7 +557,7 @@ final class ItemJsonEditorScreen extends Screen {
             for (int i = 0; i < this.completions.size(); i++) {
                 Completion completion = this.completions.get(i);
                 int rowY = y + 1 + i * COMPLETION_ROW_HEIGHT;
-                if (i == this.selectedCompletion) {
+                if (this.completionSelectionArmed && i == this.selectedCompletion) {
                     guiGraphics.fill(x + 1, rowY, x + COMPLETION_WIDTH - 1, rowY + COMPLETION_ROW_HEIGHT, COLOR_COMPLETION_SELECTED);
                 }
                 int color = completion.keyCompletion() ? COLOR_KEY : COLOR_STRING;
@@ -660,6 +686,7 @@ final class ItemJsonEditorScreen extends Screen {
             }
             int index = Mth.clamp(((int) mouseY - y - 1) / COMPLETION_ROW_HEIGHT, 0, this.completions.size() - 1);
             this.selectedCompletion = index;
+            this.completionSelectionArmed = true;
             return applySelectedCompletion();
         }
 
@@ -671,17 +698,26 @@ final class ItemJsonEditorScreen extends Screen {
             int replaceStart = Mth.clamp(completion.replaceStart(), 0, this.text.length());
             int replaceEnd = Mth.clamp(completion.replaceEnd(), replaceStart, this.text.length());
             this.text = this.text.substring(0, replaceStart) + completion.insert() + this.text.substring(replaceEnd);
-            this.cursor = replaceStart + completion.insert().length();
-            clearSelection();
+            this.cursor = replaceStart + Mth.clamp(completion.cursorOffset(), 0, completion.insert().length());
+            if (completion.selectionLength() > 0) {
+                this.selectionAnchor = Mth.clamp(this.cursor + completion.selectionLength(), 0, this.text.length());
+            } else {
+                clearSelection();
+            }
             notifyValueChanged();
             ensureCursorVisible();
-            rebuildCompletions();
+            rebuildCompletions(false);
             return true;
         }
 
         private void rebuildCompletions() {
+            rebuildCompletions(false);
+        }
+
+        private void rebuildCompletions(boolean explicit) {
             this.completions.clear();
-            CompletionRequest request = buildCompletionRequest();
+            this.completionSelectionArmed = false;
+            CompletionRequest request = buildCompletionRequest(explicit);
             if (request == null) {
                 return;
             }
@@ -696,7 +732,7 @@ final class ItemJsonEditorScreen extends Screen {
             this.selectedCompletion = Mth.clamp(this.selectedCompletion, 0, Math.max(0, this.completions.size() - 1));
         }
 
-        private CompletionRequest buildCompletionRequest() {
+        private CompletionRequest buildCompletionRequest(boolean explicit) {
             String value = this.text;
             int cursor = Mth.clamp(this.cursor, 0, value.length());
             int start = cursor;
@@ -707,6 +743,9 @@ final class ItemJsonEditorScreen extends Screen {
             String prefix = value.substring(start, cursor);
             String key = keyBeforeValue(value, start, insideString);
             boolean keyContext = key == null && isProbablyKeyContext(value, start, insideString);
+            if (prefix.isEmpty() && !explicit) {
+                return null;
+            }
             if (!keyContext && key == null && prefix.length() < 2) {
                 return null;
             }
@@ -902,23 +941,35 @@ final class ItemJsonEditorScreen extends Screen {
 
             String valueIndent = indentationAt(request.replaceStart()) + INDENT;
             if (normalizedKey.equals("display")) {
-                results.add(new Completion("display object", "{\n" + valueIndent
+                String snippet = "{\n" + valueIndent
                         + "\"Name\": \"{\\\"text\\\":\\\"Name\\\"}\",\n" + valueIndent
-                        + "\"Lore\": []\n" + indentationAt(request.replaceStart()) + "}",
-                        request.replaceStart(), request.replaceEnd(), false));
+                        + "\"Lore\": []\n" + indentationAt(request.replaceStart()) + "}";
+                String marker = "Name";
+                results.add(new Completion("display object", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, true),
+                        marker.length()));
             } else if (normalizedKey.equals("enchantments") || normalizedKey.equals("storedenchantments")) {
-                results.add(new Completion("enchantment list", "[\n" + valueIndent
-                        + "{\"id\": \"minecraft:sharpness\", \"lvl\": 1}\n" + indentationAt(request.replaceStart()) + "]",
-                        request.replaceStart(), request.replaceEnd(), false));
+                String snippet = "[\n" + valueIndent
+                        + "{\"id\": \"minecraft:sharpness\", \"lvl\": 1}\n" + indentationAt(request.replaceStart()) + "]";
+                String marker = "minecraft:sharpness";
+                results.add(new Completion("enchantment list", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, false),
+                        marker.length()));
             } else if (normalizedKey.equals("attributemodifiers")) {
-                results.add(new Completion("attribute modifier", "[\n" + valueIndent
+                String snippet = "[\n" + valueIndent
                         + "{\"AttributeName\": \"minecraft:generic.attack_damage\", \"Name\": \"generic.attack_damage\", "
                         + "\"Amount\": 1.0, \"Operation\": 0, \"UUID\": [0, 0, 0, 0], \"Slot\": \"mainhand\"}\n"
-                        + indentationAt(request.replaceStart()) + "]",
-                        request.replaceStart(), request.replaceEnd(), false));
+                        + indentationAt(request.replaceStart()) + "]";
+                String marker = "minecraft:generic.attack_damage";
+                results.add(new Completion("attribute modifier", snippet,
+                        request.replaceStart(), request.replaceEnd(), false,
+                        templateCursor(snippet, marker, false), marker.length()));
             } else if (normalizedKey.equals("canplaceon") || normalizedKey.equals("candestroy")) {
-                results.add(new Completion("block id list", "[\"minecraft:stone\"]",
-                        request.replaceStart(), request.replaceEnd(), false));
+                String snippet = "[\"minecraft:stone\"]";
+                String marker = "minecraft:stone";
+                results.add(new Completion("block id list", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, false),
+                        marker.length()));
             }
         }
 
@@ -944,6 +995,11 @@ final class ItemJsonEditorScreen extends Screen {
                 }
                 results.add(new Completion(value, value, request.replaceStart(), request.replaceEnd(), false));
             }
+        }
+
+        private int templateCursor(String snippet, String marker, boolean last) {
+            int index = last ? snippet.lastIndexOf(marker) : snippet.indexOf(marker);
+            return index >= 0 ? index : snippet.length();
         }
 
         private void ensureCursorVisible() {
@@ -1086,16 +1142,18 @@ final class ItemJsonEditorScreen extends Screen {
             int start = selectionStart();
             int end = selectionEnd();
             String indent = indentationAt(start);
+            String prefix = shouldInsertCommaBeforeNewline(start, end) ? "," : "";
             boolean splitPair = isOpeningBracket(previousNonWhitespaceBefore(start))
                     && isMatchingPair(previousNonWhitespaceBefore(start), nextNonWhitespaceAfter(end));
             if (splitPair) {
-                String insert = "\n" + indent + INDENT + "\n" + indent;
-                replaceSelection(insert, 1 + indent.length() + INDENT.length());
+                String insert = prefix + "\n" + indent + INDENT + "\n" + indent;
+                replaceSelection(insert, prefix.length() + 1 + indent.length() + INDENT.length());
                 return;
             }
 
             String extra = isOpeningBracket(previousNonWhitespaceBefore(start)) ? INDENT : "";
-            replaceSelection("\n" + indent + extra, 1 + indent.length() + extra.length());
+            replaceSelection(prefix + "\n" + indent + extra,
+                    prefix.length() + 1 + indent.length() + extra.length());
         }
 
         private void insertClosingBracket(char close) {
@@ -1203,6 +1261,9 @@ final class ItemJsonEditorScreen extends Screen {
             if (this.cursor <= 0) {
                 return;
             }
+            if (deleteIndentBeforeCursor()) {
+                return;
+            }
             if (this.cursor < this.text.length() && isMatchingPair(this.text.charAt(this.cursor - 1), this.text.charAt(this.cursor))) {
                 this.text = this.text.substring(0, this.cursor - 1) + this.text.substring(this.cursor + 1);
                 this.cursor--;
@@ -1240,6 +1301,25 @@ final class ItemJsonEditorScreen extends Screen {
             this.text = this.text.substring(0, start) + this.text.substring(end);
             this.cursor = start;
             clearSelection();
+            notifyValueChanged();
+            ensureCursorVisible();
+            rebuildCompletions();
+            return true;
+        }
+
+        private boolean deleteIndentBeforeCursor() {
+            if (!onlyWhitespaceBeforeCursorOnLine()) {
+                return false;
+            }
+            int lineStart = lineStartAt(this.cursor);
+            int spaces = this.cursor - lineStart;
+            if (spaces <= 0) {
+                return false;
+            }
+            int amount = spaces % INDENT.length() == 0 ? INDENT.length() : spaces % INDENT.length();
+            amount = Math.min(amount, spaces);
+            this.text = this.text.substring(0, this.cursor - amount) + this.text.substring(this.cursor);
+            this.cursor -= amount;
             notifyValueChanged();
             ensureCursorVisible();
             rebuildCompletions();
@@ -1439,12 +1519,24 @@ final class ItemJsonEditorScreen extends Screen {
             return index < this.text.length() ? this.text.charAt(index) : '\0';
         }
 
+        private boolean shouldInsertCommaBeforeNewline(int start, int end) {
+            if (isInsideString(start)) {
+                return false;
+            }
+            char previous = previousNonWhitespaceBefore(start);
+            char next = nextNonWhitespaceAfter(end);
+            if (next != '}' && next != ']') {
+                return false;
+            }
+            return previous != '\0' && previous != '{' && previous != '[' && previous != ',' && previous != ':';
+        }
+
         private boolean isOpeningBracket(char c) {
             return c == '{' || c == '[';
         }
 
         private boolean isMatchingPair(char open, char close) {
-            return open == '{' && close == '}' || open == '[' && close == ']';
+            return open == '{' && close == '}' || open == '[' && close == ']' || open == '"' && close == '"';
         }
 
         private boolean hasExistingKeySyntax(String value, int cursor) {
@@ -1475,8 +1567,10 @@ final class ItemJsonEditorScreen extends Screen {
             String normalizedValue = value.toLowerCase(Locale.ROOT);
             String normalizedPrefix = prefix.toLowerCase(Locale.ROOT);
             String shortName = shortRegistryName(normalizedValue);
+            String humps = completionHumps(value);
             return normalizedValue.startsWith(normalizedPrefix)
                     || shortName.startsWith(normalizedPrefix)
+                    || humps.startsWith(normalizedPrefix)
                     || normalizedValue.contains(normalizedPrefix)
                     || shortName.contains(normalizedPrefix);
         }
@@ -1494,18 +1588,39 @@ final class ItemJsonEditorScreen extends Screen {
             if (shortName.startsWith(normalizedPrefix)) {
                 return 1;
             }
-            if (normalizedValue.contains(normalizedPrefix)) {
+            if (completionHumps(value).startsWith(normalizedPrefix)) {
                 return 2;
             }
-            if (shortName.contains(normalizedPrefix)) {
+            if (normalizedValue.contains(normalizedPrefix)) {
                 return 3;
             }
-            return 4;
+            if (shortName.contains(normalizedPrefix)) {
+                return 4;
+            }
+            return 5;
         }
 
         private String shortRegistryName(String value) {
             int colon = value.indexOf(':');
             return colon >= 0 && colon + 1 < value.length() ? value.substring(colon + 1) : value;
+        }
+
+        private String completionHumps(String value) {
+            String name = shortRegistryName(value);
+            StringBuilder builder = new StringBuilder();
+            boolean nextSegment = true;
+            for (int i = 0; i < name.length(); i++) {
+                char c = name.charAt(i);
+                if (c == '_' || c == '-' || c == '.' || c == '/') {
+                    nextSegment = true;
+                    continue;
+                }
+                if (nextSegment || Character.isUpperCase(c)) {
+                    builder.append(Character.toLowerCase(c));
+                    nextSegment = false;
+                }
+            }
+            return builder.toString();
         }
 
         private static boolean isCompletionChar(char c) {
@@ -1594,7 +1709,15 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private record Completion(String display, String insert, int replaceStart, int replaceEnd,
-                                  boolean keyCompletion) {
+                                  boolean keyCompletion, int cursorOffset, int selectionLength) {
+            private Completion(String display, String insert, int replaceStart, int replaceEnd, boolean keyCompletion) {
+                this(display, insert, replaceStart, replaceEnd, keyCompletion, insert.length(), 0);
+            }
+
+            private Completion(String display, String insert, int replaceStart, int replaceEnd,
+                               boolean keyCompletion, int cursorOffset) {
+                this(display, insert, replaceStart, replaceEnd, keyCompletion, cursorOffset, 0);
+            }
         }
 
         private record TextLine(int beginIndex, int endIndex) {
