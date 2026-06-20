@@ -124,6 +124,18 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
+    protected void openCommandBlockEditor() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true) || !isCommandBlockEditableItem(this.previewStack)) {
+            return;
+        }
+        this.status = Component.empty();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
+    }
+
     protected void openItemPicker() {
         if (this.minecraft == null) {
             return;
@@ -183,6 +195,17 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
+    }
+
+    void applyCommandBlockEditedStack(ItemStack stack) {
+        if (stack == null) {
+            return;
+        }
+        this.previewStack = stack.copy();
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.nbtFeedback = "";
+        this.status = Component.translatable(messageKey("editor_command_block_applied"));
     }
 
     protected void goBack() {

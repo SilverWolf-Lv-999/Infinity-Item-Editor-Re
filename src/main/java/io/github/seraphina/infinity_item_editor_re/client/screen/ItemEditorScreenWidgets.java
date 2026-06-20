@@ -223,6 +223,12 @@ protected void addItemPanel() {
             y += 30;
         }
 
+        if (isCommandBlockEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("commandblock")), button -> openCommandBlockEditor()));
+            y += 30;
+        }
+
         if (isBannerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));

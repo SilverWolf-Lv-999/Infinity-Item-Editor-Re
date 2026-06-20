@@ -640,6 +640,13 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return isSpawnEggItem(stack) || isSpawnerItem(stack);
     }
 
+    protected static boolean isCommandBlockEditableItem(ItemStack stack) {
+        return stack.is(Items.COMMAND_BLOCK)
+                || stack.is(Items.CHAIN_COMMAND_BLOCK)
+                || stack.is(Items.REPEATING_COMMAND_BLOCK)
+                || stack.is(Items.COMMAND_BLOCK_MINECART);
+    }
+
     protected boolean isVillagerTradeEditableItem(ItemStack stack) {
         return isSpawnEggItem(stack) && EntityType.VILLAGER.equals(getCurrentSpawnEggEntityType(stack));
     }

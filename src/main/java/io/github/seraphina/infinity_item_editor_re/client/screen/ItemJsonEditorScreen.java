@@ -263,7 +263,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
     }
 
-    private static final class JsonCodeEditBox extends AbstractScrollWidget {
+    static final class JsonCodeEditBox extends AbstractScrollWidget {
         private static final int LINE_HEIGHT = 10;
         private static final int LINE_NUMBER_WIDTH = 34;
         private static final int COMPLETION_WIDTH = 176;
@@ -292,9 +292,14 @@ final class ItemJsonEditorScreen extends Screen {
                 "BlockStateTag", "EntityTag", "SkullOwner", "Properties", "textures", "Value", "Signature",
                 "Fireworks", "Flight", "Explosions", "Explosion", "Type", "Colors", "FadeColors", "Flicker",
                 "Trail", "Items", "Slot", "tag", "Offers", "Recipes", "buy", "buyB", "sell", "uses", "maxUses",
-                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color"
+                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color",
+                "Command", "CustomName", "LastOutput", "TrackOutput", "SuccessCount", "auto", "conditionMet", "powered",
+                "UpdateLastExecution", "LastExecution"
         );
         private static final List<String> ROOT_KEY_COMPLETIONS = List.of("id", "Count", "tag");
+        private static final List<String> COMMAND_BLOCK_KEY_COMPLETIONS = List.of("id", "Command", "CustomName",
+                "LastOutput", "TrackOutput", "SuccessCount", "auto", "conditionMet", "powered",
+                "UpdateLastExecution", "LastExecution");
         private static final List<String> DISPLAY_KEY_COMPLETIONS = List.of("Name", "Lore", "color", "italic", "bold",
                 "underlined", "strikethrough", "obfuscated");
         private static final List<String> ENCHANTMENT_KEY_COMPLETIONS = List.of("id", "lvl");
@@ -312,10 +317,30 @@ final class ItemJsonEditorScreen extends Screen {
         private static final List<String> ENCHANTMENT_IDS = registryKeys(ForgeRegistries.ENCHANTMENTS.getValues());
         private static final List<String> ATTRIBUTE_IDS = registryKeys(ForgeRegistries.ATTRIBUTES.getValues());
         private static final List<String> ENTITY_IDS = registryKeys(ForgeRegistries.ENTITY_TYPES.getValues());
+        private static final List<String> COMMAND_BLOCK_IDS = List.of(
+                "minecraft:command_block", "minecraft:chain_command_block", "minecraft:repeating_command_block",
+                "minecraft:command_block_minecart"
+        );
+        private static final List<String> COMMAND_VALUES = List.of(
+                "say hello",
+                "give @p minecraft:diamond",
+                "tp @p ~ ~1 ~",
+                "effect give @p minecraft:speed 30 1 true",
+                "summon minecraft:pig ~ ~1 ~",
+                "setblock ~ ~-1 ~ minecraft:gold_block",
+                "fill ~-1 ~ ~-1 ~1 ~ ~1 minecraft:glass",
+                "execute as @e[type=minecraft:zombie,limit=1] run say found"
+        );
+        private static final List<String> COMMAND_COMPONENT_VALUES = List.of(
+                "{\\\"text\\\":\\\"@\\\"}",
+                "{\\\"text\\\":\\\"Done\\\"}",
+                "{\\\"text\\\":\\\"\\\", \\\"color\\\":\\\"green\\\"}"
+        );
 
         private final Font font;
         private final Component hint;
         private final List<Completion> completions = new ArrayList<>();
+        private List<String> rootKeyCompletions = ROOT_KEY_COMPLETIONS;
         private String text = "";
         private Consumer<String> valueListener = value -> {
         };
@@ -331,6 +356,11 @@ final class ItemJsonEditorScreen extends Screen {
             super(x, y, width, height, hint);
             this.font = font;
             this.hint = hint;
+        }
+
+        void useCommandBlockCompletions() {
+            this.rootKeyCompletions = COMMAND_BLOCK_KEY_COMPLETIONS;
+            rebuildCompletions();
         }
 
         void setValueListener(Consumer<String> valueListener) {
@@ -876,10 +906,12 @@ final class ItemJsonEditorScreen extends Screen {
             LinkedHashSet<String> keys = new LinkedHashSet<>();
             String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
             if (context.isEmpty() && request.path().size() <= 1) {
-                keys.addAll(ROOT_KEY_COMPLETIONS);
+                keys.addAll(this.rootKeyCompletions);
                 return new ArrayList<>(keys);
             } else if (context.equals("display")) {
                 keys.addAll(DISPLAY_KEY_COMPLETIONS);
+            } else if (context.equals("blockentitytag") || context.equals("entitytag")) {
+                keys.addAll(COMMAND_BLOCK_KEY_COMPLETIONS);
             } else if (isEnchantmentContext(context)) {
                 keys.addAll(ENCHANTMENT_KEY_COMPLETIONS);
             } else if (context.equals("attributemodifiers")) {
@@ -903,7 +935,9 @@ final class ItemJsonEditorScreen extends Screen {
             String normalizedKey = request.key() == null ? "" : request.key().toLowerCase(Locale.ROOT);
             String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
             if (normalizedKey.equals("id")) {
-                if (isEnchantmentContext(context)) {
+                if (this.rootKeyCompletions == COMMAND_BLOCK_KEY_COMPLETIONS && context.isEmpty()) {
+                    addStringValues(results, request, COMMAND_BLOCK_IDS);
+                } else if (isEnchantmentContext(context)) {
                     addStringValues(results, request, ENCHANTMENT_IDS);
                 } else if (context.equals("entitytag")) {
                     addStringValues(results, request, ENTITY_IDS);
@@ -918,6 +952,10 @@ final class ItemJsonEditorScreen extends Screen {
                 addStringValues(results, request, SLOT_VALUES);
             } else if (normalizedKey.equals("potion")) {
                 addStringValues(results, request, POTION_IDS);
+            } else if (normalizedKey.equals("command")) {
+                addStringValues(results, request, COMMAND_VALUES);
+            } else if (normalizedKey.equals("customname") || normalizedKey.equals("lastoutput")) {
+                addStringValues(results, request, COMMAND_COMPONENT_VALUES);
             }
             addSnippetValues(results, request, normalizedKey);
             addRawValues(results, request, VALUE_LITERALS);
