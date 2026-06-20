@@ -108,6 +108,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        renderItemTooltipPreview(guiGraphics);
+        renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 40);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("item")), this.midX, 15, MAIN_COLOR);
 
@@ -631,14 +633,19 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().scale(0.8F, 0.8F, 1.0F);
-        guiGraphics.renderTooltip(this.font, this.previewStack, 0, 25);
+        int tooltipX = isSidebarUi() ? Math.round((safeLeft() + 4) / 0.8F) : 0;
+        guiGraphics.renderTooltip(this.font, this.previewStack, tooltipX, 25);
         guiGraphics.pose().popPose();
     }
 
     protected void renderPrettyNbt(GuiGraphics guiGraphics) {
         List<Component> lines = getPrettyNbtLines();
         if (!lines.isEmpty()) {
-            guiGraphics.renderComponentTooltip(this.font, lines, 0, this.height);
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().scale(0.8F, 0.8F, 1.0F);
+            int nbtX = isSidebarUi() ? Math.round((safeLeft() + 4) / 0.8F) : 0;
+            guiGraphics.renderComponentTooltip(this.font, lines, nbtX, this.height);
+            guiGraphics.pose().popPose();
         }
     }
 
