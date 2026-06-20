@@ -97,6 +97,11 @@ public class ItemEditorScreen extends Screen {
     private static final String MAP_COLOR_TAG = "MapColor";
     private static final int SIGN_LINES = 4;
     private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
+    private static final String SPAWNER_BLOCK_ENTITY_ID = "minecraft:mob_spawner";
+    private static final String SPAWNER_SPAWN_DATA_TAG = "SpawnData";
+    private static final String SPAWNER_ENTITY_TAG = "entity";
+    private static final String SPAWNER_SPAWN_POTENTIALS_TAG = "SpawnPotentials";
+    private static final String SPAWNER_POTENTIAL_DATA_TAG = "data";
     private static final String SIGN_FRONT_TEXT_TAG = "front_text";
     private static final String SIGN_MESSAGES_TAG = "messages";
     private static final String SIGN_FILTERED_MESSAGES_TAG = "filtered_messages";
@@ -694,9 +699,9 @@ public class ItemEditorScreen extends Screen {
             y += 30;
         }
 
-        if (isSpawnEggItem(this.previewStack)) {
+        if (isSpawnEditorItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
-                    Component.translatable(key("spawnegg")), button -> switchPanel(Panel.SPAWN_EGG)));
+                    Component.translatable(key(getSpawnEditorTitleKey())), button -> switchPanel(Panel.SPAWN_EGG)));
             y += 30;
         }
 
@@ -1086,14 +1091,19 @@ public class ItemEditorScreen extends Screen {
 
         int controlsX = getSpawnEggControlsX();
         int width = getSpawnEggControlsWidth();
+        int buttonY = 52;
         addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
                 Component.translatable(key("spawnegg.apply_entity")), button -> applySelectedSpawnEggEntity()));
-        addRenderableWidget(new InfinityEditorButton(controlsX, 78, width, FIELD_HEIGHT,
-                Component.translatable(key("spawnegg.sync_egg")), button -> syncSpawnEggToSelectedEntityItem()));
+        buttonY += 26;
+        if (isSpawnEggItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, width, FIELD_HEIGHT,
+                    Component.translatable(key("spawnegg.sync_egg")), button -> syncSpawnEggToSelectedEntityItem()));
+            buttonY += 26;
+        }
 
-        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
-                Component.translatable(key("spawnegg.clear_entity_tag")), button -> clearSpawnEggEntityTag()));
-        clear.active = this.previewStack.getTagElement(ENTITY_TAG) != null;
+        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, width, FIELD_HEIGHT,
+                Component.translatable(key(getSpawnEditorClearKey())), button -> clearSpawnEggEntityTag()));
+        clear.active = hasSpawnEditorEntityData(this.previewStack);
 
         List<SpawnEggTagRow> rows = getSpawnEggTagRows();
         setSpawnEggTagScroll(this.spawnEggTagScroll);
@@ -1674,7 +1684,7 @@ public class ItemEditorScreen extends Screen {
 
     private void renderSpawnEggPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg")), this.midX, 15, MAIN_COLOR);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key(getSpawnEditorTitleKey())), this.midX, 15, MAIN_COLOR);
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.midX, 78, 100.0F);
@@ -3516,6 +3526,10 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void syncSpawnEggToSelectedEntityItem() {
+        if (!isSpawnEggItem(this.previewStack)) {
+            return;
+        }
+
         SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
         if (entry == null) {
             this.status = Component.translatable(key("spawnegg.no_match"));
@@ -3537,34 +3551,45 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void writeSpawnEggEntityId(SpawnEggEntityEntry entry) {
-        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
         cleanupSpawnEggEntityTag(entityTag);
+        if (isSpawnerItem(this.previewStack)) {
+            clearSpawnerSpawnPotentials();
+        }
     }
 
     private void clearSpawnEggEntityTag() {
-        CompoundTag tag = this.previewStack.getTag();
-        if (tag == null || !tag.contains(ENTITY_TAG, Tag.TAG_COMPOUND)) {
+        if (!hasSpawnEditorEntityData(this.previewStack)) {
             return;
         }
 
-        tag.remove(ENTITY_TAG);
-        cleanupEmptyTag();
+        if (isSpawnEggItem(this.previewStack)) {
+            CompoundTag tag = this.previewStack.getTag();
+            if (tag != null) {
+                tag.remove(ENTITY_TAG);
+                cleanupEmptyTag();
+            }
+        } else if (isSpawnerItem(this.previewStack)) {
+            clearSpawnerSpawnData();
+        }
         this.spawnEggCustomNameValue = "";
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_spawn_egg_tag_cleared"));
+        this.status = Component.translatable(messageKey(isSpawnerItem(this.previewStack)
+                ? "editor_spawner_tag_cleared"
+                : "editor_spawn_egg_tag_cleared"));
         readSpawnEggFieldsFromStack(this.previewStack);
         rebuildWidgets();
     }
 
     private void toggleSpawnEggBoolean(SpawnEggTagRow row) {
-        if (!isSpawnEggItem(this.previewStack)) {
+        if (!isSpawnEditorItem(this.previewStack)) {
             return;
         }
 
-        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         if (getSpawnEggBooleanValue(row)) {
             entityTag.remove(row.tagKey());
         } else {
@@ -3577,11 +3602,11 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void applySpawnEggCustomName(String value) {
-        if (!isSpawnEggItem(this.previewStack)) {
+        if (!isSpawnEditorItem(this.previewStack)) {
             return;
         }
 
-        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         String normalized = value == null ? "" : value.trim();
         if (normalized.isEmpty()) {
             entityTag.remove(ENTITY_CUSTOM_NAME_TAG);
@@ -3592,11 +3617,11 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void applySpawnEggOwner(String value) {
-        if (!isSpawnEggItem(this.previewStack)) {
+        if (!isSpawnEditorItem(this.previewStack)) {
             return;
         }
 
-        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         String normalized = value == null ? "" : value.trim();
         if (normalized.isEmpty()) {
             entityTag.remove(ENTITY_OWNER_TAG);
@@ -3612,13 +3637,13 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void applySpawnEggNumber(SpawnEggTagRow row, String value) {
-        if (!isSpawnEggItem(this.previewStack)) {
+        if (!isSpawnEditorItem(this.previewStack)) {
             return;
         }
 
         String normalized = value == null ? "" : value.trim();
         this.spawnEggNumberValueOverrides.put(row.tagKey(), normalized);
-        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         if (normalized.isEmpty()) {
             entityTag.remove(row.tagKey());
             this.spawnEggNumberValueOverrides.remove(row.tagKey());
@@ -3656,7 +3681,11 @@ public class ItemEditorScreen extends Screen {
         }
     }
 
-    private CompoundTag getOrCreateSpawnEggEntityTag() {
+    private CompoundTag getOrCreateSpawnEditorEntityTag() {
+        if (isSpawnerItem(this.previewStack)) {
+            return getOrCreateSpawnerEntityTag();
+        }
+
         CompoundTag tag = this.previewStack.getOrCreateTag();
         CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
         tag.put(ENTITY_TAG, entityTag);
@@ -3664,6 +3693,11 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void cleanupSpawnEggEntityTag(CompoundTag entityTag) {
+        if (isSpawnerItem(this.previewStack)) {
+            cleanupSpawnerEntityTag(entityTag);
+            return;
+        }
+
         CompoundTag tag = this.previewStack.getTag();
         if (tag == null) {
             return;
@@ -3678,6 +3712,99 @@ public class ItemEditorScreen extends Screen {
         this.rawNbtValue = getInitialNbt(this.previewStack);
     }
 
+    private CompoundTag getOrCreateSpawnerEntityTag() {
+        CompoundTag blockEntity = getOrCreateSpawnerBlockEntityTag();
+        CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+        CompoundTag entityTag = spawnData.getCompound(SPAWNER_ENTITY_TAG);
+        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
+            if (entry != null) {
+                entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
+            }
+        }
+        spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
+        blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
+        return entityTag;
+    }
+
+    private CompoundTag getOrCreateSpawnerBlockEntityTag() {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
+        tag.put(BLOCK_ENTITY_TAG, blockEntity);
+        return blockEntity;
+    }
+
+    private void cleanupSpawnerEntityTag(CompoundTag entityTag) {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (entityTag.isEmpty()) {
+            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+            spawnData.remove(SPAWNER_ENTITY_TAG);
+            if (spawnData.isEmpty()) {
+                blockEntity.remove(SPAWNER_SPAWN_DATA_TAG);
+            } else {
+                blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
+            }
+        } else {
+            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+            spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
+            blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
+            blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
+        }
+        cleanupSpawnerBlockEntityTag(blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void clearSpawnerSpawnData() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        blockEntity.remove(SPAWNER_SPAWN_DATA_TAG);
+        blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
+        cleanupSpawnerBlockEntityTag(blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void clearSpawnerSpawnPotentials() {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
+        cleanupSpawnerBlockEntityTag(blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private void cleanupSpawnerBlockEntityTag(CompoundTag blockEntity) {
+        CompoundTag tag = this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (blockEntity.isEmpty() || isOnlySpawnerBlockEntityId(blockEntity)) {
+            tag.remove(BLOCK_ENTITY_TAG);
+        } else {
+            tag.put(BLOCK_ENTITY_TAG, blockEntity);
+        }
+        cleanupEmptyTag();
+    }
+
+    private boolean isOnlySpawnerBlockEntityId(CompoundTag blockEntity) {
+        return blockEntity.size() == 1
+                && blockEntity.contains(ENTITY_ID_TAG, Tag.TAG_STRING)
+                && SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG));
+    }
+
     private Component getSpawnEggBooleanText(SpawnEggTagRow row) {
         return Component.translatable(key("spawnegg.option_state"),
                 Component.translatable(key("spawnegg." + row.translationSuffix())),
@@ -3685,7 +3812,7 @@ public class ItemEditorScreen extends Screen {
     }
 
     private boolean getSpawnEggBooleanValue(SpawnEggTagRow row) {
-        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
         return entityTag != null && entityTag.contains(row.tagKey(), Tag.TAG_BYTE) && entityTag.getBoolean(row.tagKey());
     }
 
@@ -3695,7 +3822,7 @@ public class ItemEditorScreen extends Screen {
             return override;
         }
 
-        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
         if (entityTag == null || !entityTag.contains(row.tagKey())) {
             return "";
         }
@@ -3865,7 +3992,7 @@ public class ItemEditorScreen extends Screen {
         }
 
         String rawId = getSpawnEggEntityIdOverride(this.previewStack);
-        return rawId.isEmpty() ? Component.translatable(key("spawnegg.default_entity")) : Component.literal(rawId);
+        return rawId.isEmpty() ? Component.translatable(key(getSpawnEditorDefaultEntityKey())) : Component.literal(rawId);
     }
 
     private EntityType<?> getCurrentSpawnEggEntityType(ItemStack stack) {
@@ -3885,11 +4012,66 @@ public class ItemEditorScreen extends Screen {
     }
 
     private String getSpawnEggEntityIdOverride(ItemStack stack) {
-        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = getSpawnEditorEntityTag(stack);
         if (entityTag != null && entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
             return entityTag.getString(ENTITY_ID_TAG);
         }
         return "";
+    }
+
+    private CompoundTag getSpawnEditorEntityTag(ItemStack stack) {
+        if (isSpawnerItem(stack)) {
+            return getSpawnerEntityTag(stack);
+        }
+        return stack.getTagElement(ENTITY_TAG);
+    }
+
+    private CompoundTag getSpawnerEntityTag(ItemStack stack) {
+        CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity == null) {
+            return null;
+        }
+        if (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+            if (spawnData.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+                return spawnData.getCompound(SPAWNER_ENTITY_TAG);
+            }
+        }
+        if (blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
+            ListTag potentials = blockEntity.getList(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
+            if (!potentials.isEmpty()) {
+                CompoundTag potential = potentials.getCompound(0);
+                if (potential.contains(SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
+                    CompoundTag data = potential.getCompound(SPAWNER_POTENTIAL_DATA_TAG);
+                    if (data.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+                        return data.getCompound(SPAWNER_ENTITY_TAG);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean hasSpawnEditorEntityData(ItemStack stack) {
+        if (isSpawnerItem(stack)) {
+            CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
+            return blockEntity != null
+                    && (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)
+                    || blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST));
+        }
+        return stack.getTagElement(ENTITY_TAG) != null;
+    }
+
+    private String getSpawnEditorTitleKey() {
+        return isSpawnerItem(this.previewStack) ? "spawner" : "spawnegg";
+    }
+
+    private String getSpawnEditorClearKey() {
+        return isSpawnerItem(this.previewStack) ? "spawner.clear_entity_tag" : "spawnegg.clear_entity_tag";
+    }
+
+    private String getSpawnEditorDefaultEntityKey() {
+        return isSpawnerItem(this.previewStack) ? "spawner.default_entity" : "spawnegg.default_entity";
     }
 
     private List<SpawnEggTagRow> getSpawnEggTagRows() {
@@ -5145,11 +5327,11 @@ public class ItemEditorScreen extends Screen {
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.spawnEggTagScroll = 0;
-        if (!isSpawnEggItem(stack)) {
+        if (!isSpawnEditorItem(stack)) {
             return;
         }
 
-        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = getSpawnEditorEntityTag(stack);
         if (entityTag != null) {
             if (entityTag.contains(ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
                 this.spawnEggCustomNameValue = readSerializedComponent(entityTag.getString(ENTITY_CUSTOM_NAME_TAG)).getString();
@@ -5383,6 +5565,14 @@ public class ItemEditorScreen extends Screen {
 
     private static boolean isSpawnEggItem(ItemStack stack) {
         return stack.getItem() instanceof SpawnEggItem;
+    }
+
+    private static boolean isSpawnerItem(ItemStack stack) {
+        return stack.is(Items.SPAWNER);
+    }
+
+    private static boolean isSpawnEditorItem(ItemStack stack) {
+        return isSpawnEggItem(stack) || isSpawnerItem(stack);
     }
 
     private static boolean isPlayerHeadItem(ItemStack stack) {
