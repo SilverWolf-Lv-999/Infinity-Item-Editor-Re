@@ -100,7 +100,11 @@ final class BookItemScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
+        if (keyCode == 256) {
+            returnToLastScreen();
+            return true;
+        }
+        if (isInventoryKey(keyCode, scanCode) && !isLineBoxFocused()) {
             returnToLastScreen();
             return true;
         }
@@ -177,6 +181,15 @@ final class BookItemScreen extends Screen {
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
                 && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+    }
+
+    private boolean isLineBoxFocused() {
+        for (EditBox lineBox : this.lineBoxes) {
+            if (lineBox.isFocused()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int getBookLeft() {
