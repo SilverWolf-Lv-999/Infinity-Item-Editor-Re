@@ -76,8 +76,6 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
 protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        renderItemTooltipPreview(guiGraphics);
-        renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 40);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("item")), this.midX, 15, MAIN_COLOR);
 
@@ -608,10 +606,7 @@ protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) 
     protected void renderPrettyNbt(GuiGraphics guiGraphics) {
         List<Component> lines = getPrettyNbtLines();
         if (!lines.isEmpty()) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().scale(0.8F, 0.8F, 1.0F);
             guiGraphics.renderComponentTooltip(this.font, lines, 0, this.height);
-            guiGraphics.pose().popPose();
         }
     }
 

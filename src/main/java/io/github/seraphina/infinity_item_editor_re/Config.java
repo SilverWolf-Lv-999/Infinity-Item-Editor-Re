@@ -14,12 +14,10 @@ public final class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
     private static final List<BooleanEntry> BOOLEAN_ENTRIES_BUILDER = new ArrayList<>();
 
-    public static final BooleanEntry ITEM_GUI_SIDEBAR = defineBoolean(
-            "itemGuiSidebar",
-            false,
-            "Whether the item editor GUI should use the sidebar layout once the GUI is ported.",
-            "item_gui_sidebar"
-    );
+    private static final ForgeConfigSpec.EnumValue<ItemEditorUiMode> ITEM_GUI_MODE = BUILDER
+            .comment("Item editor UI mode. LEGACY keeps the original editor layout. SIDEBAR enables the redesigned sidebar layout.")
+            .translation(translationKey("item_gui_mode", "title"))
+            .defineEnum("itemGuiMode", ItemEditorUiMode.LEGACY);
     public static final BooleanEntry VOID_TAB = defineBoolean(
             "voidTab",
             true,
@@ -72,7 +70,7 @@ public final class Config {
     public static final ForgeConfigSpec SPEC = BUILDER.build();
     private static final List<BooleanEntry> BOOLEAN_ENTRIES = Collections.unmodifiableList(BOOLEAN_ENTRIES_BUILDER);
 
-    public static boolean itemGuiSidebar = false;
+    public static ItemEditorUiMode itemGuiMode = ItemEditorUiMode.LEGACY;
     public static boolean voidTab = true;
     public static boolean voidAddNotification = false;
     public static boolean voidTabHideHeads = false;
@@ -89,6 +87,11 @@ public final class Config {
     private Config() {
     }
 
+    public enum ItemEditorUiMode {
+        LEGACY,
+        SIDEBAR
+    }
+
     public static List<BooleanEntry> booleanEntries() {
         return BOOLEAN_ENTRIES;
     }
@@ -98,7 +101,23 @@ public final class Config {
     }
 
     public static boolean getItemSidebar() {
-        return itemGuiSidebar;
+        return itemGuiMode == ItemEditorUiMode.SIDEBAR;
+    }
+
+    public static ItemEditorUiMode getItemGuiMode() {
+        return itemGuiMode;
+    }
+
+    public static ItemEditorUiMode toggleItemGuiMode() {
+        ItemEditorUiMode mode = itemGuiMode == ItemEditorUiMode.LEGACY ? ItemEditorUiMode.SIDEBAR : ItemEditorUiMode.LEGACY;
+        setItemGuiMode(mode);
+        return mode;
+    }
+
+    public static void setItemGuiMode(ItemEditorUiMode mode) {
+        itemGuiMode = mode;
+        ITEM_GUI_MODE.set(mode);
+        save();
     }
 
     public static boolean getIsVoidEnabled() {
@@ -138,7 +157,7 @@ public final class Config {
     }
 
     public static void syncPublicFields() {
-        itemGuiSidebar = ITEM_GUI_SIDEBAR.get();
+        itemGuiMode = ITEM_GUI_MODE.get();
         voidTab = VOID_TAB.get();
         voidAddNotification = VOID_ADD_NOTIFICATION.get();
         voidTabHideHeads = VOID_TAB_HIDE_HEADS.get();
