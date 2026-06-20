@@ -53,6 +53,13 @@ final class ContainerItemScreen extends ContainerScreen {
     }
 
     @Override
+    protected void init() {
+        super.init();
+        addRenderableWidget(new InfinityEditorButton(this.leftPos + this.imageWidth + 4, this.topPos, 80, 20,
+                Component.translatable("screen." + ModSource.MODID + ".pick"), button -> openPickScreen()));
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
             returnToLastScreen();
@@ -86,6 +93,25 @@ final class ContainerItemScreen extends ContainerScreen {
         if (this.minecraft != null) {
             this.minecraft.setScreen(this.lastScreen);
         }
+    }
+
+    private void openPickScreen() {
+        if (this.minecraft == null) {
+            return;
+        }
+        this.minecraft.setScreen(new ItemPickScreen(this, this::setPickedStack, this::getPickedStack));
+    }
+
+    private void setPickedStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+        this.menu.setCarried(stack.copy());
+        this.menu.broadcastChanges();
+    }
+
+    private ItemStack getPickedStack() {
+        return this.menu.getCarried();
     }
 
     private void handleLocalSwap(Slot slot, int inventorySlot) {

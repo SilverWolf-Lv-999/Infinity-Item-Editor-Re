@@ -1,5 +1,7 @@
 build/
 .gradle/
+.gradle-local/
+.gradle-user-home/
 runs/
 .idea/
 checkstyleidea.tmp/

@@ -100,6 +100,43 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
+    protected void openItemPicker() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (this.activePanel == Panel.ITEM) {
+            applyMainFieldsToStack(false);
+        }
+        this.minecraft.setScreen(new ItemPickScreen((ItemEditorScreen) this, this::replacePickedStack, () -> this.previewStack));
+    }
+
+    private void replacePickedStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+
+        this.previewStack = stack.copy();
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.nbtFeedback = "";
+        syncItemPanelFieldsFromStack();
+    }
+
+    private void syncItemPanelFieldsFromStack() {
+        if (this.itemIdBox != null) {
+            this.itemIdBox.setValue(this.itemIdValue);
+        }
+        if (this.countBox != null) {
+            this.countBox.setValue(this.countValue);
+        }
+        if (this.damageBox != null) {
+            this.damageBox.setValue(this.damageValue);
+        }
+        if (this.nameBox != null) {
+            this.nameBox.setValue(this.nameValue);
+        }
+    }
+
     void refreshAfterContainerEdit() {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);

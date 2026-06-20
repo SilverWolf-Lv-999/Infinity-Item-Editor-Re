@@ -110,6 +110,8 @@ protected void addItemPanel() {
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
         addRenderableWidget(new InfinityEditorButton(this.width - 75, 74, 70, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
+        addRenderableWidget(new InfinityEditorButton(this.width / 8 - 40, this.midY - 45, 80, FIELD_HEIGHT,
+                Component.translatable(key("pick")), button -> openItemPicker()));
 
         addSpecialButtons();
         addNameAndLoreWidgets();
