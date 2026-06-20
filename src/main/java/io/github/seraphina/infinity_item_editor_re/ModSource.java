@@ -5,7 +5,6 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.IExtensionPoint;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -19,7 +18,7 @@ import java.nio.file.Files;
 public class ModSource {
     public static final String MODID = "infinity_item_editor_re";
     public static final String NAME = "Infinity Item Editor Re";
-    public static final String VERSION = "0.0.1";
+    public static final String VERSION = "0.1.0-B";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static File dataDir;
@@ -30,7 +29,6 @@ public class ModSource {
         IEventBus modEventBus = context.getModEventBus();
         CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
         context.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
-        context.registerDisplayTest(IExtensionPoint.DisplayTest.IGNORE_SERVER_VERSION);
     }
 
     public static synchronized void initClientStorage(File minecraftDirectory) {
