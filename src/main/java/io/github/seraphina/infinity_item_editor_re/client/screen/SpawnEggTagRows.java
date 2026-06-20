@@ -38,7 +38,11 @@ final class SpawnEggTagRows {
                 rows.add(intNumber("life_time", "LifeTime", 0.0D, 3000.0D));
                 rows.add(booleanRow("player_spawned", "PlayerSpawned"));
             }
-            case "parrot" -> rows.add(intNumber("variant", "Variant", 0.0D, 4.0D));
+            case "cat", "wolf" -> rows.add(owner());
+            case "parrot" -> {
+                rows.add(owner());
+                rows.add(intNumber("variant", "Variant", 0.0D, 4.0D));
+            }
             case "pig" -> rows.add(booleanRow("saddle", "Saddle"));
             case "sheep" -> {
                 rows.add(intNumber("color", "Color", 0.0D, 15.0D));
@@ -66,6 +70,10 @@ final class SpawnEggTagRows {
 
     private static SpawnEggTagRow customName() {
         return new SpawnEggTagRow("custom_name", "CustomName", SpawnEggTagRowType.CUSTOM_NAME, null, 0.0D, 0.0D);
+    }
+
+    private static SpawnEggTagRow owner() {
+        return new SpawnEggTagRow("owner", "Owner", SpawnEggTagRowType.OWNER, null, 0.0D, 0.0D);
     }
 
     private static SpawnEggTagRow byteNumber(String translationSuffix, String tagKey, double minValue, double maxValue) {
@@ -97,7 +105,8 @@ record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowTyp
 enum SpawnEggTagRowType {
     BOOLEAN,
     NUMBER,
-    CUSTOM_NAME
+    CUSTOM_NAME,
+    OWNER
 }
 
 enum SpawnEggNumberType {

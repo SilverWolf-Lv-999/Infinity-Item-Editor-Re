@@ -124,6 +124,7 @@ public class ItemEditorScreen extends Screen {
     private static final String ENTITY_TAG = "EntityTag";
     private static final String ENTITY_ID_TAG = "id";
     private static final String ENTITY_CUSTOM_NAME_TAG = "CustomName";
+    private static final String ENTITY_OWNER_TAG = "Owner";
     private static final String ARMOR_STAND_SHOW_ARMS_TAG = "ShowArms";
     private static final String ARMOR_STAND_SMALL_TAG = "Small";
     private static final String ARMOR_STAND_INVISIBLE_TAG = "Invisible";
@@ -151,6 +152,7 @@ public class ItemEditorScreen extends Screen {
     private static final int SPAWN_EGG_ENTITY_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
+    private static final int SPAWN_EGG_OWNER_MAX_LENGTH = 128;
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
@@ -183,6 +185,7 @@ public class ItemEditorScreen extends Screen {
     private String bannerPatternFilterValue = "";
     private String spawnEggEntityFilterValue = "";
     private String spawnEggCustomNameValue = "";
+    private String spawnEggOwnerValue = "";
     private String nbtFeedback = "";
     private boolean nbtFeedbackGood;
     private boolean showAllEnchantments;
@@ -256,6 +259,7 @@ public class ItemEditorScreen extends Screen {
     private EditBox bannerPatternFilterBox;
     private EditBox spawnEggEntityFilterBox;
     private EditBox spawnEggCustomNameBox;
+    private EditBox spawnEggOwnerBox;
     private InfinityEditorButton attributeInfinityButton;
     private InfinityEditorButton attributeOperationButton;
     private InfinityEditorButton attributeSlotButton;
@@ -322,6 +326,7 @@ public class ItemEditorScreen extends Screen {
         this.bannerPatternFilterBox = null;
         this.spawnEggEntityFilterBox = null;
         this.spawnEggCustomNameBox = null;
+        this.spawnEggOwnerBox = null;
         this.attributeInfinityButton = null;
         this.attributeOperationButton = null;
         this.attributeSlotButton = null;
@@ -1114,15 +1119,19 @@ public class ItemEditorScreen extends Screen {
 
         EditBox box = addTrackedBox(legacyTextBox(controlsX + 70, y, width - 70, FIELD_HEIGHT,
                 Component.translatable(key("spawnegg." + row.translationSuffix()))));
-        box.setMaxLength(row.type() == SpawnEggTagRowType.CUSTOM_NAME ? 256 : 16);
-        box.setValue(row.type() == SpawnEggTagRowType.CUSTOM_NAME
-                ? this.spawnEggCustomNameValue
-                : getSpawnEggNumberValue(row));
+        box.setMaxLength(getSpawnEggTagTextMaxLength(row));
+        box.setValue(getSpawnEggTagTextValue(row));
         if (row.type() == SpawnEggTagRowType.CUSTOM_NAME) {
             this.spawnEggCustomNameBox = box;
             box.setResponder(value -> {
                 this.spawnEggCustomNameValue = value;
                 applySpawnEggCustomName(value);
+            });
+        } else if (row.type() == SpawnEggTagRowType.OWNER) {
+            this.spawnEggOwnerBox = box;
+            box.setResponder(value -> {
+                this.spawnEggOwnerValue = value;
+                applySpawnEggOwner(value);
             });
         } else {
             box.setFilter(value -> isAllowedSpawnEggNumber(value, row.numberType()));
@@ -3542,6 +3551,7 @@ public class ItemEditorScreen extends Screen {
         tag.remove(ENTITY_TAG);
         cleanupEmptyTag();
         this.spawnEggCustomNameValue = "";
+        this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.status = Component.translatable(messageKey("editor_spawn_egg_tag_cleared"));
@@ -3577,6 +3587,26 @@ public class ItemEditorScreen extends Screen {
             entityTag.remove(ENTITY_CUSTOM_NAME_TAG);
         } else {
             entityTag.putString(ENTITY_CUSTOM_NAME_TAG, Component.Serializer.toJson(Component.literal(value)));
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+    }
+
+    private void applySpawnEggOwner(String value) {
+        if (!isSpawnEggItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEggEntityTag();
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            entityTag.remove(ENTITY_OWNER_TAG);
+        } else {
+            UUID uuid = parseUuidOrNull(normalized);
+            if (uuid == null) {
+                entityTag.putString(ENTITY_OWNER_TAG, normalized);
+            } else {
+                entityTag.putUUID(ENTITY_OWNER_TAG, uuid);
+            }
         }
         cleanupSpawnEggEntityTag(entityTag);
     }
@@ -3675,6 +3705,22 @@ public class ItemEditorScreen extends Screen {
             case SHORT -> Short.toString(entityTag.getShort(row.tagKey()));
             case INT -> Integer.toString(entityTag.getInt(row.tagKey()));
             case FLOAT -> Float.toString(entityTag.getFloat(row.tagKey()));
+        };
+    }
+
+    private int getSpawnEggTagTextMaxLength(SpawnEggTagRow row) {
+        return switch (row.type()) {
+            case CUSTOM_NAME -> 256;
+            case OWNER -> SPAWN_EGG_OWNER_MAX_LENGTH;
+            default -> 16;
+        };
+    }
+
+    private String getSpawnEggTagTextValue(SpawnEggTagRow row) {
+        return switch (row.type()) {
+            case CUSTOM_NAME -> this.spawnEggCustomNameValue;
+            case OWNER -> this.spawnEggOwnerValue;
+            default -> getSpawnEggNumberValue(row);
         };
     }
 
@@ -5096,6 +5142,7 @@ public class ItemEditorScreen extends Screen {
 
     private void readSpawnEggFieldsFromStack(ItemStack stack) {
         this.spawnEggCustomNameValue = "";
+        this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.spawnEggTagScroll = 0;
         if (!isSpawnEggItem(stack)) {
@@ -5103,8 +5150,15 @@ public class ItemEditorScreen extends Screen {
         }
 
         CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
-        if (entityTag != null && entityTag.contains(ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
-            this.spawnEggCustomNameValue = readSerializedComponent(entityTag.getString(ENTITY_CUSTOM_NAME_TAG)).getString();
+        if (entityTag != null) {
+            if (entityTag.contains(ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
+                this.spawnEggCustomNameValue = readSerializedComponent(entityTag.getString(ENTITY_CUSTOM_NAME_TAG)).getString();
+            }
+            if (entityTag.hasUUID(ENTITY_OWNER_TAG)) {
+                this.spawnEggOwnerValue = entityTag.getUUID(ENTITY_OWNER_TAG).toString();
+            } else if (entityTag.contains(ENTITY_OWNER_TAG, Tag.TAG_STRING)) {
+                this.spawnEggOwnerValue = entityTag.getString(ENTITY_OWNER_TAG);
+            }
         }
 
         EntityType<?> type = getCurrentSpawnEggEntityType(stack);
@@ -5236,6 +5290,9 @@ public class ItemEditorScreen extends Screen {
         }
         if (this.spawnEggCustomNameBox != null) {
             this.spawnEggCustomNameValue = this.spawnEggCustomNameBox.getValue();
+        }
+        if (this.spawnEggOwnerBox != null) {
+            this.spawnEggOwnerValue = this.spawnEggOwnerBox.getValue();
         }
     }
 

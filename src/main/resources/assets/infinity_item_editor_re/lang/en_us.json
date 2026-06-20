@@ -172,6 +172,7 @@
   "screen.infinity_item_editor_re.spawnegg.state.0": "Off",
   "screen.infinity_item_editor_re.spawnegg.state.1": "On",
   "screen.infinity_item_editor_re.spawnegg.custom_name": "Custom Name",
+  "screen.infinity_item_editor_re.spawnegg.owner": "Owner",
   "screen.infinity_item_editor_re.spawnegg.health": "Health",
   "screen.infinity_item_editor_re.spawnegg.age": "Age",
   "screen.infinity_item_editor_re.spawnegg.fire": "Fire Ticks",
