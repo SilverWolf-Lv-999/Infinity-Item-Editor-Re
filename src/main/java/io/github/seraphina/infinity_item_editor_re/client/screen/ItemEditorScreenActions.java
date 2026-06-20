@@ -100,6 +100,18 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
+    protected void openBookItemEditor() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true) || !isBookEditableItem(this.previewStack)) {
+            return;
+        }
+        this.status = Component.empty();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
+    }
+
     protected void openItemPicker() {
         if (this.minecraft == null) {
             return;
@@ -141,6 +153,12 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.containerSlotNbtValue = getContainerSelectedSlotNbt();
+        this.nbtFeedback = "";
+    }
+
+    void refreshAfterBookEdit() {
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
     }
 

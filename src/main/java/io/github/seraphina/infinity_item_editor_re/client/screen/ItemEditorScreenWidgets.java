@@ -253,7 +253,7 @@ protected void addItemPanel() {
 
         if (isBookEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
-                    Component.translatable(key("book")), button -> switchPanel(Panel.BOOK)));
+                    Component.translatable(key("book")), button -> openBookItemEditor()));
         }
     }
 
@@ -415,6 +415,9 @@ protected void addItemPanel() {
 
         addRenderableWidget(new InfinityEditorButton(this.midX - 75, 200, 150, FIELD_HEIGHT,
                 getBookSignButtonText(), button -> toggleBookSignedState()));
+
+        addRenderableWidget(new InfinityEditorButton(this.midX - 75, 230, 150, FIELD_HEIGHT,
+                Component.translatable(key("book.edit_pages")), button -> openBookItemEditor()));
 
         addFormatButtons();
     }

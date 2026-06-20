@@ -514,7 +514,11 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void openContainerItemEditor();
 
+    protected abstract void openBookItemEditor();
+
     abstract void refreshAfterContainerEdit();
+
+    abstract void refreshAfterBookEdit();
 
     protected abstract void goBack();
 
