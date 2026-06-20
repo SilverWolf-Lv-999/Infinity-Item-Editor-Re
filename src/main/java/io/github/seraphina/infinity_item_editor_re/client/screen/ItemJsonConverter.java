@@ -43,21 +43,9 @@ final class ItemJsonConverter {
         return PRETTY_GSON.toJson(toJsonElement(saved));
     }
 
-    static String compoundToJson(CompoundTag tag) {
-        return PRETTY_GSON.toJson(toJsonElement(tag == null ? new CompoundTag() : tag));
-    }
-
     static String format(String value) throws JsonParseException {
         JsonElement parsed = JsonParser.parseString(value);
         return PRETTY_GSON.toJson(parsed);
-    }
-
-    static CompoundTag compoundFromJson(String value) throws JsonParseException {
-        JsonElement parsed = JsonParser.parseString(value);
-        if (!parsed.isJsonObject()) {
-            throw new JsonParseException("Root must be a JSON object.");
-        }
-        return jsonObjectToCompound(parsed.getAsJsonObject());
     }
 
     static ItemStack fromJson(String value) throws JsonParseException {
@@ -197,8 +185,7 @@ final class ItemJsonConverter {
 
         long value = primitive.getAsLong();
         if (normalizedKey.equals("count") || normalizedKey.equals("slot") || normalizedKey.equals("type")
-                || normalizedKey.equals("flight") || normalizedKey.equals("operation")
-                || isBooleanByteKey(normalizedKey)) {
+                || normalizedKey.equals("flight") || normalizedKey.equals("operation")) {
             return ByteTag.valueOf((byte) value);
         }
         if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE && normalizedKey.endsWith("short")) {
@@ -208,14 +195,6 @@ final class ItemJsonConverter {
             return IntTag.valueOf((int) value);
         }
         return LongTag.valueOf(value);
-    }
-
-    private static boolean isBooleanByteKey(String normalizedKey) {
-        return normalizedKey.equals("trackoutput")
-                || normalizedKey.equals("auto")
-                || normalizedKey.equals("conditionmet")
-                || normalizedKey.equals("powered")
-                || normalizedKey.equals("updatelastexecution");
     }
 
     private static boolean allIntegralNumbers(JsonArray array) {

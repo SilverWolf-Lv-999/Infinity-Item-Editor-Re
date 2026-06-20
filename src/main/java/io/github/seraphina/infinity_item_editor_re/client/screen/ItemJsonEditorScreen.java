@@ -15,9 +15,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -292,14 +294,9 @@ final class ItemJsonEditorScreen extends Screen {
                 "BlockStateTag", "EntityTag", "SkullOwner", "Properties", "textures", "Value", "Signature",
                 "Fireworks", "Flight", "Explosions", "Explosion", "Type", "Colors", "FadeColors", "Flicker",
                 "Trail", "Items", "Slot", "tag", "Offers", "Recipes", "buy", "buyB", "sell", "uses", "maxUses",
-                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color",
-                "Command", "CustomName", "LastOutput", "TrackOutput", "SuccessCount", "auto", "conditionMet", "powered",
-                "UpdateLastExecution", "LastExecution"
+                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color"
         );
         private static final List<String> ROOT_KEY_COMPLETIONS = List.of("id", "Count", "tag");
-        private static final List<String> COMMAND_BLOCK_KEY_COMPLETIONS = List.of("id", "Command", "CustomName",
-                "LastOutput", "TrackOutput", "SuccessCount", "auto", "conditionMet", "powered",
-                "UpdateLastExecution", "LastExecution");
         private static final List<String> DISPLAY_KEY_COMPLETIONS = List.of("Name", "Lore", "color", "italic", "bold",
                 "underlined", "strikethrough", "obfuscated");
         private static final List<String> ENCHANTMENT_KEY_COMPLETIONS = List.of("id", "lvl");
@@ -313,34 +310,74 @@ final class ItemJsonEditorScreen extends Screen {
                 "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand");
         private static final List<String> VALUE_LITERALS = List.of("true", "false", "0", "1", "{}", "[]");
         private static final List<String> SLOT_VALUES = List.of("mainhand", "offhand", "head", "chest", "legs", "feet");
-        private static final List<String> ITEM_IDS = registryKeys(ForgeRegistries.ITEMS.getValues());
-        private static final List<String> ENCHANTMENT_IDS = registryKeys(ForgeRegistries.ENCHANTMENTS.getValues());
-        private static final List<String> ATTRIBUTE_IDS = registryKeys(ForgeRegistries.ATTRIBUTES.getValues());
-        private static final List<String> ENTITY_IDS = registryKeys(ForgeRegistries.ENTITY_TYPES.getValues());
-        private static final List<String> COMMAND_BLOCK_IDS = List.of(
-                "minecraft:command_block", "minecraft:chain_command_block", "minecraft:repeating_command_block",
-                "minecraft:command_block_minecart"
+        private static final List<String> COMMAND_NAMES = List.of(
+                "advancement", "attribute", "ban", "ban-ip", "banlist", "bossbar", "clear", "clone", "damage",
+                "data", "datapack", "debug", "defaultgamemode", "deop", "difficulty", "effect", "enchant",
+                "execute", "experience", "fill", "forceload", "function", "gamemode", "gamerule", "give",
+                "help", "item", "jfr", "kick", "kill", "list", "locate", "loot", "me", "msg", "op", "pardon",
+                "pardon-ip", "particle", "perf", "place", "playsound", "publish", "recipe", "reload", "return",
+                "ride", "save-all", "save-off", "save-on", "say", "schedule", "scoreboard", "seed", "setblock",
+                "setidletimeout", "setworldspawn", "spawnpoint", "spectate", "spreadplayers", "stop", "stopsound",
+                "summon", "tag", "team", "teammsg", "teleport", "tell", "tellraw", "time", "title", "tm", "tp",
+                "trigger", "weather", "whitelist", "worldborder", "xp"
         );
-        private static final List<String> COMMAND_VALUES = List.of(
+        private static final List<String> TARGET_SELECTORS = List.of("@p", "@a", "@r", "@s", "@e");
+        private static final List<String> EXECUTE_SUBCOMMANDS = List.of("as", "at", "positioned", "rotated",
+                "facing", "align", "anchored", "in", "if", "unless", "store", "run");
+        private static final List<String> EXECUTE_CONDITIONS = List.of("block", "blocks", "data", "entity",
+                "predicate", "score");
+        private static final List<String> EXECUTE_STORE_TARGETS = List.of("result", "success");
+        private static final List<String> EXECUTE_STORE_DESTINATIONS = List.of("block", "bossbar", "entity", "score",
+                "storage");
+        private static final List<String> DATA_ACTIONS = List.of("get", "merge", "modify", "remove");
+        private static final List<String> DATA_TARGETS = List.of("block", "entity", "storage");
+        private static final List<String> DATA_MODIFY_ACTIONS = List.of("append", "insert", "merge", "prepend", "set");
+        private static final List<String> DATA_SOURCES = List.of("from", "string", "value");
+        private static final List<String> DATA_PATHS = List.of("Command", "SuccessCount", "LastOutput", "Items",
+                "Inventory", "SelectedItem", "ArmorItems", "HandItems", "Pos", "Rotation", "Motion", "Health",
+                "CustomName", "Offers.Recipes", "BlockEntityTag", "EntityTag");
+        private static final List<String> COORDINATE_VALUES = List.of("~ ~ ~", "~ ~1 ~", "^ ^ ^", "~", "0 0 0");
+        private static final List<String> COORDINATE_COMPONENT_VALUES = List.of("~", "~1", "~-1", "^", "^1", "0");
+        private static final List<String> ROTATION_VALUES = List.of("~ ~", "0 0", "~", "0");
+        private static final List<String> DIMENSION_VALUES = List.of("minecraft:overworld", "minecraft:the_nether",
+                "minecraft:the_end");
+        private static final List<String> NBT_VALUES = List.of("{}", "[]", "0", "1", "true", "false", "\"text\"",
+                "{CustomName:'{\"text\":\"Name\"}'}", "{display:{Name:'{\"text\":\"Name\"}'}}");
+        private static final List<String> EFFECT_DURATIONS = List.of("1", "10", "30", "60", "999999");
+        private static final List<String> LEVEL_VALUES = List.of("0", "1", "2", "3", "4", "5", "10", "255");
+        private static final List<String> COUNT_VALUES = List.of("1", "16", "32", "64");
+        private static final List<String> BOOLEAN_VALUES = List.of("true", "false");
+        private static final List<String> BLOCK_SET_MODES = List.of("destroy", "keep", "replace");
+        private static final List<String> FILL_MODES = List.of("destroy", "hollow", "keep", "outline", "replace");
+        private static final List<String> BLOCKS_SCAN_MODES = List.of("all", "masked");
+        private static final List<String> DATA_STORAGE_VALUES = List.of("minecraft:storage", "infinity:storage");
+        private static final List<String> SCORE_OPERATIONS = List.of("matches", "=", "<", "<=", ">", ">=", "><");
+        private static final List<String> STORE_TYPES = List.of("byte", "short", "int", "long", "float", "double");
+        private static final List<String> BOSSBAR_VALUES = List.of("value", "max");
+        private static final List<String> COMMAND_SNIPPETS = List.of(
                 "say hello",
-                "give @p minecraft:diamond",
+                "give @p minecraft:diamond 64",
                 "tp @p ~ ~1 ~",
                 "effect give @p minecraft:speed 30 1 true",
                 "summon minecraft:pig ~ ~1 ~",
                 "setblock ~ ~-1 ~ minecraft:gold_block",
                 "fill ~-1 ~ ~-1 ~1 ~ ~1 minecraft:glass",
+                "data get entity @s SelectedItem",
+                "data modify block ~ ~ ~ Command set value \"say hello\"",
                 "execute as @e[type=minecraft:zombie,limit=1] run say found"
         );
-        private static final List<String> COMMAND_COMPONENT_VALUES = List.of(
-                "{\\\"text\\\":\\\"@\\\"}",
-                "{\\\"text\\\":\\\"Done\\\"}",
-                "{\\\"text\\\":\\\"\\\", \\\"color\\\":\\\"green\\\"}"
-        );
+        private static final List<String> ITEM_IDS = registryKeys(ForgeRegistries.ITEMS.getValues());
+        private static final List<String> BLOCK_IDS = registryKeys(ForgeRegistries.BLOCKS.getValues());
+        private static final List<String> ENCHANTMENT_IDS = registryKeys(ForgeRegistries.ENCHANTMENTS.getValues());
+        private static final List<String> ATTRIBUTE_IDS = registryKeys(ForgeRegistries.ATTRIBUTES.getValues());
+        private static final List<String> ENTITY_IDS = registryKeys(ForgeRegistries.ENTITY_TYPES.getValues());
+        private static final List<String> EFFECT_IDS = registryKeys(ForgeRegistries.MOB_EFFECTS.getValues());
 
         private final Font font;
         private final Component hint;
         private final List<Completion> completions = new ArrayList<>();
         private List<String> rootKeyCompletions = ROOT_KEY_COMPLETIONS;
+        private boolean commandMode;
         private String text = "";
         private Consumer<String> valueListener = value -> {
         };
@@ -358,8 +395,8 @@ final class ItemJsonEditorScreen extends Screen {
             this.hint = hint;
         }
 
-        void useCommandBlockCompletions() {
-            this.rootKeyCompletions = COMMAND_BLOCK_KEY_COMPLETIONS;
+        void useCommandCompletions() {
+            this.commandMode = true;
             rebuildCompletions();
         }
 
@@ -644,6 +681,11 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private void drawHighlighted(GuiGraphics guiGraphics, String fullValue, String text, int globalStart, int x, int y) {
+            if (this.commandMode) {
+                drawCommandHighlighted(guiGraphics, text, globalStart, x, y);
+                return;
+            }
+
             int index = 0;
             while (index < text.length()) {
                 char c = text.charAt(index);
@@ -677,6 +719,54 @@ final class ItemJsonEditorScreen extends Screen {
             }
         }
 
+        private void drawCommandHighlighted(GuiGraphics guiGraphics, String text, int globalStart, int x, int y) {
+            int index = 0;
+            boolean commandToken = isCommandTokenPosition(globalStart);
+            while (index < text.length()) {
+                char c = text.charAt(index);
+                int start = index;
+                int color = COLOR_TEXT;
+                if (c == '"' || c == '\'') {
+                    index = readQuotedString(text, index + 1, c);
+                    color = COLOR_STRING;
+                } else if (c == '@') {
+                    index++;
+                    while (index < text.length() && isSelectorPart(text.charAt(index))) {
+                        index++;
+                    }
+                    color = COLOR_KEY;
+                } else if (isCoordinateStart(c)) {
+                    index++;
+                    while (index < text.length() && isCoordinatePart(text.charAt(index))) {
+                        index++;
+                    }
+                    color = COLOR_NUMBER;
+                } else if (isCommandTokenChar(c)) {
+                    index++;
+                    while (index < text.length() && isCommandTokenChar(text.charAt(index))) {
+                        index++;
+                    }
+                    String token = text.substring(start, index);
+                    if (commandToken) {
+                        color = COLOR_KEY;
+                        commandToken = false;
+                    } else if (isCommandLiteral(token)) {
+                        color = COLOR_LITERAL;
+                    } else if (token.indexOf(':') >= 0) {
+                        color = COLOR_STRING;
+                    }
+                } else {
+                    index++;
+                    if ("[]{}=,:".indexOf(c) >= 0) {
+                        color = COLOR_PUNCTUATION;
+                    }
+                }
+                String part = text.substring(start, index);
+                guiGraphics.drawString(this.font, part, x, y, color, false);
+                x += this.font.width(part);
+            }
+        }
+
         private int readString(String text, int index) {
             boolean escaped = false;
             while (index < text.length()) {
@@ -686,6 +776,21 @@ final class ItemJsonEditorScreen extends Screen {
                 } else if (c == '\\') {
                     escaped = true;
                 } else if (c == '"') {
+                    break;
+                }
+            }
+            return index;
+        }
+
+        private int readQuotedString(String text, int index, char quote) {
+            boolean escaped = false;
+            while (index < text.length()) {
+                char c = text.charAt(index++);
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == quote) {
                     break;
                 }
             }
@@ -747,19 +852,38 @@ final class ItemJsonEditorScreen extends Screen {
         private void rebuildCompletions(boolean explicit) {
             this.completions.clear();
             this.completionSelectionArmed = false;
-            CompletionRequest request = buildCompletionRequest(explicit);
+            CompletionRequest request = this.commandMode ? buildCommandCompletionRequest(explicit) : buildCompletionRequest(explicit);
             if (request == null) {
                 return;
             }
 
             LinkedHashSet<Completion> results = new LinkedHashSet<>();
-            if (request.keyContext()) {
+            if (this.commandMode) {
+                addCommandCompletions(results, request);
+            } else if (request.keyContext()) {
                 addKeyCompletions(results, request);
             } else {
                 addValueCompletions(results, request);
             }
             this.completions.addAll(results.stream().limit(MAX_COMPLETIONS).toList());
             this.selectedCompletion = Mth.clamp(this.selectedCompletion, 0, Math.max(0, this.completions.size() - 1));
+        }
+
+        private CompletionRequest buildCommandCompletionRequest(boolean explicit) {
+            String value = this.text;
+            int cursor = Mth.clamp(this.cursor, 0, value.length());
+            if (isInsideCommandString(cursor)) {
+                return null;
+            }
+            int start = cursor;
+            while (start > 0 && isCommandCompletionChar(value.charAt(start - 1))) {
+                start--;
+            }
+            String prefix = value.substring(start, cursor);
+            if (prefix.isEmpty() && !explicit && !isCommandCompletionBoundary(cursor)) {
+                return null;
+            }
+            return new CompletionRequest(prefix, start, cursor, false, "Command", false, false, List.of());
         }
 
         private CompletionRequest buildCompletionRequest(boolean explicit) {
@@ -890,6 +1014,593 @@ final class ItemJsonEditorScreen extends Screen {
             return path;
         }
 
+        private void addCommandCompletions(Set<Completion> results, CompletionRequest request) {
+            String prefix = request.prefix();
+            String normalizedPrefix = prefix.startsWith("/") ? prefix.substring(1) : prefix;
+            if (isCommandNamePosition(request.replaceStart())) {
+                addCommandNameValues(results, request, normalizedPrefix, prefix.startsWith("/"));
+                if (prefix.isEmpty()) {
+                    addCommandSnippetValues(results, request);
+                }
+                return;
+            }
+
+            List<String> tokens = commandTokensBefore(request.replaceStart());
+            int runIndex = !tokens.isEmpty() && "execute".equals(normalizedCommandToken(tokens.get(0)))
+                    ? lastCommandTokenIndex(tokens, "run")
+                    : -1;
+            if (runIndex >= 0) {
+                List<String> nested = tokens.subList(runIndex + 1, tokens.size());
+                if (nested.isEmpty()) {
+                    addCommandNameValues(results, request, normalizedPrefix, prefix.startsWith("/"));
+                    addCommandSnippetValues(results, request);
+                    return;
+                }
+                addCommandArgumentCompletions(results, request, nested);
+            } else {
+                addCommandArgumentCompletions(results, request, tokens);
+            }
+
+            addGeneralCommandCompletions(results, request);
+            if (prefix.indexOf(':') >= 0 || prefix.length() >= 2) {
+                addRawValues(results, request, ITEM_IDS);
+                addRawValues(results, request, ENTITY_IDS);
+                addRawValues(results, request, BLOCK_IDS);
+            }
+        }
+
+        private void addCommandArgumentCompletions(Set<Completion> results, CompletionRequest request, List<String> tokens) {
+            if (tokens.isEmpty()) {
+                addCommandNameValues(results, request, request.prefix(), false);
+                addCommandSnippetValues(results, request);
+                return;
+            }
+
+            String command = normalizedCommandToken(tokens.get(0));
+            int arg = Math.max(0, tokens.size() - 1);
+            switch (command) {
+                case "data" -> addDataCommandCompletions(results, request, tokens, arg);
+                case "execute" -> addExecuteCommandCompletions(results, request, tokens, arg);
+                case "give" -> addGiveCommandCompletions(results, request, arg);
+                case "summon" -> addSummonCommandCompletions(results, request, arg);
+                case "setblock" -> addSetBlockCommandCompletions(results, request, arg);
+                case "fill" -> addFillCommandCompletions(results, request, arg);
+                case "effect" -> addEffectCommandCompletions(results, request, tokens, arg);
+                case "enchant" -> addEnchantCommandCompletions(results, request, arg);
+                case "tp", "teleport" -> addTeleportCommandCompletions(results, request, arg);
+                case "kill", "clear", "tag", "teammsg", "tell", "msg", "w" -> addRawValues(results, request, TARGET_SELECTORS);
+                default -> {
+                    if (request.prefix().startsWith("@")) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                    }
+                }
+            }
+        }
+
+        private void addGeneralCommandCompletions(Set<Completion> results, CompletionRequest request) {
+            if (request.prefix().startsWith("@") || request.prefix().isEmpty()) {
+                addRawValues(results, request, TARGET_SELECTORS);
+            }
+            addRawValues(results, request, List.of("true", "false"));
+        }
+
+        private void addCommandNameValues(Set<Completion> results, CompletionRequest request, String prefix, boolean leadingSlash) {
+            List<String> matches = COMMAND_NAMES.stream()
+                    .filter(value -> completionMatches(value, prefix))
+                    .sorted(Comparator.comparingInt(value -> completionScore(value, prefix)))
+                    .limit(MAX_COMPLETIONS)
+                    .toList();
+            for (String value : matches) {
+                String insert = leadingSlash ? "/" + value : value;
+                results.add(new Completion(insert, insert, request.replaceStart(), request.replaceEnd(), false));
+            }
+        }
+
+        private void addCommandSnippetValues(Set<Completion> results, CompletionRequest request) {
+            for (String snippet : COMMAND_SNIPPETS) {
+                results.add(new Completion(snippet, snippet, request.replaceStart(), request.replaceEnd(), false));
+                if (results.size() >= MAX_COMPLETIONS) {
+                    return;
+                }
+            }
+        }
+
+        private void addDataCommandCompletions(Set<Completion> results, CompletionRequest request,
+                                               List<String> tokens, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, DATA_ACTIONS);
+                return;
+            }
+            if (arg == 1) {
+                addRawValues(results, request, DATA_TARGETS);
+                return;
+            }
+
+            String action = commandArgument(tokens, 0);
+            String targetType = commandArgument(tokens, 1);
+            int targetEnd = dataTargetEndArg(targetType, 2);
+            if (targetEnd < 0) {
+                return;
+            }
+            if (arg < targetEnd) {
+                addDataTargetValueCompletions(results, request, targetType, arg - 2);
+                return;
+            }
+
+            switch (action) {
+                case "get" -> {
+                    if (arg == targetEnd) {
+                        addRawValues(results, request, DATA_PATHS);
+                    } else if (arg == targetEnd + 1) {
+                        addRawValues(results, request, LEVEL_VALUES);
+                    }
+                }
+                case "merge" -> {
+                    if (arg == targetEnd) {
+                        addRawValues(results, request, NBT_VALUES);
+                    }
+                }
+                case "remove" -> {
+                    if (arg == targetEnd) {
+                        addRawValues(results, request, DATA_PATHS);
+                    }
+                }
+                case "modify" -> addDataModifyCompletions(results, request, tokens, arg, targetEnd);
+                default -> {
+                }
+            }
+        }
+
+        private void addDataModifyCompletions(Set<Completion> results, CompletionRequest request,
+                                              List<String> tokens, int arg, int targetEnd) {
+            int pathArg = targetEnd;
+            if (arg == pathArg) {
+                addRawValues(results, request, DATA_PATHS);
+                return;
+            }
+
+            int actionArg = pathArg + 1;
+            if (arg == actionArg) {
+                addRawValues(results, request, DATA_MODIFY_ACTIONS);
+                return;
+            }
+
+            String modifyAction = commandArgument(tokens, actionArg);
+            int sourceArg = actionArg + ("insert".equals(modifyAction) ? 2 : 1);
+            if ("insert".equals(modifyAction) && arg == actionArg + 1) {
+                addRawValues(results, request, LEVEL_VALUES);
+                return;
+            }
+            if (arg == sourceArg) {
+                addRawValues(results, request, DATA_SOURCES);
+                return;
+            }
+
+            String sourceKind = commandArgument(tokens, sourceArg);
+            if ("value".equals(sourceKind)) {
+                if (arg == sourceArg + 1) {
+                    addRawValues(results, request, NBT_VALUES);
+                }
+                return;
+            }
+            if (!"from".equals(sourceKind) && !"string".equals(sourceKind)) {
+                return;
+            }
+
+            int sourceTargetTypeArg = sourceArg + 1;
+            if (arg == sourceTargetTypeArg) {
+                addRawValues(results, request, DATA_TARGETS);
+                return;
+            }
+            String sourceTargetType = commandArgument(tokens, sourceTargetTypeArg);
+            int sourceTargetStartArg = sourceTargetTypeArg + 1;
+            int sourceTargetEndArg = dataTargetEndArg(sourceTargetType, sourceTargetStartArg);
+            if (sourceTargetEndArg < 0) {
+                return;
+            }
+            if (arg < sourceTargetEndArg) {
+                addDataTargetValueCompletions(results, request, sourceTargetType, arg - sourceTargetStartArg);
+            } else if (arg == sourceTargetEndArg) {
+                addRawValues(results, request, DATA_PATHS);
+            } else if ("string".equals(sourceKind) && (arg == sourceTargetEndArg + 1 || arg == sourceTargetEndArg + 2)) {
+                addRawValues(results, request, LEVEL_VALUES);
+            }
+        }
+
+        private void addExecuteCommandCompletions(Set<Completion> results, CompletionRequest request,
+                                                  List<String> tokens, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, EXECUTE_SUBCOMMANDS);
+                return;
+            }
+            if (addExecuteStoreCompletions(results, request, tokens)) {
+                return;
+            }
+            if (addExecuteConditionCompletions(results, request, tokens)) {
+                return;
+            }
+            if (addExecuteTransformCompletions(results, request, tokens)) {
+                return;
+            }
+            addRawValues(results, request, EXECUTE_SUBCOMMANDS);
+        }
+
+        private boolean addExecuteTransformCompletions(Set<Completion> results, CompletionRequest request, List<String> tokens) {
+            int subcommandIndex = lastExecuteSubcommandIndex(tokens);
+            if (subcommandIndex < 1) {
+                return false;
+            }
+
+            String subcommand = normalizedCommandToken(tokens.get(subcommandIndex));
+            if ("if".equals(subcommand) || "unless".equals(subcommand) || "store".equals(subcommand) || "run".equals(subcommand)) {
+                return false;
+            }
+
+            int offset = tokens.size() - subcommandIndex - 1;
+            switch (subcommand) {
+                case "as", "at" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        return true;
+                    }
+                }
+                case "positioned" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, COORDINATE_VALUES);
+                        addRawValues(results, request, List.of("as"));
+                        return true;
+                    }
+                    if ("as".equals(commandTokenAt(tokens, subcommandIndex + 1))) {
+                        if (offset == 1) {
+                            addRawValues(results, request, TARGET_SELECTORS);
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (offset < 3) {
+                        addRawValues(results, request, COORDINATE_COMPONENT_VALUES);
+                        return true;
+                    }
+                }
+                case "rotated" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, ROTATION_VALUES);
+                        addRawValues(results, request, List.of("as"));
+                        return true;
+                    }
+                    if ("as".equals(commandTokenAt(tokens, subcommandIndex + 1))) {
+                        if (offset == 1) {
+                            addRawValues(results, request, TARGET_SELECTORS);
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (offset < 2) {
+                        addRawValues(results, request, ROTATION_VALUES);
+                        return true;
+                    }
+                }
+                case "facing" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, COORDINATE_VALUES);
+                        addRawValues(results, request, List.of("entity"));
+                        return true;
+                    }
+                    if ("entity".equals(commandTokenAt(tokens, subcommandIndex + 1))) {
+                        if (offset == 1) {
+                            addRawValues(results, request, TARGET_SELECTORS);
+                            return true;
+                        }
+                        if (offset == 2) {
+                            addRawValues(results, request, List.of("eyes", "feet"));
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (offset < 3) {
+                        addRawValues(results, request, COORDINATE_COMPONENT_VALUES);
+                        return true;
+                    }
+                }
+                case "align" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, List.of("x", "y", "z", "xy", "xz", "yz", "xyz"));
+                        return true;
+                    }
+                }
+                case "anchored" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, List.of("eyes", "feet"));
+                        return true;
+                    }
+                }
+                case "in" -> {
+                    if (offset == 0) {
+                        addRawValues(results, request, DIMENSION_VALUES);
+                        return true;
+                    }
+                }
+                default -> {
+                }
+            }
+            return false;
+        }
+
+        private boolean addExecuteConditionCompletions(Set<Completion> results, CompletionRequest request, List<String> tokens) {
+            int conditionIndex = Math.max(lastCommandTokenIndex(tokens, "if"), lastCommandTokenIndex(tokens, "unless"));
+            if (conditionIndex < 1 || hasExecuteSubcommandAfter(tokens, conditionIndex)) {
+                return false;
+            }
+
+            int offset = tokens.size() - conditionIndex - 1;
+            if (offset == 0) {
+                addRawValues(results, request, EXECUTE_CONDITIONS);
+                return true;
+            }
+
+            String condition = commandTokenAt(tokens, conditionIndex + 1);
+            switch (condition) {
+                case "block" -> {
+                    if (offset < 4) {
+                        addRawValues(results, request, offset == 1 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+                        return true;
+                    }
+                    if (offset == 4) {
+                        addRawValues(results, request, BLOCK_IDS);
+                        return true;
+                    }
+                }
+                case "blocks" -> {
+                    if (offset < 10) {
+                        addRawValues(results, request, offset == 1 || offset == 4 || offset == 7
+                                ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+                        return true;
+                    }
+                    if (offset == 10) {
+                        addRawValues(results, request, BLOCKS_SCAN_MODES);
+                        return true;
+                    }
+                }
+                case "data" -> {
+                    if (offset == 1) {
+                        addRawValues(results, request, DATA_TARGETS);
+                        return true;
+                    }
+                    String targetType = commandTokenAt(tokens, conditionIndex + 2);
+                    int targetStartArg = conditionIndex + 2;
+                    int targetEndIndex = dataTargetEndTokenIndex(targetType, targetStartArg + 1);
+                    if (targetEndIndex < 0) {
+                        return false;
+                    }
+                    int currentTokenIndex = tokens.size();
+                    if (currentTokenIndex < targetEndIndex) {
+                        addDataTargetValueCompletions(results, request, targetType, currentTokenIndex - targetStartArg - 1);
+                        return true;
+                    }
+                    if (currentTokenIndex == targetEndIndex) {
+                        addRawValues(results, request, DATA_PATHS);
+                        return true;
+                    }
+                }
+                case "entity" -> {
+                    if (offset == 1) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        return true;
+                    }
+                }
+                case "predicate" -> {
+                    if (offset == 1) {
+                        addRawValues(results, request, DATA_STORAGE_VALUES);
+                        return true;
+                    }
+                }
+                case "score" -> {
+                    if (offset == 1) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        return true;
+                    }
+                    if (offset == 3) {
+                        addRawValues(results, request, SCORE_OPERATIONS);
+                        return true;
+                    }
+                    if (offset == 4) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        addRawValues(results, request, LEVEL_VALUES);
+                        return true;
+                    }
+                }
+                default -> {
+                }
+            }
+            return false;
+        }
+
+        private boolean addExecuteStoreCompletions(Set<Completion> results, CompletionRequest request, List<String> tokens) {
+            int storeIndex = lastCommandTokenIndex(tokens, "store");
+            if (storeIndex < 1 || hasExecuteSubcommandAfter(tokens, storeIndex)) {
+                return false;
+            }
+
+            int offset = tokens.size() - storeIndex - 1;
+            if (offset == 0) {
+                addRawValues(results, request, EXECUTE_STORE_TARGETS);
+                return true;
+            }
+            if (offset == 1) {
+                addRawValues(results, request, EXECUTE_STORE_DESTINATIONS);
+                return true;
+            }
+
+            String destination = commandTokenAt(tokens, storeIndex + 2);
+            switch (destination) {
+                case "block" -> {
+                    if (offset < 5) {
+                        addRawValues(results, request, offset == 2 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+                        return true;
+                    }
+                    if (offset == 5) {
+                        addRawValues(results, request, DATA_PATHS);
+                        return true;
+                    }
+                    if (offset == 6) {
+                        addRawValues(results, request, STORE_TYPES);
+                        return true;
+                    }
+                    if (offset == 7) {
+                        addRawValues(results, request, LEVEL_VALUES);
+                        return true;
+                    }
+                }
+                case "entity" -> {
+                    if (offset == 2) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        return true;
+                    }
+                    if (offset == 3) {
+                        addRawValues(results, request, DATA_PATHS);
+                        return true;
+                    }
+                    if (offset == 4) {
+                        addRawValues(results, request, STORE_TYPES);
+                        return true;
+                    }
+                    if (offset == 5) {
+                        addRawValues(results, request, LEVEL_VALUES);
+                        return true;
+                    }
+                }
+                case "storage" -> {
+                    if (offset == 2) {
+                        addRawValues(results, request, DATA_STORAGE_VALUES);
+                        return true;
+                    }
+                    if (offset == 3) {
+                        addRawValues(results, request, DATA_PATHS);
+                        return true;
+                    }
+                    if (offset == 4) {
+                        addRawValues(results, request, STORE_TYPES);
+                        return true;
+                    }
+                    if (offset == 5) {
+                        addRawValues(results, request, LEVEL_VALUES);
+                        return true;
+                    }
+                }
+                case "score" -> {
+                    if (offset == 2) {
+                        addRawValues(results, request, TARGET_SELECTORS);
+                        return true;
+                    }
+                }
+                case "bossbar" -> {
+                    if (offset == 2) {
+                        addRawValues(results, request, DATA_STORAGE_VALUES);
+                        return true;
+                    }
+                    if (offset == 3) {
+                        addRawValues(results, request, BOSSBAR_VALUES);
+                        return true;
+                    }
+                }
+                default -> {
+                }
+            }
+            return false;
+        }
+
+        private void addGiveCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, TARGET_SELECTORS);
+            } else if (arg == 1) {
+                addRawValues(results, request, ITEM_IDS);
+            } else if (arg == 2) {
+                addRawValues(results, request, COUNT_VALUES);
+            }
+        }
+
+        private void addSummonCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, ENTITY_IDS);
+            } else if (arg >= 1 && arg <= 3) {
+                addRawValues(results, request, arg == 1 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+            } else if (arg == 4) {
+                addRawValues(results, request, NBT_VALUES);
+            }
+        }
+
+        private void addSetBlockCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg >= 0 && arg <= 2) {
+                addRawValues(results, request, arg == 0 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+            } else if (arg == 3) {
+                addRawValues(results, request, BLOCK_IDS);
+            } else if (arg == 4) {
+                addRawValues(results, request, BLOCK_SET_MODES);
+            }
+        }
+
+        private void addFillCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg >= 0 && arg <= 5) {
+                addRawValues(results, request, arg == 0 || arg == 3 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+            } else if (arg == 6) {
+                addRawValues(results, request, BLOCK_IDS);
+            } else if (arg == 7) {
+                addRawValues(results, request, FILL_MODES);
+            } else if (arg == 8) {
+                addRawValues(results, request, BLOCK_IDS);
+            }
+        }
+
+        private void addEffectCommandCompletions(Set<Completion> results, CompletionRequest request,
+                                                 List<String> tokens, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, List.of("give", "clear"));
+                return;
+            }
+            String action = commandArgument(tokens, 0);
+            if ("clear".equals(action)) {
+                if (arg == 1) {
+                    addRawValues(results, request, TARGET_SELECTORS);
+                } else if (arg == 2) {
+                    addRawValues(results, request, EFFECT_IDS);
+                }
+                return;
+            }
+            if (arg == 1) {
+                addRawValues(results, request, TARGET_SELECTORS);
+            } else if (arg == 2) {
+                addRawValues(results, request, EFFECT_IDS);
+            } else if (arg == 3) {
+                addRawValues(results, request, EFFECT_DURATIONS);
+            } else if (arg == 4) {
+                addRawValues(results, request, LEVEL_VALUES);
+            } else if (arg == 5) {
+                addRawValues(results, request, BOOLEAN_VALUES);
+            }
+        }
+
+        private void addEnchantCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, TARGET_SELECTORS);
+            } else if (arg == 1) {
+                addRawValues(results, request, ENCHANTMENT_IDS);
+            } else if (arg == 2) {
+                addRawValues(results, request, LEVEL_VALUES);
+            }
+        }
+
+        private void addTeleportCommandCompletions(Set<Completion> results, CompletionRequest request, int arg) {
+            if (arg == 0) {
+                addRawValues(results, request, TARGET_SELECTORS);
+                addRawValues(results, request, COORDINATE_VALUES);
+            } else if (arg >= 1 && arg <= 3) {
+                addRawValues(results, request, TARGET_SELECTORS);
+                addRawValues(results, request, COORDINATE_COMPONENT_VALUES);
+            } else if (arg == 4 || arg == 5) {
+                addRawValues(results, request, ROTATION_VALUES);
+            }
+        }
+
         private void addKeyCompletions(Set<Completion> results, CompletionRequest request) {
             for (String key : keyCompletionCandidates(request)) {
                 if (!completionMatches(key, request.prefix())) {
@@ -910,8 +1621,6 @@ final class ItemJsonEditorScreen extends Screen {
                 return new ArrayList<>(keys);
             } else if (context.equals("display")) {
                 keys.addAll(DISPLAY_KEY_COMPLETIONS);
-            } else if (context.equals("blockentitytag") || context.equals("entitytag")) {
-                keys.addAll(COMMAND_BLOCK_KEY_COMPLETIONS);
             } else if (isEnchantmentContext(context)) {
                 keys.addAll(ENCHANTMENT_KEY_COMPLETIONS);
             } else if (context.equals("attributemodifiers")) {
@@ -935,9 +1644,7 @@ final class ItemJsonEditorScreen extends Screen {
             String normalizedKey = request.key() == null ? "" : request.key().toLowerCase(Locale.ROOT);
             String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
             if (normalizedKey.equals("id")) {
-                if (this.rootKeyCompletions == COMMAND_BLOCK_KEY_COMPLETIONS && context.isEmpty()) {
-                    addStringValues(results, request, COMMAND_BLOCK_IDS);
-                } else if (isEnchantmentContext(context)) {
+                if (isEnchantmentContext(context)) {
                     addStringValues(results, request, ENCHANTMENT_IDS);
                 } else if (context.equals("entitytag")) {
                     addStringValues(results, request, ENTITY_IDS);
@@ -952,10 +1659,6 @@ final class ItemJsonEditorScreen extends Screen {
                 addStringValues(results, request, SLOT_VALUES);
             } else if (normalizedKey.equals("potion")) {
                 addStringValues(results, request, POTION_IDS);
-            } else if (normalizedKey.equals("command")) {
-                addStringValues(results, request, COMMAND_VALUES);
-            } else if (normalizedKey.equals("customname") || normalizedKey.equals("lastoutput")) {
-                addStringValues(results, request, COMMAND_COMPONENT_VALUES);
             }
             addSnippetValues(results, request, normalizedKey);
             addRawValues(results, request, VALUE_LITERALS);
@@ -1105,7 +1808,11 @@ final class ItemJsonEditorScreen extends Screen {
             boolean selecting = Screen.hasShiftDown();
             return switch (keyCode) {
                 case 257, 335 -> {
-                    insertNewlineWithIndent();
+                    if (this.commandMode) {
+                        insertCommandNewlineWithIndent();
+                    } else {
+                        insertNewlineWithIndent();
+                    }
                     yield true;
                 }
                 case 259 -> {
@@ -1192,6 +1899,59 @@ final class ItemJsonEditorScreen extends Screen {
             String extra = isOpeningBracket(previousNonWhitespaceBefore(start)) ? INDENT : "";
             replaceSelection(prefix + "\n" + indent + extra,
                     prefix.length() + 1 + indent.length() + extra.length());
+        }
+
+        private void insertCommandNewlineWithIndent() {
+            int start = selectionStart();
+            String indent = indentationAt(start);
+            String lineBeforeCursor = this.text.substring(lineStartAt(start), start).trim();
+            String extra = shouldIndentCommandLine(lineBeforeCursor) ? INDENT : "";
+            replaceSelection("\n" + indent + extra, 1 + indent.length() + extra.length());
+        }
+
+        private boolean shouldIndentCommandLine(String line) {
+            if (line.isEmpty()) {
+                return false;
+            }
+            String normalized = line.toLowerCase(Locale.ROOT);
+            return normalized.endsWith(" run")
+                    || normalized.equals("run")
+                    || normalized.startsWith("execute ") && !normalized.contains(" run ")
+                    || hasUnclosedCommandDelimiter(line);
+        }
+
+        private boolean hasUnclosedCommandDelimiter(String line) {
+            int square = 0;
+            int curly = 0;
+            boolean inQuote = false;
+            char quote = '\0';
+            boolean escaped = false;
+            for (int i = 0; i < line.length(); i++) {
+                char c = line.charAt(i);
+                if (inQuote) {
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == quote) {
+                        inQuote = false;
+                    }
+                    continue;
+                }
+                if (c == '"' || c == '\'') {
+                    inQuote = true;
+                    quote = c;
+                } else if (c == '[') {
+                    square++;
+                } else if (c == ']') {
+                    square = Math.max(0, square - 1);
+                } else if (c == '{') {
+                    curly++;
+                } else if (c == '}') {
+                    curly = Math.max(0, curly - 1);
+                }
+            }
+            return square > 0 || curly > 0;
         }
 
         private void insertClosingBracket(char close) {
@@ -1541,6 +2301,31 @@ final class ItemJsonEditorScreen extends Screen {
             return inside;
         }
 
+        private boolean isInsideCommandString(int position) {
+            boolean inQuote = false;
+            char quote = '\0';
+            boolean escaped = false;
+            int clamped = Mth.clamp(position, 0, this.text.length());
+            int lineStart = lineStartAt(clamped);
+            for (int i = lineStart; i < clamped; i++) {
+                char c = this.text.charAt(i);
+                if (inQuote) {
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == quote) {
+                        inQuote = false;
+                    }
+                } else if (c == '"' || c == '\'') {
+                    inQuote = true;
+                    quote = c;
+                    escaped = false;
+                }
+            }
+            return inQuote;
+        }
+
         private char previousNonWhitespaceBefore(int position) {
             int index = Mth.clamp(position, 0, this.text.length()) - 1;
             while (index >= 0 && Character.isWhitespace(this.text.charAt(index))) {
@@ -1596,6 +2381,191 @@ final class ItemJsonEditorScreen extends Screen {
                 }
             }
             return "";
+        }
+
+        private boolean isCommandTokenPosition(int globalStart) {
+            int lineStart = lineStartAt(globalStart);
+            int index = lineStart;
+            while (index < this.text.length() && index < globalStart && Character.isWhitespace(this.text.charAt(index))) {
+                index++;
+            }
+            return index >= globalStart;
+        }
+
+        private boolean isCommandNamePosition(int position) {
+            int lineStart = lineStartAt(position);
+            for (int i = lineStart; i < position; i++) {
+                if (!Character.isWhitespace(this.text.charAt(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private String commandNameBefore(int position) {
+            int lineStart = lineStartAt(position);
+            int index = lineStart;
+            while (index < position && Character.isWhitespace(this.text.charAt(index))) {
+                index++;
+            }
+            if (index < position && this.text.charAt(index) == '/') {
+                index++;
+            }
+            int start = index;
+            while (index < position && isCommandNameChar(this.text.charAt(index))) {
+                index++;
+            }
+            return this.text.substring(start, index).toLowerCase(Locale.ROOT);
+        }
+
+        private boolean isCommandCompletionBoundary(int cursor) {
+            int clamped = Mth.clamp(cursor, 0, this.text.length());
+            if (isInsideString(clamped)) {
+                return false;
+            }
+            if (clamped == 0) {
+                return true;
+            }
+            char previous = this.text.charAt(clamped - 1);
+            return Character.isWhitespace(previous) || previous == '[' || previous == '{'
+                    || previous == '=' || previous == ',' || previous == ':';
+        }
+
+        private List<String> commandTokensBefore(int position) {
+            int end = Mth.clamp(position, 0, this.text.length());
+            int lineStart = lineStartAt(end);
+            List<String> tokens = new ArrayList<>();
+            StringBuilder token = new StringBuilder();
+            boolean inQuote = false;
+            char quote = '\0';
+            boolean escaped = false;
+            int squareDepth = 0;
+            int curlyDepth = 0;
+            int parenDepth = 0;
+
+            for (int i = lineStart; i < end; i++) {
+                char c = this.text.charAt(i);
+                if (inQuote) {
+                    token.append(c);
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == quote) {
+                        inQuote = false;
+                    }
+                    continue;
+                }
+
+                if (c == '"' || c == '\'') {
+                    token.append(c);
+                    inQuote = true;
+                    quote = c;
+                    escaped = false;
+                } else if (Character.isWhitespace(c) && squareDepth == 0 && curlyDepth == 0 && parenDepth == 0) {
+                    flushCommandToken(tokens, token);
+                } else {
+                    token.append(c);
+                    if (c == '[') {
+                        squareDepth++;
+                    } else if (c == ']') {
+                        squareDepth = Math.max(0, squareDepth - 1);
+                    } else if (c == '{') {
+                        curlyDepth++;
+                    } else if (c == '}') {
+                        curlyDepth = Math.max(0, curlyDepth - 1);
+                    } else if (c == '(') {
+                        parenDepth++;
+                    } else if (c == ')') {
+                        parenDepth = Math.max(0, parenDepth - 1);
+                    }
+                }
+            }
+
+            if (end > lineStart && Character.isWhitespace(this.text.charAt(end - 1))) {
+                flushCommandToken(tokens, token);
+            }
+            return tokens;
+        }
+
+        private void flushCommandToken(List<String> tokens, StringBuilder token) {
+            if (!token.isEmpty()) {
+                tokens.add(token.toString());
+                token.setLength(0);
+            }
+        }
+
+        private String commandArgument(List<String> tokens, int argIndex) {
+            return commandTokenAt(tokens, argIndex + 1);
+        }
+
+        private String commandTokenAt(List<String> tokens, int index) {
+            return index >= 0 && index < tokens.size() ? normalizedCommandToken(tokens.get(index)) : "";
+        }
+
+        private String normalizedCommandToken(String token) {
+            if (token == null) {
+                return "";
+            }
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            return normalized.startsWith("/") ? normalized.substring(1) : normalized;
+        }
+
+        private int lastCommandTokenIndex(List<String> tokens, String token) {
+            for (int i = tokens.size() - 1; i >= 0; i--) {
+                if (token.equals(commandTokenAt(tokens, i))) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private int lastExecuteSubcommandIndex(List<String> tokens) {
+            for (int i = tokens.size() - 1; i >= 1; i--) {
+                if (EXECUTE_SUBCOMMANDS.contains(commandTokenAt(tokens, i))) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private boolean hasExecuteSubcommandAfter(List<String> tokens, int index) {
+            for (int i = index + 1; i < tokens.size(); i++) {
+                if (EXECUTE_SUBCOMMANDS.contains(commandTokenAt(tokens, i))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private int dataTargetEndArg(String targetType, int targetStartArg) {
+            int count = dataTargetArgumentCount(targetType);
+            return count < 0 ? -1 : targetStartArg + count;
+        }
+
+        private int dataTargetEndTokenIndex(String targetType, int targetStartIndex) {
+            int count = dataTargetArgumentCount(targetType);
+            return count < 0 ? -1 : targetStartIndex + count;
+        }
+
+        private int dataTargetArgumentCount(String targetType) {
+            return switch (targetType) {
+                case "block" -> 3;
+                case "entity", "storage" -> 1;
+                default -> -1;
+            };
+        }
+
+        private void addDataTargetValueCompletions(Set<Completion> results, CompletionRequest request,
+                                                   String targetType, int targetOffset) {
+            switch (targetType) {
+                case "block" -> addRawValues(results, request,
+                        targetOffset <= 0 ? COORDINATE_VALUES : COORDINATE_COMPONENT_VALUES);
+                case "entity" -> addRawValues(results, request, TARGET_SELECTORS);
+                case "storage" -> addRawValues(results, request, DATA_STORAGE_VALUES);
+                default -> {
+                }
+            }
         }
 
         private boolean completionMatches(String value, String prefix) {
@@ -1665,6 +2635,39 @@ final class ItemJsonEditorScreen extends Screen {
             return Character.isLetterOrDigit(c) || c == '_' || c == ':' || c == '/' || c == '.' || c == '-';
         }
 
+        private static boolean isCommandCompletionChar(char c) {
+            return isCommandTokenChar(c) || c == '@' || c == '~' || c == '^' || c == '/' || c == '.';
+        }
+
+        private static boolean isCommandTokenChar(char c) {
+            return Character.isLetterOrDigit(c) || c == '_' || c == ':' || c == '/' || c == '.' || c == '-';
+        }
+
+        private static boolean isCommandNameChar(char c) {
+            return Character.isLetterOrDigit(c) || c == '_' || c == '-';
+        }
+
+        private static boolean isSelectorPart(char c) {
+            return Character.isLetterOrDigit(c) || c == '_' || c == '[' || c == ']' || c == '='
+                    || c == ',' || c == ':' || c == '.' || c == '-';
+        }
+
+        private static boolean isCoordinateStart(char c) {
+            return c == '~' || c == '^' || c == '-' || c >= '0' && c <= '9';
+        }
+
+        private static boolean isCoordinatePart(char c) {
+            return c == '~' || c == '^' || c == '-' || c == '+' || c == '.' || c >= '0' && c <= '9';
+        }
+
+        private static boolean isCommandLiteral(String token) {
+            return "true".equals(token) || "false".equals(token) || "run".equals(token) || "as".equals(token)
+                    || "at".equals(token) || "if".equals(token) || "unless".equals(token) || "in".equals(token)
+                    || "positioned".equals(token) || "rotated".equals(token) || "anchored".equals(token)
+                    || "store".equals(token) || "entity".equals(token) || "block".equals(token)
+                    || "score".equals(token);
+        }
+
         private static boolean isNumberStart(char c) {
             return c == '-' || c >= '0' && c <= '9';
         }
@@ -1691,12 +2694,16 @@ final class ItemJsonEditorScreen extends Screen {
                 ResourceLocation key = null;
                 if (value instanceof Item item) {
                     key = ForgeRegistries.ITEMS.getKey(item);
+                } else if (value instanceof Block block) {
+                    key = ForgeRegistries.BLOCKS.getKey(block);
                 } else if (value instanceof Enchantment enchantment) {
                     key = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
                 } else if (value instanceof Attribute attribute) {
                     key = ForgeRegistries.ATTRIBUTES.getKey(attribute);
                 } else if (value instanceof EntityType<?> entityType) {
                     key = ForgeRegistries.ENTITY_TYPES.getKey(entityType);
+                } else if (value instanceof MobEffect effect) {
+                    key = ForgeRegistries.MOB_EFFECTS.getKey(effect);
                 }
                 if (key != null) {
                     keys.add(key.toString());
