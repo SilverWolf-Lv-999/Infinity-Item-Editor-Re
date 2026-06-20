@@ -137,6 +137,13 @@ public class ItemEditorScreen extends Screen {
     private static final String ENTITY_ID_TAG = "id";
     private static final String ENTITY_CUSTOM_NAME_TAG = "CustomName";
     private static final String ENTITY_OWNER_TAG = "Owner";
+    private static final String VILLAGER_DATA_TAG = "VillagerData";
+    private static final String VILLAGER_TYPE_TAG = "type";
+    private static final String VILLAGER_PROFESSION_TAG = "profession";
+    private static final String VILLAGER_LEVEL_TAG = "level";
+    private static final String DEFAULT_VILLAGER_TYPE = "minecraft:plains";
+    private static final String DEFAULT_VILLAGER_PROFESSION = "minecraft:farmer";
+    private static final int DEFAULT_VILLAGER_LEVEL = 1;
     private static final String ARMOR_STAND_SHOW_ARMS_TAG = "ShowArms";
     private static final String ARMOR_STAND_SMALL_TAG = "Small";
     private static final String ARMOR_STAND_INVISIBLE_TAG = "Invisible";
@@ -186,15 +193,22 @@ public class ItemEditorScreen extends Screen {
     private static final String TRADE_DEMAND_TAG = "demand";
     private static final int TRADE_ROWS = 8;
     private static final int TRADE_ROW_HEIGHT = 12;
+    private static final int TRADE_LIST_ROW_HEIGHT = 20;
+    private static final int TRADE_LIST_ROW_TEXT_HEIGHT = 8;
     private static final int TRADE_SLOT_FIRST_BUY = 0;
     private static final int TRADE_SLOT_SECOND_BUY = 1;
     private static final int TRADE_SLOT_SELL = 2;
     private static final int TRADE_SLOT_COUNT = 3;
-    private static final int TRADE_DEFAULT_MAX_USES = 999999;
+    private static final int TRADE_MAX_USES_DIGITS = 4;
+    private static final int TRADE_MAX_USES_LIMIT = 9999;
+    private static final int TRADE_DEFAULT_MAX_USES = 7;
     private static final float TRADE_DEFAULT_PRICE_MULTIPLIER = 0.05F;
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
+    private final ItemEditorScreen parentTradeScreen;
+    private final int parentTradeIndex;
+    private final int parentTradeSlot;
     private ItemStack previewStack;
     private Panel activePanel = Panel.ITEM;
     private Component status = Component.empty();
@@ -336,9 +350,20 @@ public class ItemEditorScreen extends Screen {
     }
 
     public ItemEditorScreen(ItemStack stack, int targetContainerSlot) {
+        this(stack, targetContainerSlot, null, -1, -1);
+    }
+
+    private ItemEditorScreen(ItemStack stack, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
+        this(stack, -1, parentTradeScreen, parentTradeIndex, parentTradeSlot);
+    }
+
+    private ItemEditorScreen(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(Component.translatable(key("item")));
         this.originalStack = stack.copy();
         this.targetContainerSlot = targetContainerSlot;
+        this.parentTradeScreen = parentTradeScreen;
+        this.parentTradeIndex = parentTradeIndex;
+        this.parentTradeSlot = parentTradeSlot;
         this.previewStack = stack.copy();
         this.expandedNbtPaths.add("tag");
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
@@ -422,6 +447,7 @@ public class ItemEditorScreen extends Screen {
             case BANNER -> addBannerPanel();
             case SPAWN_EGG -> addSpawnEggPanel();
             case TRADES -> addTradesPanel();
+            case TRADE -> addTradePanel();
             case BOOK -> addBookPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
@@ -467,7 +493,8 @@ public class ItemEditorScreen extends Screen {
             case CONTAINER -> renderContainerPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
             case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
-            case TRADES -> renderTradesPanel(guiGraphics);
+            case TRADES -> renderTradesPanel(guiGraphics, mouseX, mouseY);
+            case TRADE -> renderTradePanel(guiGraphics);
             case BOOK -> renderBookPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
@@ -492,6 +519,9 @@ public class ItemEditorScreen extends Screen {
 
         if (keyCode == 257 || keyCode == 335) {
             if (this.activePanel == Panel.ITEM) {
+                if (isTradeSlotEditor()) {
+                    return false;
+                }
                 applyToSelectedSlot();
                 return true;
             }
@@ -505,10 +535,6 @@ public class ItemEditorScreen extends Screen {
             }
             if (this.activePanel == Panel.CONTAINER) {
                 updateContainerSlotFromNbt();
-                return true;
-            }
-            if (this.activePanel == Panel.TRADES) {
-                updateSelectedTradeFromFields();
                 return true;
             }
         }
@@ -536,11 +562,20 @@ public class ItemEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
-        if (handled || button != 0) {
+        if (handled) {
             return handled;
         }
 
         updateMouseDistance((int) mouseX, (int) mouseY);
+        if (this.activePanel == Panel.TRADES && (button == 0 || button == 1)) {
+            return handleTradesClick(mouseX, mouseY, button);
+        }
+        if (this.activePanel == Panel.TRADE && (button == 0 || button == 1)) {
+            return handleTradeClick(mouseX, mouseY);
+        }
+        if (button != 0) {
+            return false;
+        }
         return switch (this.activePanel) {
             case ENCHANTMENTS -> handleEnchantingClick(mouseX, mouseY);
             case POTION -> handlePotionClick(mouseX, mouseY);
@@ -549,7 +584,6 @@ public class ItemEditorScreen extends Screen {
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
             case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
-            case TRADES -> handleTradesClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
             case LORE_PAINTER -> handleLorePainterClick(mouseX, mouseY);
@@ -585,14 +619,6 @@ public class ItemEditorScreen extends Screen {
                 rebuildWidgets();
             }
             return true;
-        }
-
-        if (this.activePanel == Panel.TRADES) {
-            if (isMouseIn(mouseX, mouseY, 10, getTradeRowY(0) - 1, getTradeListWidth(), TRADE_ROWS * TRADE_ROW_HEIGHT + 2)) {
-                setTradeScroll(this.tradeScroll - (int) Math.signum(delta));
-                rebuildWidgets();
-                return true;
-            }
         }
 
         return super.mouseScrolled(mouseX, mouseY, delta);
@@ -1201,6 +1227,12 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void addSpawnEggTagControl(SpawnEggTagRow row, int y, int controlsX, int width) {
+        if (row.type() == SpawnEggTagRowType.CHOICE) {
+            addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
+                    getSpawnEggChoiceText(row), button -> cycleSpawnEggChoice(row)));
+            return;
+        }
+
         if (row.type() == SpawnEggTagRowType.BOOLEAN) {
             addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
                     getSpawnEggBooleanText(row), button -> toggleSpawnEggBoolean(row)));
@@ -1230,69 +1262,20 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void addTradesPanel() {
+        ensureVillagerTradeOffers();
+    }
+
+    private void addTradePanel() {
         readTradeFieldsFromStack(this.previewStack);
-
-        int controlsX = getTradeControlsX();
-        int controlsWidth = getTradeControlsWidth();
-        int buttonY = 52;
-        addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.add")), button -> addVillagerTrade()));
-        buttonY += 26;
-
-        InfinityEditorButton remove = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.remove")), button -> removeSelectedVillagerTrade()));
-        remove.active = getVillagerTradeCount() > 0;
-        buttonY += 26;
-
-        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.clear")), button -> clearVillagerTrades()));
-        clear.active = getVillagerTradeCount() > 0;
-        buttonY += 26;
-
-        InfinityEditorButton rewardExp = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.reward_exp." + (this.tradeRewardExp ? 1 : 0))),
-                button -> toggleSelectedTradeRewardExp()));
-        rewardExp.active = getVillagerTradeCount() > 0;
-        buttonY += 26;
-
-        InfinityEditorButton update = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.update")), button -> updateSelectedTradeFromFields()));
-        update.active = getVillagerTradeCount() > 0;
-
-        int slotButtonY = 96;
-        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
-            int tradeSlot = slot;
-            Component slotText = Component.translatable(key("trades.slot." + slot));
-            if (slot == this.selectedTradeSlot) {
-                slotText = Component.literal("> ").append(slotText);
-            }
-            addRenderableWidget(new InfinityEditorButton(getTradeSlotButtonX(slot), slotButtonY, 74, FIELD_HEIGHT,
-                    slotText, button -> selectTradeSlot(tradeSlot))).active = getVillagerTradeCount() > 0;
-        }
-
-        int boxWidth = Math.min(300, Math.max(180, this.width - 300));
-        this.tradeItemNbtBox = addTrackedBox(legacyTextBox(this.midX - boxWidth / 2, 132, boxWidth, FIELD_HEIGHT,
-                Component.translatable(key("trades.item_nbt"))));
-        this.tradeItemNbtBox.setMaxLength(20000);
-        this.tradeItemNbtBox.setValue(this.tradeItemNbtValue);
-        this.tradeItemNbtBox.setResponder(value -> this.tradeItemNbtValue = value);
-        this.tradeItemNbtBox.active = getVillagerTradeCount() > 0;
-
-        int leftBoxX = this.midX - 72;
-        int rightBoxX = this.midX + 88;
-        int fieldWidth = 60;
-        this.tradeUsesBox = addTradeFieldBox(leftBoxX, 166, fieldWidth, this.tradeUsesValue,
-                value -> value.matches("\\d*"), value -> this.tradeUsesValue = value);
-        this.tradeMaxUsesBox = addTradeFieldBox(leftBoxX, 192, fieldWidth, this.tradeMaxUsesValue,
-                value -> value.matches("\\d*"), value -> this.tradeMaxUsesValue = value);
-        this.tradeXpBox = addTradeFieldBox(leftBoxX, 218, fieldWidth, this.tradeXpValue,
-                value -> value.matches("\\d*"), value -> this.tradeXpValue = value);
-        this.tradeSpecialPriceBox = addTradeFieldBox(rightBoxX, 166, fieldWidth, this.tradeSpecialPriceValue,
-                value -> value.matches("-?\\d*"), value -> this.tradeSpecialPriceValue = value);
-        this.tradeDemandBox = addTradeFieldBox(rightBoxX, 192, fieldWidth, this.tradeDemandValue,
-                value -> value.matches("-?\\d*"), value -> this.tradeDemandValue = value);
-        this.tradePriceMultiplierBox = addTradeFieldBox(rightBoxX, 218, fieldWidth, this.tradePriceMultiplierValue,
-                value -> value.matches("\\d*(\\.\\d*)?"), value -> this.tradePriceMultiplierValue = value);
+        int maxUsesFieldWidth = this.width / 7;
+        int maxUsesFieldY = 80;
+        this.tradeMaxUsesBox = addTrackedBox(numberBox((this.width - maxUsesFieldWidth) / 2, maxUsesFieldY,
+                maxUsesFieldWidth, 16, TRADE_MAX_USES_DIGITS, this.tradeMaxUsesValue,
+                -TRADE_MAX_USES_LIMIT, TRADE_MAX_USES_LIMIT));
+        this.tradeMaxUsesBox.setResponder(value -> {
+            this.tradeMaxUsesValue = value;
+            updateSelectedTradeMaxUses();
+        });
     }
 
     private EditBox addTradeFieldBox(int x, int y, int width, String value, java.util.function.Predicate<String> filter,
@@ -1460,12 +1443,19 @@ public class ItemEditorScreen extends Screen {
     private void addBottomButtons() {
         switch (this.activePanel) {
             case ITEM -> {
-                addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
-                        Component.translatable(key("close")), button -> onClose()));
-                addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 25, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
-                        Component.translatable(key("save")), button -> applyToSelectedSlot()));
-                addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 45, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
-                        Component.translatable(key("reset")), button -> resetStack()));
+                if (isTradeSlotEditor()) {
+                    addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                            Component.translatable(key("back")), button -> goBack()));
+                    addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                            Component.translatable(key("reset")), button -> resetStack()));
+                } else {
+                    addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                            Component.translatable(key("close")), button -> onClose()));
+                    addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 25, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                            Component.translatable(key("save")), button -> applyToSelectedSlot()));
+                    addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 45, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                            Component.translatable(key("reset")), button -> resetStack()));
+                }
                 addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
                         Component.translatable(key("drop")), button -> dropEditedStack()));
             }
@@ -1477,6 +1467,16 @@ public class ItemEditorScreen extends Screen {
             }
             case NBT_ADVANCED -> addRenderableWidget(new InfinityEditorButton(this.midX - 60, this.height - 25, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
                     Component.translatable(key("back")), button -> goBack()));
+            case TRADE -> {
+                addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                        Component.translatable(key("back")), button -> goBack()));
+                InfinityEditorButton reset = addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                        Component.translatable(key("reset")), button -> {
+                }));
+                reset.active = false;
+                addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
+                        Component.translatable(key("drop")), button -> dropEditedStack()));
+            }
             default -> {
                 addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
                         Component.translatable(key("back")), button -> goBack()));
@@ -1884,56 +1884,61 @@ public class ItemEditorScreen extends Screen {
         int end = Math.min(rows.size(), this.spawnEggTagScroll + SPAWN_EGG_TAG_ROWS);
         for (int i = this.spawnEggTagScroll; i < end; i++) {
             SpawnEggTagRow row = rows.get(i);
-            if (row.type() != SpawnEggTagRowType.BOOLEAN) {
+            if (row.type() != SpawnEggTagRowType.BOOLEAN && row.type() != SpawnEggTagRowType.CHOICE) {
                 drawRightLabel(guiGraphics, Component.translatable(key("spawnegg." + row.translationSuffix())),
                         controlsX + 66, getSpawnEggTagRowY(i - this.spawnEggTagScroll) + 6);
             }
         }
     }
 
-    private void renderTradesPanel(GuiGraphics guiGraphics) {
-        renderItemTooltipPreview(guiGraphics);
+    private void renderTradesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        renderSmallItem(guiGraphics, this.midX, 35);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades")), this.midX, 15, MAIN_COLOR);
 
         ListTag trades = getVillagerTradeRecipes();
-        clampTradeSelection(trades);
-        setTradeScroll(this.tradeScroll);
-        if (trades.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("trades.no_trades")), 12, getTradeRowY(0), ALT_COLOR);
-        } else {
-            int end = Math.min(trades.size(), this.tradeScroll + TRADE_ROWS);
-            for (int i = this.tradeScroll; i < end; i++) {
-                int y = getTradeRowY(i - this.tradeScroll);
-                int color = i == this.selectedTradeIndex ? CONTRAST_COLOR : MAIN_COLOR;
-                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(formatTradeRecipe(trades.getCompound(i)), getTradeListWidth()),
-                        12, y, color);
-            }
+        int size = trades.size();
+        boolean foundHover = false;
+        for (int i = 0; i < size; i++) {
+            String tradeText = formatTradeRecipe(trades.getCompound(i));
+            boolean hovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, tradeText, this.midX, getTradeListRowY(i, size));
+            foundHover = foundHover || hovered;
+            guiGraphics.drawCenteredString(this.font, tradeText, this.midX, getTradeListRowY(i, size),
+                    hovered ? CONTRAST_COLOR : MAIN_COLOR);
         }
 
-        Component selected = trades.isEmpty()
-                ? Component.translatable(key("trades.no_trades"))
-                : Component.translatable(key("trades.selected"), this.selectedTradeIndex + 1, trades.size());
-        guiGraphics.drawCenteredString(this.font, selected, this.midX, 42, MAIN_COLOR);
+        Component addTrade = Component.translatable(key("trades.addtrade"));
+        String addTradeText = addTrade.getString();
+        boolean addHovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, addTradeText,
+                this.midX, getTradeListRowY(size, size));
+        guiGraphics.drawCenteredString(this.font, addTrade, this.midX, getTradeListRowY(size, size),
+                addHovered ? CONTRAST_COLOR : MAIN_COLOR);
+    }
 
-        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
-            int x = getTradeSlotIconX(slot);
-            int y = getTradeSlotIconY();
-            boolean selectedSlot = slot == this.selectedTradeSlot;
-            guiGraphics.fill(x - 2, y - 2, x + 18, y + 18, selectedSlot ? CONTRAST_COLOR : 0xFF555555);
-            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0xFF1C1C1C);
-            ItemStack stack = trades.isEmpty() ? ItemStack.EMPTY : getTradeSlotItem(trades.getCompound(this.selectedTradeIndex), slot);
-            if (!stack.isEmpty()) {
-                guiGraphics.renderItem(stack, x, y);
-                guiGraphics.renderItemDecorations(this.font, stack, x, y);
-            }
+    private void renderTradePanel(GuiGraphics guiGraphics) {
+        renderSmallItem(guiGraphics, this.midX, 35);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("trade")), this.midX, 15, MAIN_COLOR);
+
+        if (this.tradeMaxUsesBox != null) {
+            guiGraphics.drawCenteredString(this.font, Component.literal("Max Uses"),
+                    this.width / 2, this.tradeMaxUsesBox.getY() - this.font.lineHeight - 4, MAIN_COLOR);
         }
 
-        if (this.tradeItemNbtBox != null) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades.item_nbt")),
-                    this.tradeItemNbtBox.getX() + this.tradeItemNbtBox.getWidth() / 2,
-                    this.tradeItemNbtBox.getY() - 12, MAIN_COLOR);
+        int part = this.midX / 2;
+        guiGraphics.drawCenteredString(this.font, Component.literal("Price 1"), part + 8, this.midY - 10, CONTRAST_COLOR);
+        guiGraphics.drawCenteredString(this.font, Component.literal("Price 2"), 2 * part + 8, this.midY - 10, CONTRAST_COLOR);
+        guiGraphics.drawCenteredString(this.font, Component.literal("Product"), 3 * part + 8, this.midY - 10, MAIN_COLOR);
+
+        CompoundTag recipe = getSelectedTradeRecipe();
+        if (recipe == null) {
+            return;
         }
-        drawTradeFieldLabels(guiGraphics);
+
+        renderTradeSlotItem(guiGraphics, recipe, TRADE_SLOT_FIRST_BUY);
+        ItemStack secondCost = getTradeSlotItem(recipe, TRADE_SLOT_SECOND_BUY);
+        if (!secondCost.isEmpty()) {
+            renderTradeSlotItem(guiGraphics, recipe, TRADE_SLOT_SECOND_BUY);
+        }
+        renderTradeSlotItem(guiGraphics, recipe, TRADE_SLOT_SELL);
     }
 
     private void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -2102,21 +2107,24 @@ public class ItemEditorScreen extends Screen {
                 guiGraphics.renderTooltip(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.TRADES) {
-            int slot = getHoveredTradeSlot(mouseX, mouseY);
+            if (getHoveredTradeListIndex(mouseX, mouseY) >= 0) {
+                guiGraphics.renderComponentTooltip(this.font, List.of(
+                        Component.translatable(key("trades.leftclick")),
+                        Component.translatable(key("trades.rightclick"))), mouseX, mouseY);
+                return;
+            }
+            if (isMouseIn(mouseX, mouseY, this.midX - 30, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT)) {
+                guiGraphics.renderTooltip(this.font, Component.translatable(key("trades.reset")), mouseX, mouseY);
+            }
+        } else if (this.activePanel == Panel.TRADE) {
+            int slot = getHoveredSingleTradeSlot(mouseX, mouseY);
             if (slot >= 0) {
                 CompoundTag recipe = getSelectedTradeRecipe();
                 ItemStack stack = recipe == null ? ItemStack.EMPTY : getTradeSlotItem(recipe, slot);
                 if (!stack.isEmpty()) {
                     guiGraphics.renderTooltip(this.font, stack, mouseX, mouseY);
-                } else {
-                    guiGraphics.renderTooltip(this.font, Component.translatable(key("trades.empty_slot")), mouseX, mouseY);
                 }
-                return;
-            }
-            if (this.tradeItemNbtBox != null && this.tradeItemNbtBox.getValue().length() > 20
-                    && isMouseIn(mouseX, mouseY, this.tradeItemNbtBox.getX(), this.tradeItemNbtBox.getY(),
-                    this.tradeItemNbtBox.getWidth(), this.tradeItemNbtBox.getHeight())) {
-                guiGraphics.renderTooltip(this.font, Component.literal(this.tradeItemNbtBox.getValue()), mouseX, mouseY);
+                guiGraphics.renderTooltip(this.font, Component.translatable(key("trade.click_to_edit")), mouseX, mouseY - 16);
             }
         } else if (this.activePanel == Panel.LORE_PAINTER) {
             if (this.lorePainterScaleButton != null && isMouseIn(mouseX, mouseY,
@@ -2292,29 +2300,34 @@ public class ItemEditorScreen extends Screen {
         return true;
     }
 
-    private boolean handleTradesClick(double mouseX, double mouseY) {
-        int hoveredSlot = getHoveredTradeSlot((int) mouseX, (int) mouseY);
-        if (hoveredSlot >= 0) {
-            selectTradeSlot(hoveredSlot);
+    private boolean handleTradesClick(double mouseX, double mouseY, int button) {
+        int index = getHoveredTradeListIndex((int) mouseX, (int) mouseY);
+        if (index >= 0) {
+            if (button == 0) {
+                openVillagerTrade(index);
+                return true;
+            }
+            if (button == 1) {
+                removeVillagerTrade(index);
+                return true;
+            }
+        }
+
+        if (button == 0 && isMouseOverAddTrade((int) mouseX, (int) mouseY)) {
+            addVillagerTrade();
             return true;
         }
 
-        if (!isMouseIn(mouseX, mouseY, 10, getTradeRowY(0) - 1, getTradeListWidth(), TRADE_ROWS * TRADE_ROW_HEIGHT + 2)) {
+        return false;
+    }
+
+    private boolean handleTradeClick(double mouseX, double mouseY) {
+        int slot = getHoveredSingleTradeSlot((int) mouseX, (int) mouseY);
+        if (slot < 0) {
             return false;
         }
 
-        ListTag trades = getVillagerTradeRecipes();
-        if (trades.isEmpty()) {
-            return false;
-        }
-
-        int row = ((int) mouseY - getTradeRowY(0)) / TRADE_ROW_HEIGHT;
-        int index = this.tradeScroll + row;
-        if (row < 0 || row >= TRADE_ROWS || index < 0 || index >= trades.size()) {
-            return false;
-        }
-
-        selectVillagerTrade(index);
+        openTradeSlotItemEditor(slot);
         return true;
     }
 
@@ -2391,7 +2404,18 @@ public class ItemEditorScreen extends Screen {
 
     private void goBack() {
         if (this.activePanel == Panel.ITEM) {
+            if (isTradeSlotEditor()) {
+                applyTradeSlotEditorAndReturn();
+                return;
+            }
             onClose();
+            return;
+        }
+
+        if (this.activePanel == Panel.TRADE) {
+            this.activePanel = Panel.TRADES;
+            ensureVillagerTradeOffers();
+            rebuildWidgets();
             return;
         }
 
@@ -2461,6 +2485,15 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void resetStack() {
+        if (this.activePanel == Panel.TRADES) {
+            clearVillagerTrades();
+            return;
+        }
+
+        if (this.activePanel == Panel.TRADE) {
+            return;
+        }
+
         if (this.activePanel == Panel.NBT) {
             this.previewStack.setTag(new CompoundTag());
         } else {
@@ -3868,9 +3901,9 @@ public class ItemEditorScreen extends Screen {
 
         CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         if (getSpawnEggBooleanValue(row)) {
-            entityTag.remove(row.tagKey());
+            removeSpawnEggTagValue(entityTag, row.tagKey());
         } else {
-            entityTag.putBoolean(row.tagKey(), true);
+            putSpawnEggBooleanValue(entityTag, row.tagKey(), true);
         }
         cleanupSpawnEggEntityTag(entityTag);
         this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
@@ -3922,7 +3955,7 @@ public class ItemEditorScreen extends Screen {
         this.spawnEggNumberValueOverrides.put(row.tagKey(), normalized);
         CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         if (normalized.isEmpty()) {
-            entityTag.remove(row.tagKey());
+            removeSpawnEggTagValue(entityTag, row.tagKey());
             this.spawnEggNumberValueOverrides.remove(row.tagKey());
             cleanupSpawnEggEntityTag(entityTag);
             return;
@@ -3944,12 +3977,7 @@ public class ItemEditorScreen extends Screen {
             }
 
             double storedValue = row.toStoredNumber(parsed);
-            switch (row.numberType()) {
-                case BYTE -> entityTag.putByte(row.tagKey(), (byte) storedValue);
-                case SHORT -> entityTag.putShort(row.tagKey(), (short) storedValue);
-                case INT -> entityTag.putInt(row.tagKey(), (int) storedValue);
-                case FLOAT -> entityTag.putFloat(row.tagKey(), (float) storedValue);
-            }
+            putSpawnEggNumberValue(entityTag, row, storedValue);
             cleanupSpawnEggEntityTag(entityTag);
         } catch (NumberFormatException exception) {
             this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
@@ -3957,6 +3985,29 @@ public class ItemEditorScreen extends Screen {
                     formatSpawnEggNumber(row.minValue()),
                     formatSpawnEggNumber(row.maxValue()));
         }
+    }
+
+    private void cycleSpawnEggChoice(SpawnEggTagRow row) {
+        if (!isSpawnEditorItem(this.previewStack) || row.choices() == null || row.choices().isEmpty()) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+        String currentValue = getSpawnEggChoiceValue(row);
+        int currentIndex = getSpawnEggChoiceIndex(row, currentValue);
+        int nextIndex = currentIndex < 0 ? 0 : Mth.positiveModulo(currentIndex + 1, row.choices().size());
+        SpawnEggChoiceOption nextOption = row.choices().get(nextIndex);
+        if (nextOption.value().isEmpty()) {
+            removeSpawnEggTagValue(entityTag, row.tagKey());
+        } else if (row.choiceStorage() == SpawnEggChoiceStorage.INT) {
+            putSpawnEggIntValue(entityTag, row.tagKey(), Integer.parseInt(nextOption.value()));
+        } else {
+            putSpawnEggStringValue(entityTag, row.tagKey(), nextOption.value());
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        rebuildWidgets();
     }
 
     private CompoundTag getOrCreateSpawnEditorEntityTag() {
@@ -4093,9 +4144,55 @@ public class ItemEditorScreen extends Screen {
                 Component.translatable(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
     }
 
+    private Component getSpawnEggChoiceText(SpawnEggTagRow row) {
+        return Component.translatable(key("spawnegg.option_state"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())),
+                getSpawnEggChoiceOptionText(row));
+    }
+
+    private Component getSpawnEggChoiceOptionText(SpawnEggTagRow row) {
+        String currentValue = getSpawnEggChoiceValue(row);
+        int index = getSpawnEggChoiceIndex(row, currentValue);
+        if (index >= 0) {
+            SpawnEggChoiceOption option = row.choices().get(index);
+            return Component.translatable(key("spawnegg." + row.translationSuffix() + "." + option.translationSuffix()));
+        }
+        return currentValue.isEmpty()
+                ? Component.translatable(key("spawnegg.choice.empty"))
+                : Component.literal(currentValue);
+    }
+
+    private String getSpawnEggChoiceValue(SpawnEggTagRow row) {
+        CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (parent == null) {
+            return "";
+        }
+
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        if (row.choiceStorage() == SpawnEggChoiceStorage.INT) {
+            return parent.contains(leafKey, Tag.TAG_ANY_NUMERIC) ? Integer.toString(parent.getInt(leafKey)) : "";
+        }
+        return parent.contains(leafKey, Tag.TAG_STRING) ? parent.getString(leafKey) : "";
+    }
+
+    private int getSpawnEggChoiceIndex(SpawnEggTagRow row, String value) {
+        for (int i = 0; i < row.choices().size(); i++) {
+            if (Objects.equals(row.choices().get(i).value(), value)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private boolean getSpawnEggBooleanValue(SpawnEggTagRow row) {
         CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
-        return entityTag != null && entityTag.contains(row.tagKey(), Tag.TAG_BYTE) && entityTag.getBoolean(row.tagKey());
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (parent == null) {
+            return false;
+        }
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        return parent.contains(leafKey, Tag.TAG_BYTE) && parent.getBoolean(leafKey);
     }
 
     private String getSpawnEggNumberValue(SpawnEggTagRow row) {
@@ -4105,15 +4202,20 @@ public class ItemEditorScreen extends Screen {
         }
 
         CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
-        if (entityTag == null || !entityTag.contains(row.tagKey())) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (parent == null) {
             return "";
         }
 
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        if (!parent.contains(leafKey, Tag.TAG_ANY_NUMERIC)) {
+            return "";
+        }
         return switch (row.numberType()) {
-            case BYTE -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getByte(row.tagKey())));
-            case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getShort(row.tagKey())));
-            case INT -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getInt(row.tagKey())));
-            case FLOAT -> Float.toString((float) row.toDisplayNumber(entityTag.getFloat(row.tagKey())));
+            case BYTE -> formatSpawnEggNumber(row.toDisplayNumber(parent.getByte(leafKey)));
+            case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(parent.getShort(leafKey)));
+            case INT -> formatSpawnEggNumber(row.toDisplayNumber(parent.getInt(leafKey)));
+            case FLOAT -> Float.toString((float) row.toDisplayNumber(parent.getFloat(leafKey)));
         };
     }
 
@@ -4131,6 +4233,94 @@ public class ItemEditorScreen extends Screen {
             case OWNER -> this.spawnEggOwnerValue;
             default -> getSpawnEggNumberValue(row);
         };
+    }
+
+    private CompoundTag getSpawnEggTagParent(CompoundTag entityTag, String tagPath, boolean create) {
+        if (entityTag == null) {
+            return null;
+        }
+
+        String[] parts = tagPath.split("\\.");
+        CompoundTag current = entityTag;
+        for (int i = 0; i < parts.length - 1; i++) {
+            String part = parts[i];
+            if (!current.contains(part, Tag.TAG_COMPOUND)) {
+                if (!create) {
+                    return null;
+                }
+                current.put(part, new CompoundTag());
+            }
+            current = current.getCompound(part);
+        }
+        return current;
+    }
+
+    private String getSpawnEggLeafTagKey(String tagPath) {
+        int dot = tagPath.lastIndexOf('.');
+        return dot < 0 ? tagPath : tagPath.substring(dot + 1);
+    }
+
+    private void putSpawnEggBooleanValue(CompoundTag entityTag, String tagPath, boolean value) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
+        if (parent != null) {
+            parent.putBoolean(getSpawnEggLeafTagKey(tagPath), value);
+        }
+    }
+
+    private void putSpawnEggStringValue(CompoundTag entityTag, String tagPath, String value) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
+        if (parent != null) {
+            parent.putString(getSpawnEggLeafTagKey(tagPath), value);
+        }
+    }
+
+    private void putSpawnEggIntValue(CompoundTag entityTag, String tagPath, int value) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
+        if (parent != null) {
+            parent.putInt(getSpawnEggLeafTagKey(tagPath), value);
+        }
+    }
+
+    private void putSpawnEggNumberValue(CompoundTag entityTag, SpawnEggTagRow row, double storedValue) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), true);
+        if (parent == null) {
+            return;
+        }
+
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        switch (row.numberType()) {
+            case BYTE -> parent.putByte(leafKey, (byte) storedValue);
+            case SHORT -> parent.putShort(leafKey, (short) storedValue);
+            case INT -> parent.putInt(leafKey, (int) storedValue);
+            case FLOAT -> parent.putFloat(leafKey, (float) storedValue);
+        }
+    }
+
+    private void removeSpawnEggTagValue(CompoundTag entityTag, String tagPath) {
+        if (entityTag == null) {
+            return;
+        }
+        removeSpawnEggTagValue(entityTag, tagPath.split("\\."), 0);
+    }
+
+    private boolean removeSpawnEggTagValue(CompoundTag current, String[] parts, int index) {
+        if (index >= parts.length - 1) {
+            current.remove(parts[index]);
+            return current.isEmpty();
+        }
+
+        String part = parts[index];
+        if (!current.contains(part, Tag.TAG_COMPOUND)) {
+            return current.isEmpty();
+        }
+
+        CompoundTag child = current.getCompound(part);
+        if (removeSpawnEggTagValue(child, parts, index + 1)) {
+            current.remove(part);
+        } else {
+            current.put(part, child);
+        }
+        return current.isEmpty();
     }
 
     private boolean isAllowedSpawnEggNumber(String value, SpawnEggNumberType type) {
@@ -4399,6 +4589,48 @@ public class ItemEditorScreen extends Screen {
         return rows;
     }
 
+    private void ensureVillagerTradeOffers() {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
+        }
+        ensureVillagerData(entityTag);
+        if (!entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)) {
+            entityTag.put(OFFERS_TAG, new CompoundTag());
+        }
+        CompoundTag offers = entityTag.getCompound(OFFERS_TAG);
+        if (!offers.contains(RECIPES_TAG, Tag.TAG_LIST)) {
+            offers.put(RECIPES_TAG, new ListTag());
+        }
+        entityTag.put(OFFERS_TAG, offers);
+        tag.put(ENTITY_TAG, entityTag);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        readTradeFieldsFromStack(this.previewStack);
+    }
+
+    private void ensureVillagerData(CompoundTag entityTag) {
+        CompoundTag villagerData = entityTag.contains(VILLAGER_DATA_TAG, Tag.TAG_COMPOUND)
+                ? entityTag.getCompound(VILLAGER_DATA_TAG)
+                : new CompoundTag();
+        if (!villagerData.contains(VILLAGER_TYPE_TAG, Tag.TAG_STRING)) {
+            villagerData.putString(VILLAGER_TYPE_TAG, DEFAULT_VILLAGER_TYPE);
+        }
+        if (!villagerData.contains(VILLAGER_PROFESSION_TAG, Tag.TAG_STRING)) {
+            villagerData.putString(VILLAGER_PROFESSION_TAG, DEFAULT_VILLAGER_PROFESSION);
+        }
+        if (!villagerData.contains(VILLAGER_LEVEL_TAG, Tag.TAG_ANY_NUMERIC)) {
+            villagerData.putInt(VILLAGER_LEVEL_TAG, DEFAULT_VILLAGER_LEVEL);
+        } else {
+            villagerData.putInt(VILLAGER_LEVEL_TAG, Mth.clamp(villagerData.getInt(VILLAGER_LEVEL_TAG), 1, 5));
+        }
+        entityTag.put(VILLAGER_DATA_TAG, villagerData);
+    }
+
     private void addVillagerTrade() {
         if (!isVillagerTradeEditableItem(this.previewStack)) {
             return;
@@ -4415,6 +4647,10 @@ public class ItemEditorScreen extends Screen {
     }
 
     private void removeSelectedVillagerTrade() {
+        removeVillagerTrade(this.selectedTradeIndex);
+    }
+
+    private void removeVillagerTrade(int index) {
         if (!isVillagerTradeEditableItem(this.previewStack)) {
             return;
         }
@@ -4424,10 +4660,9 @@ public class ItemEditorScreen extends Screen {
             return;
         }
 
-        clampTradeSelection(recipes);
-        int removedIndex = this.selectedTradeIndex;
-        recipes.remove(this.selectedTradeIndex);
-        this.selectedTradeIndex = Mth.clamp(this.selectedTradeIndex, 0, Math.max(0, recipes.size() - 1));
+        int removedIndex = Mth.clamp(index, 0, recipes.size() - 1);
+        recipes.remove(removedIndex);
+        this.selectedTradeIndex = Mth.clamp(removedIndex, 0, Math.max(0, recipes.size() - 1));
         putVillagerTradeRecipes(recipes);
         readTradeFieldsFromStack(this.previewStack);
         this.status = Component.translatable(messageKey("editor_trade_removed"), removedIndex + 1);
@@ -4506,6 +4741,35 @@ public class ItemEditorScreen extends Screen {
         rebuildWidgets();
     }
 
+    private void updateSelectedTradeMaxUses() {
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        if (recipes.isEmpty()) {
+            return;
+        }
+
+        clampTradeSelection(recipes);
+        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        int maxUses = parseTradeIntField(this.tradeMaxUsesValue, "max_uses",
+                TRADE_DEFAULT_MAX_USES, -TRADE_MAX_USES_LIMIT, TRADE_MAX_USES_LIMIT);
+        recipe.putInt(TRADE_MAX_USES_TAG, maxUses);
+        recipes.set(this.selectedTradeIndex, recipe);
+        putVillagerTradeRecipes(recipes);
+    }
+
+    private void openVillagerTrade(int index) {
+        ListTag trades = getVillagerTradeRecipes();
+        if (trades.isEmpty()) {
+            return;
+        }
+
+        this.selectedTradeIndex = Mth.clamp(index, 0, trades.size() - 1);
+        this.selectedTradeSlot = TRADE_SLOT_FIRST_BUY;
+        this.activePanel = Panel.TRADE;
+        this.status = Component.empty();
+        readTradeFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
     private void selectVillagerTrade(int index) {
         ListTag trades = getVillagerTradeRecipes();
         if (trades.isEmpty()) {
@@ -4522,6 +4786,60 @@ public class ItemEditorScreen extends Screen {
         this.selectedTradeSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
         readTradeFieldsFromStack(this.previewStack);
         rebuildWidgets();
+    }
+
+    private void openTradeSlotItemEditor(int slot) {
+        if (this.minecraft == null) {
+            return;
+        }
+
+        ListTag trades = getVillagerTradeRecipes();
+        if (trades.isEmpty()) {
+            return;
+        }
+
+        clampTradeSelection(trades);
+        int clampedSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
+        this.selectedTradeSlot = clampedSlot;
+        ItemStack slotStack = getTradeSlotItem(trades.getCompound(this.selectedTradeIndex), clampedSlot);
+        this.minecraft.setScreen(new ItemEditorScreen(slotStack, this, this.selectedTradeIndex, clampedSlot));
+    }
+
+    private void applyTradeSlotEditorAndReturn() {
+        if (this.parentTradeScreen == null || this.minecraft == null) {
+            onClose();
+            return;
+        }
+
+        if (!applyMainFieldsToStack(true)) {
+            return;
+        }
+
+        this.parentTradeScreen.setTradeSlotItem(this.parentTradeIndex, this.parentTradeSlot, this.previewStack.copy());
+        this.parentTradeScreen.activePanel = Panel.TRADE;
+        this.parentTradeScreen.status = Component.empty();
+        this.minecraft.setScreen(this.parentTradeScreen);
+    }
+
+    private void setTradeSlotItem(int tradeIndex, int slot, ItemStack stack) {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        if (recipes.isEmpty()) {
+            return;
+        }
+
+        int clampedIndex = Mth.clamp(tradeIndex, 0, recipes.size() - 1);
+        int clampedSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
+        CompoundTag recipe = recipes.getCompound(clampedIndex).copy();
+        putTradeSlotItem(recipe, clampedSlot, stack);
+        recipes.set(clampedIndex, recipe);
+        this.selectedTradeIndex = clampedIndex;
+        this.selectedTradeSlot = clampedSlot;
+        putVillagerTradeRecipes(recipes);
+        readTradeFieldsFromStack(this.previewStack);
     }
 
     private void readTradeFieldsFromStack(ItemStack stack) {
@@ -4600,28 +4918,16 @@ public class ItemEditorScreen extends Screen {
         if (!recipes.isEmpty() && !entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
             entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
         }
+        if (!recipes.isEmpty()) {
+            ensureVillagerData(entityTag);
+        }
 
         CompoundTag offers = entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)
                 ? entityTag.getCompound(OFFERS_TAG)
                 : new CompoundTag();
-        if (recipes.isEmpty()) {
-            offers.remove(RECIPES_TAG);
-        } else {
-            offers.put(RECIPES_TAG, recipes);
-        }
-
-        if (offers.isEmpty()) {
-            entityTag.remove(OFFERS_TAG);
-        } else {
-            entityTag.put(OFFERS_TAG, offers);
-        }
-
-        if (entityTag.isEmpty()) {
-            tag.remove(ENTITY_TAG);
-        } else {
-            tag.put(ENTITY_TAG, entityTag);
-        }
-        cleanupEmptyTag();
+        offers.put(RECIPES_TAG, recipes);
+        entityTag.put(OFFERS_TAG, offers);
+        tag.put(ENTITY_TAG, entityTag);
         this.rawNbtValue = getInitialNbt(this.previewStack);
     }
 
@@ -4744,8 +5050,68 @@ public class ItemEditorScreen extends Screen {
         if (stack.isEmpty()) {
             return Component.translatable(key("trades.empty_slot")).getString();
         }
-        String name = stack.getHoverName().getString();
-        return stack.getCount() > 1 ? stack.getCount() + "x " + name : name;
+        return stack.getHoverName().getString();
+    }
+
+    private void renderTradeSlotItem(GuiGraphics guiGraphics, CompoundTag recipe, int slot) {
+        ItemStack stack = getTradeSlotItem(recipe, slot);
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        int x = getSingleTradeSlotX(slot);
+        int y = getSingleTradeSlotY();
+        guiGraphics.renderItem(stack, x, y);
+        guiGraphics.renderItemDecorations(this.font, stack, x, y);
+    }
+
+    private int getTradeListRowY(int index, int size) {
+        return this.midY - TRADE_LIST_ROW_HEIGHT * (size + 1) / 2 + TRADE_LIST_ROW_HEIGHT * index;
+    }
+
+    private int getHoveredTradeListIndex(int mouseX, int mouseY) {
+        ListTag trades = getVillagerTradeRecipes();
+        int size = trades.size();
+        for (int i = 0; i < size; i++) {
+            if (isMouseOverCenteredText(mouseX, mouseY, formatTradeRecipe(trades.getCompound(i)),
+                    this.midX, getTradeListRowY(i, size))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isMouseOverAddTrade(int mouseX, int mouseY) {
+        int size = getVillagerTradeCount();
+        return isMouseOverCenteredText(mouseX, mouseY, Component.translatable(key("trades.addtrade")).getString(),
+                this.midX, getTradeListRowY(size, size));
+    }
+
+    private boolean isMouseOverCenteredText(int mouseX, int mouseY, String text, int centerX, int y) {
+        int width = this.font.width(text);
+        return isMouseIn(mouseX, mouseY, centerX - width / 2, y, width, TRADE_LIST_ROW_TEXT_HEIGHT);
+    }
+
+    private int getSingleTradeSlotX(int slot) {
+        int part = this.midX / 2;
+        return switch (slot) {
+            case TRADE_SLOT_SECOND_BUY -> 2 * part;
+            case TRADE_SLOT_SELL -> 3 * part;
+            default -> part;
+        };
+    }
+
+    private int getSingleTradeSlotY() {
+        return this.midY;
+    }
+
+    private int getHoveredSingleTradeSlot(int mouseX, int mouseY) {
+        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
+            if (isMouseIn(mouseX, mouseY, getSingleTradeSlotX(slot), getSingleTradeSlotY(), ITEM_SIZE, ITEM_SIZE)) {
+                return slot;
+            }
+        }
+        return -1;
     }
 
     private void clampTradeSelection(ListTag trades) {
@@ -6270,6 +6636,10 @@ public class ItemEditorScreen extends Screen {
 
     private boolean isMouseIn(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    private boolean isTradeSlotEditor() {
+        return this.parentTradeScreen != null && this.parentTradeIndex >= 0 && this.parentTradeSlot >= 0;
     }
 
     private static int getDamageMaxForField(ItemStack stack) {

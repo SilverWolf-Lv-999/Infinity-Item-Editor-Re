@@ -17,6 +17,7 @@ enum Panel {
     BANNER,
     SPAWN_EGG,
     TRADES,
+    TRADE,
     BOOK,
     LORE,
     LORE_PAINTER

@@ -4,6 +4,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class SpawnEggTagRows {
+    private static final List<SpawnEggChoiceOption> VILLAGER_PROFESSION_OPTIONS = List.of(
+            new SpawnEggChoiceOption("", "random"),
+            new SpawnEggChoiceOption("minecraft:farmer", "farmer"),
+            new SpawnEggChoiceOption("minecraft:librarian", "librarian"),
+            new SpawnEggChoiceOption("minecraft:cleric", "cleric"),
+            new SpawnEggChoiceOption("minecraft:armorer", "armorer"),
+            new SpawnEggChoiceOption("minecraft:butcher", "butcher"),
+            new SpawnEggChoiceOption("minecraft:nitwit", "nitwit"),
+            new SpawnEggChoiceOption("minecraft:none", "none"),
+            new SpawnEggChoiceOption("minecraft:cartographer", "cartographer"),
+            new SpawnEggChoiceOption("minecraft:fisherman", "fisherman"),
+            new SpawnEggChoiceOption("minecraft:fletcher", "fletcher"),
+            new SpawnEggChoiceOption("minecraft:leatherworker", "leatherworker"),
+            new SpawnEggChoiceOption("minecraft:mason", "mason"),
+            new SpawnEggChoiceOption("minecraft:shepherd", "shepherd"),
+            new SpawnEggChoiceOption("minecraft:toolsmith", "toolsmith"),
+            new SpawnEggChoiceOption("minecraft:weaponsmith", "weaponsmith")
+    );
+    private static final List<SpawnEggChoiceOption> VILLAGER_TYPE_OPTIONS = List.of(
+            new SpawnEggChoiceOption("", "random"),
+            new SpawnEggChoiceOption("minecraft:plains", "plains"),
+            new SpawnEggChoiceOption("minecraft:desert", "desert"),
+            new SpawnEggChoiceOption("minecraft:jungle", "jungle"),
+            new SpawnEggChoiceOption("minecraft:savanna", "savanna"),
+            new SpawnEggChoiceOption("minecraft:snow", "snow"),
+            new SpawnEggChoiceOption("minecraft:swamp", "swamp"),
+            new SpawnEggChoiceOption("minecraft:taiga", "taiga")
+    );
+    private static final List<SpawnEggChoiceOption> VILLAGER_LEVEL_OPTIONS = List.of(
+            new SpawnEggChoiceOption("", "random"),
+            new SpawnEggChoiceOption("1", "1"),
+            new SpawnEggChoiceOption("2", "2"),
+            new SpawnEggChoiceOption("3", "3"),
+            new SpawnEggChoiceOption("4", "4"),
+            new SpawnEggChoiceOption("5", "5")
+    );
+
     static final List<SpawnEggTagRow> GENERAL = List.of(
             customName(),
             floatNumber("health", "Health", 0.0D, 2048.0D),
@@ -54,9 +91,20 @@ final class SpawnEggTagRows {
             case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
                 rows.add(booleanRow("is_baby", "IsBaby"));
                 rows.add(booleanRow("can_break_doors", "CanBreakDoors"));
+                if ("zombie_villager".equals(path)) {
+                    rows.add(villagerProfession());
+                    rows.add(villagerType());
+                    rows.add(villagerLevel());
+                }
                 if ("zombified_piglin".equals(path)) {
                     rows.add(intNumber("anger", "AngerTime", 0.0D, 32767.0D));
                 }
+            }
+            case "villager" -> {
+                rows.add(villagerProfession());
+                rows.add(booleanRow("villager_willing", "Willing"));
+                rows.add(villagerType());
+                rows.add(villagerLevel());
             }
             default -> {
             }
@@ -74,6 +122,19 @@ final class SpawnEggTagRows {
 
     private static SpawnEggTagRow owner() {
         return new SpawnEggTagRow("owner", "Owner", SpawnEggTagRowType.OWNER, null, 0.0D, 0.0D);
+    }
+
+    private static SpawnEggTagRow villagerProfession() {
+        return choice("villager_profession", "VillagerData.profession",
+                SpawnEggChoiceStorage.STRING, VILLAGER_PROFESSION_OPTIONS);
+    }
+
+    private static SpawnEggTagRow villagerType() {
+        return choice("villager_type", "VillagerData.type", SpawnEggChoiceStorage.STRING, VILLAGER_TYPE_OPTIONS);
+    }
+
+    private static SpawnEggTagRow villagerLevel() {
+        return choice("villager_level", "VillagerData.level", SpawnEggChoiceStorage.INT, VILLAGER_LEVEL_OPTIONS);
     }
 
     private static SpawnEggTagRow byteNumber(String translationSuffix, String tagKey, double minValue, double maxValue) {
@@ -106,15 +167,22 @@ final class SpawnEggTagRows {
                                          SpawnEggNumberType numberType, double minValue, double maxValue,
                                          double displayOffset) {
         return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType,
-                minValue, maxValue, displayOffset);
+                minValue, maxValue, displayOffset, null, null);
+    }
+
+    private static SpawnEggTagRow choice(String translationSuffix, String tagKey,
+                                         SpawnEggChoiceStorage choiceStorage, List<SpawnEggChoiceOption> choices) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.CHOICE, null,
+                0.0D, 0.0D, 0.0D, choiceStorage, choices);
     }
 }
 
 record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
-                      SpawnEggNumberType numberType, double minValue, double maxValue, double displayOffset) {
+                      SpawnEggNumberType numberType, double minValue, double maxValue, double displayOffset,
+                      SpawnEggChoiceStorage choiceStorage, List<SpawnEggChoiceOption> choices) {
     SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
                    SpawnEggNumberType numberType, double minValue, double maxValue) {
-        this(translationSuffix, tagKey, type, numberType, minValue, maxValue, 0.0D);
+        this(translationSuffix, tagKey, type, numberType, minValue, maxValue, 0.0D, null, null);
     }
 
     double toStoredNumber(double displayValue) {
@@ -126,11 +194,15 @@ record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowTyp
     }
 }
 
+record SpawnEggChoiceOption(String value, String translationSuffix) {
+}
+
 enum SpawnEggTagRowType {
     BOOLEAN,
     NUMBER,
     CUSTOM_NAME,
-    OWNER
+    OWNER,
+    CHOICE
 }
 
 enum SpawnEggNumberType {
@@ -138,4 +210,9 @@ enum SpawnEggNumberType {
     SHORT,
     INT,
     FLOAT
+}
+
+enum SpawnEggChoiceStorage {
+    STRING,
+    INT
 }
