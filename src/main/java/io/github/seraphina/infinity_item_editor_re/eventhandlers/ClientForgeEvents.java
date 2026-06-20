@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.ItemEditorScreen;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
@@ -21,6 +22,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
@@ -29,7 +31,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.PlayerHeadItem;
@@ -50,6 +51,12 @@ import java.util.Optional;
 @Mod.EventBusSubscriber(modid = ModSource.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class ClientForgeEvents {
     private static final String VOID_HANDLER = ModSource.MODID + "_void_handler";
+    private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
+    private static final String BLOCK_ENTITY_ID_TAG = "id";
+    private static final String DISPLAY_TAG = "display";
+    private static final String LORE_TAG = "Lore";
+    private static final String SKULL_OWNER_TAG = "SkullOwner";
+    private static final String COPIED_NBT_LORE = "\"(+NBT)\"";
 
     private ClientForgeEvents() {
     }
@@ -101,7 +108,7 @@ public final class ClientForgeEvents {
 
     @SubscribeEvent
     public static void onChatReceived(ClientChatReceivedEvent event) {
-        if (!Config.getIsVoidEnabled()) {
+        if (!Config.getIsVoidEnabled() && !Config.getIsThiefTabEnabled()) {
             return;
         }
 
@@ -111,7 +118,7 @@ public final class ClientForgeEvents {
         }
 
         event.getMessage().visit((style, text) -> {
-            addHoverItemToVoid(minecraft, style);
+            handleHoverItem(minecraft, style);
             return Optional.empty();
         }, Style.EMPTY);
     }
@@ -237,7 +244,7 @@ public final class ClientForgeEvents {
         return selectedTab == CreativeTabRegistry.REALM.get();
     }
 
-    private static void addHoverItemToVoid(Minecraft minecraft, Style style) {
+    private static void handleHoverItem(Minecraft minecraft, Style style) {
         HoverEvent hoverEvent = style.getHoverEvent();
         if (hoverEvent == null) {
             return;
@@ -249,8 +256,15 @@ public final class ClientForgeEvents {
         }
 
         ItemStack stack = itemStackInfo.getItemStack();
-        if (!stack.isEmpty()) {
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        if (Config.getIsVoidEnabled()) {
             new VoidController(stack).addItemStack(minecraft.player, stack.copy(), "chat");
+        }
+        if (Config.getIsThiefTabEnabled() && ClientCreativeTabData.rememberChatLinkedItem(stack)) {
+            CreativeTabRefresher.refreshThief(minecraft);
         }
     }
 
@@ -381,25 +395,52 @@ public final class ClientForgeEvents {
     }
 
     private static void addCustomNbtData(ItemStack stack, BlockEntity blockEntity) {
-        CompoundTag blockEntityTag = blockEntity.saveWithFullMetadata();
-        BlockItem.setBlockEntityData(stack, blockEntity.getType(), blockEntityTag);
-        if (stack.getItem() instanceof PlayerHeadItem && blockEntityTag.contains("SkullOwner")) {
-            CompoundTag skullOwner = blockEntityTag.getCompound("SkullOwner");
-            CompoundTag stackTag = stack.getOrCreateTag();
-            stackTag.put("SkullOwner", skullOwner);
-            CompoundTag stackBlockEntityTag = stackTag.getCompound("BlockEntityTag");
-            stackBlockEntityTag.remove("SkullOwner");
-            stackBlockEntityTag.remove("x");
-            stackBlockEntityTag.remove("y");
-            stackBlockEntityTag.remove("z");
-            return;
+        blockEntity.saveToItem(stack);
+        if (stack.getItem() instanceof PlayerHeadItem) {
+            CompoundTag stackTag = stack.getTag();
+            if (stackTag != null && stackTag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+                CompoundTag stackBlockEntityTag = stackTag.getCompound(BLOCK_ENTITY_TAG);
+                if (stackBlockEntityTag.contains(SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
+                    stackTag.put(SKULL_OWNER_TAG, stackBlockEntityTag.getCompound(SKULL_OWNER_TAG));
+                    stackBlockEntityTag.remove(SKULL_OWNER_TAG);
+                    cleanupCopiedBlockEntityTag(stackTag, stackBlockEntityTag);
+                    return;
+                }
+            }
         }
 
-        CompoundTag displayTag = new CompoundTag();
-        ListTag lore = new ListTag();
-        lore.add(StringTag.valueOf("\"(+NBT)\""));
-        displayTag.put("Lore", lore);
-        stack.addTagElement("display", displayTag);
+        if (hasCopiedBlockEntityData(stack)) {
+            addCopiedNbtLore(stack);
+        }
+    }
+
+    private static void cleanupCopiedBlockEntityTag(CompoundTag stackTag, CompoundTag blockEntityTag) {
+        blockEntityTag.remove("x");
+        blockEntityTag.remove("y");
+        blockEntityTag.remove("z");
+        if (blockEntityTag.isEmpty() || isOnlyBlockEntityId(blockEntityTag)) {
+            stackTag.remove(BLOCK_ENTITY_TAG);
+        } else {
+            stackTag.put(BLOCK_ENTITY_TAG, blockEntityTag);
+        }
+    }
+
+    private static boolean isOnlyBlockEntityId(CompoundTag blockEntityTag) {
+        return blockEntityTag.size() == 1 && blockEntityTag.contains(BLOCK_ENTITY_ID_TAG, Tag.TAG_STRING);
+    }
+
+    private static boolean hasCopiedBlockEntityData(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND);
+    }
+
+    private static void addCopiedNbtLore(ItemStack stack) {
+        CompoundTag displayTag = stack.getOrCreateTagElement(DISPLAY_TAG);
+        ListTag lore = displayTag.contains(LORE_TAG, Tag.TAG_LIST)
+                ? displayTag.getList(LORE_TAG, Tag.TAG_STRING).copy()
+                : new ListTag();
+        lore.add(StringTag.valueOf(COPIED_NBT_LORE));
+        displayTag.put(LORE_TAG, lore);
     }
 
     private static void copyEquipmentSlot(Minecraft minecraft, LivingEntity source, EquipmentSlot slot, int containerSlot) {

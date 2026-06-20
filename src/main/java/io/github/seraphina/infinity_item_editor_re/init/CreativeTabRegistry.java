@@ -4,24 +4,47 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.EnchantedBookItem;
+import net.minecraft.world.item.FireworkRocketItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public final class CreativeTabRegistry {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ModSource.MODID);
+    private static final FireworkRocketItem.Shape[] FIREWORK_SHAPES = {
+            FireworkRocketItem.Shape.SMALL_BALL,
+            FireworkRocketItem.Shape.LARGE_BALL,
+            FireworkRocketItem.Shape.STAR,
+            FireworkRocketItem.Shape.CREEPER,
+            FireworkRocketItem.Shape.BURST
+    };
 
     public static final RegistryObject<CreativeModeTab> REALM = CREATIVE_TABS.register("realm", () -> searchTab(
             "realm",
@@ -111,19 +134,28 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        output.accept(Items.BARRIER);
-        output.accept(Items.COMMAND_BLOCK);
-        output.accept(Items.CHAIN_COMMAND_BLOCK);
-        output.accept(Items.REPEATING_COMMAND_BLOCK);
-        output.accept(Items.COMMAND_BLOCK_MINECART);
-        output.accept(Items.STRUCTURE_BLOCK);
-        output.accept(Items.STRUCTURE_VOID);
-        output.accept(Items.JIGSAW);
-        output.accept(Items.DEBUG_STICK);
-        output.accept(Items.KNOWLEDGE_BOOK);
-        output.accept(Items.LIGHT);
-        output.accept(Items.SPAWNER);
-        output.accept(Items.ENCHANTED_BOOK);
+        List<ItemStack> stacks = new ArrayList<>();
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.BARRIER)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.COMMAND_BLOCK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.CHAIN_COMMAND_BLOCK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.REPEATING_COMMAND_BLOCK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.COMMAND_BLOCK_MINECART)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.STRUCTURE_BLOCK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.STRUCTURE_VOID)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.JIGSAW)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.DEBUG_STICK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.KNOWLEDGE_BOOK)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.LIGHT)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPAWNER)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.PIG_SPAWN_EGG)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.POTION)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPLASH_POTION)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.LINGERING_POTION)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.TIPPED_ARROW)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.ENCHANTED_BOOK)));
+        addUnavailableVariants(parameters, stacks);
+        addUncategorizedRegistryItems(parameters, stacks);
+        output.acceptAll(stacks);
     }
 
     private static void fillBanners(CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
@@ -131,23 +163,29 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        output.accept(Items.WHITE_BANNER);
-        output.accept(Items.ORANGE_BANNER);
-        output.accept(Items.MAGENTA_BANNER);
-        output.accept(Items.LIGHT_BLUE_BANNER);
-        output.accept(Items.YELLOW_BANNER);
-        output.accept(Items.LIME_BANNER);
-        output.accept(Items.PINK_BANNER);
-        output.accept(Items.GRAY_BANNER);
-        output.accept(Items.LIGHT_GRAY_BANNER);
-        output.accept(Items.CYAN_BANNER);
-        output.accept(Items.PURPLE_BANNER);
-        output.accept(Items.BLUE_BANNER);
-        output.accept(Items.BROWN_BANNER);
-        output.accept(Items.GREEN_BANNER);
-        output.accept(Items.RED_BANNER);
-        output.accept(Items.BLACK_BANNER);
-        output.accept(Items.SHIELD);
+        List<ItemStack> banners = new ArrayList<>();
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.WHITE_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.ORANGE_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.MAGENTA_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIGHT_BLUE_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.YELLOW_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIME_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.PINK_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.GRAY_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIGHT_GRAY_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.CYAN_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.PURPLE_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BLUE_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BROWN_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.GREEN_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.RED_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BLACK_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.SHIELD)));
+        for (DyeColor color : DyeColor.values()) {
+            addUnique(banners, normalizedTabStack(shield(color)));
+        }
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addBannerVariants(banners));
+        output.acceptAll(banners);
     }
 
     private static void fillSkulls(CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
@@ -156,6 +194,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> heads = new ArrayList<>();
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addPlayerHeads(heads));
         for (String owner : MHF_HEADS) {
             addUnique(heads, createPlayerHead(owner));
         }
@@ -167,7 +206,14 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        output.accept(Items.FEATHER);
+        List<ItemStack> stacks = new ArrayList<>();
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addThiefItems(stacks));
+        if (stacks.isEmpty()) {
+            output.accept(Items.FEATHER);
+            return;
+        }
+
+        output.acceptAll(stacks);
     }
 
     private static void fillFireworks(CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
@@ -175,15 +221,18 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        output.accept(Items.FIREWORK_ROCKET);
-        output.accept(Items.FIREWORK_STAR);
-        output.accept(Items.GUNPOWDER);
-        acceptStack(output, fireworkStar(0, 0xE14141));
-        acceptStack(output, fireworkStar(1, 0xF0F06B));
-        acceptStack(output, fireworkStar(2, 0x4A80FF));
-        acceptStack(output, fireworkRocket((byte) 1));
-        acceptStack(output, fireworkRocket((byte) 2));
-        acceptStack(output, fireworkRocket((byte) 3));
+        List<ItemStack> fireworks = new ArrayList<>();
+        addUnique(fireworks, normalizedTabStack(new ItemStack(Items.FIREWORK_ROCKET)));
+        addUnique(fireworks, normalizedTabStack(new ItemStack(Items.FIREWORK_STAR)));
+        addUnique(fireworks, normalizedTabStack(new ItemStack(Items.GUNPOWDER)));
+        addUnique(fireworks, normalizedTabStack(fireworkStar(0, 0xE14141)));
+        addUnique(fireworks, normalizedTabStack(fireworkStar(1, 0xF0F06B)));
+        addUnique(fireworks, normalizedTabStack(fireworkStar(2, 0x4A80FF)));
+        addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 1)));
+        addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 2)));
+        addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 3)));
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addFireworkVariants(fireworks));
+        output.acceptAll(fireworks);
     }
 
     private static void fillVoid(CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
@@ -216,15 +265,93 @@ public final class CreativeTabRegistry {
     private static ItemStack fireworkStar(int type, int color) {
         ItemStack stack = new ItemStack(Items.FIREWORK_STAR);
         CompoundTag explosion = stack.getOrCreateTagElement("Explosion");
-        explosion.putByte("Type", (byte) type);
+        getFireworkShape(type).save(explosion);
         explosion.putIntArray("Colors", new int[]{color});
         return stack;
+    }
+
+    private static FireworkRocketItem.Shape getFireworkShape(int type) {
+        if (type < 0 || type >= FIREWORK_SHAPES.length) {
+            return FireworkRocketItem.Shape.SMALL_BALL;
+        }
+        return FIREWORK_SHAPES[type];
     }
 
     private static ItemStack fireworkRocket(byte flight) {
         ItemStack stack = new ItemStack(Items.FIREWORK_ROCKET);
         stack.getOrCreateTagElement("Fireworks").putByte("Flight", flight);
         return stack;
+    }
+
+    private static ItemStack shield(DyeColor color) {
+        ItemStack stack = new ItemStack(Items.SHIELD);
+        stack.getOrCreateTagElement("BlockEntityTag").putInt("Base", color.getId());
+        return stack;
+    }
+
+    private static void addUnavailableVariants(CreativeModeTab.ItemDisplayParameters parameters, List<ItemStack> stacks) {
+        addPotionVariants(parameters, stacks, Items.POTION);
+        addPotionVariants(parameters, stacks, Items.SPLASH_POTION);
+        addPotionVariants(parameters, stacks, Items.LINGERING_POTION);
+        addPotionVariants(parameters, stacks, Items.TIPPED_ARROW);
+        addSpawnEggVariants(parameters, stacks);
+        addEnchantedBookVariants(stacks);
+    }
+
+    private static void addPotionVariants(CreativeModeTab.ItemDisplayParameters parameters, List<ItemStack> stacks, Item item) {
+        if (!item.isEnabled(parameters.enabledFeatures())) {
+            return;
+        }
+
+        BuiltInRegistries.POTION.stream()
+                .filter(potion -> potion != Potions.EMPTY)
+                .forEach(potion -> addUnique(stacks, potionStack(item, potion)));
+    }
+
+    private static ItemStack potionStack(Item item, Potion potion) {
+        ItemStack stack = new ItemStack(item);
+        PotionUtils.setPotion(stack, potion);
+        return normalizedTabStack(stack);
+    }
+
+    private static void addSpawnEggVariants(CreativeModeTab.ItemDisplayParameters parameters, List<ItemStack> stacks) {
+        BuiltInRegistries.ITEM.stream()
+                .filter(item -> item instanceof SpawnEggItem)
+                .filter(item -> item.isEnabled(parameters.enabledFeatures()))
+                .forEach(item -> addUnique(stacks, normalizedTabStack(new ItemStack(item))));
+    }
+
+    private static void addEnchantedBookVariants(List<ItemStack> stacks) {
+        BuiltInRegistries.ENCHANTMENT.stream()
+                .filter(Enchantment::isAllowedOnBooks)
+                .forEach(enchantment -> {
+                    for (int level = enchantment.getMinLevel(); level <= enchantment.getMaxLevel(); level++) {
+                        addUnique(stacks, normalizedTabStack(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level))));
+                    }
+                });
+    }
+
+    private static void addUncategorizedRegistryItems(CreativeModeTab.ItemDisplayParameters parameters, List<ItemStack> stacks) {
+        Set<Item> categorizedItems = new HashSet<>();
+        for (CreativeModeTab tab : CreativeModeTabs.allTabs()) {
+            var tabKey = BuiltInRegistries.CREATIVE_MODE_TAB.getResourceKey(tab);
+            if (tabKey.isPresent() && ModSource.MODID.equals(tabKey.get().location().getNamespace())) {
+                continue;
+            }
+
+            for (ItemStack stack : tab.getDisplayItems()) {
+                categorizedItems.add(stack.getItem());
+            }
+            for (ItemStack stack : tab.getSearchTabDisplayItems()) {
+                categorizedItems.add(stack.getItem());
+            }
+        }
+
+        BuiltInRegistries.ITEM.stream()
+                .filter(item -> item != Items.AIR)
+                .filter(item -> item.isEnabled(parameters.enabledFeatures()))
+                .filter(item -> !categorizedItems.contains(item))
+                .forEach(item -> addUnique(stacks, normalizedTabStack(new ItemStack(item))));
     }
 
     private static void acceptStack(CreativeModeTab.Output output, ItemStack stack) {

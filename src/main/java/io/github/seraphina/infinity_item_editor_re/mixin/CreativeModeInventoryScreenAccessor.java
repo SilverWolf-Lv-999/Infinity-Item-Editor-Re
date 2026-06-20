@@ -18,4 +18,7 @@ public interface CreativeModeInventoryScreenAccessor {
 
     @Invoker("refreshCurrentTabContents")
     void infinityItemEditorRe$refreshCurrentTabContents(Collection<ItemStack> stacks);
+
+    @Invoker("selectTab")
+    void infinityItemEditorRe$selectTab(CreativeModeTab tab);
 }

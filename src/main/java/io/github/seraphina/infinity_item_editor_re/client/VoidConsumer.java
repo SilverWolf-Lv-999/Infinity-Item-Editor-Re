@@ -1,6 +1,8 @@
-package io.github.seraphina.infinity_item_editor_re.data.voids;
+package io.github.seraphina.infinity_item_editor_re.client;
 
 import com.mojang.datafixers.util.Pair;
+import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
+import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.world.entity.Entity;

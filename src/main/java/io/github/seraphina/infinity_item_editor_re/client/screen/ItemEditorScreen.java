@@ -36,15 +36,18 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.DyeableLeatherItem;
+import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.WrittenBookItem;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
@@ -102,6 +105,8 @@ public class ItemEditorScreen extends Screen {
     private static final String SPAWNER_ENTITY_TAG = "entity";
     private static final String SPAWNER_SPAWN_POTENTIALS_TAG = "SpawnPotentials";
     private static final String SPAWNER_POTENTIAL_DATA_TAG = "data";
+    private static final String SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG = "Entity";
+    private static final String SPAWNER_CUSTOM_SPAWN_RULES_TAG = "custom_spawn_rules";
     private static final String SIGN_FRONT_TEXT_TAG = "front_text";
     private static final String SIGN_MESSAGES_TAG = "messages";
     private static final String SIGN_FILTERED_MESSAGES_TAG = "filtered_messages";
@@ -114,11 +119,13 @@ public class ItemEditorScreen extends Screen {
     private static final String BANNER_BASE_TAG = "Base";
     private static final int BANNER_PATTERN_ROWS = 8;
     private static final String BOOK_TITLE_TAG = "title";
+    private static final String BOOK_FILTERED_TITLE_TAG = "filtered_title";
     private static final String BOOK_AUTHOR_TAG = "author";
     private static final String BOOK_GENERATION_TAG = "generation";
     private static final String BOOK_RESOLVED_TAG = "resolved";
     private static final String BOOK_PAGES_TAG = "pages";
-    private static final int MAX_BOOK_GENERATION = 3;
+    private static final String BOOK_FILTERED_PAGES_TAG = "filtered_pages";
+    private static final int MAX_BOOK_GENERATION = WrittenBookItem.MAX_GENERATION;
     private static final String SKULL_OWNER_TAG = "SkullOwner";
     private static final String SKULL_OWNER_ID_TAG = "Id";
     private static final String SKULL_OWNER_NAME_TAG = "Name";
@@ -148,6 +155,13 @@ public class ItemEditorScreen extends Screen {
     private static final String FIREWORK_TRAIL_TAG = "Trail";
     private static final int MAX_FIREWORK_FLIGHT = 4;
     private static final int FIREWORK_EXPLOSION_TYPES = 5;
+    private static final FireworkRocketItem.Shape[] FIREWORK_SHAPES = {
+            FireworkRocketItem.Shape.SMALL_BALL,
+            FireworkRocketItem.Shape.LARGE_BALL,
+            FireworkRocketItem.Shape.STAR,
+            FireworkRocketItem.Shape.CREEPER,
+            FireworkRocketItem.Shape.BURST
+    };
     private static final String CONTAINER_ITEMS_TAG = "Items";
     private static final String CONTAINER_SLOT_TAG = "Slot";
     private static final int CONTAINER_ROWS = 3;
@@ -158,6 +172,26 @@ public class ItemEditorScreen extends Screen {
     private static final int SPAWN_EGG_TAG_ROWS = 8;
     private static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
     private static final int SPAWN_EGG_OWNER_MAX_LENGTH = 128;
+    private static final String OFFERS_TAG = "Offers";
+    private static final String RECIPES_TAG = "Recipes";
+    private static final String TRADE_BUY_TAG = "buy";
+    private static final String TRADE_BUY_B_TAG = "buyB";
+    private static final String TRADE_SELL_TAG = "sell";
+    private static final String TRADE_USES_TAG = "uses";
+    private static final String TRADE_MAX_USES_TAG = "maxUses";
+    private static final String TRADE_REWARD_EXP_TAG = "rewardExp";
+    private static final String TRADE_XP_TAG = "xp";
+    private static final String TRADE_PRICE_MULTIPLIER_TAG = "priceMultiplier";
+    private static final String TRADE_SPECIAL_PRICE_TAG = "specialPrice";
+    private static final String TRADE_DEMAND_TAG = "demand";
+    private static final int TRADE_ROWS = 8;
+    private static final int TRADE_ROW_HEIGHT = 12;
+    private static final int TRADE_SLOT_FIRST_BUY = 0;
+    private static final int TRADE_SLOT_SECOND_BUY = 1;
+    private static final int TRADE_SLOT_SELL = 2;
+    private static final int TRADE_SLOT_COUNT = 3;
+    private static final int TRADE_DEFAULT_MAX_USES = 999999;
+    private static final float TRADE_DEFAULT_PRICE_MULTIPLIER = 0.05F;
 
     private final ItemStack originalStack;
     private final int targetContainerSlot;
@@ -191,6 +225,13 @@ public class ItemEditorScreen extends Screen {
     private String spawnEggEntityFilterValue = "";
     private String spawnEggCustomNameValue = "";
     private String spawnEggOwnerValue = "";
+    private String tradeItemNbtValue = "{}";
+    private String tradeUsesValue = "0";
+    private String tradeMaxUsesValue = Integer.toString(TRADE_DEFAULT_MAX_USES);
+    private String tradeXpValue = "0";
+    private String tradePriceMultiplierValue = Float.toString(TRADE_DEFAULT_PRICE_MULTIPLIER);
+    private String tradeSpecialPriceValue = "0";
+    private String tradeDemandValue = "0";
     private String nbtFeedback = "";
     private boolean nbtFeedbackGood;
     private boolean showAllEnchantments;
@@ -200,6 +241,7 @@ public class ItemEditorScreen extends Screen {
     private boolean syncingColorControls;
     private boolean lorePainterDragging;
     private boolean lorePainterPreview;
+    private boolean tradeRewardExp = true;
     private CompoundTag rememberedSignedBookData;
     private int rotOff;
     private int mouseDist;
@@ -220,6 +262,9 @@ public class ItemEditorScreen extends Screen {
     private int spawnEggEntityScroll;
     private int spawnEggTagScroll;
     private int selectedSpawnEggEntityIndex;
+    private int selectedTradeIndex;
+    private int selectedTradeSlot;
+    private int tradeScroll;
     private int lorePainterWidth = 3;
     private int lorePainterHeight = 3;
     private boolean draggingLoreScroll;
@@ -265,6 +310,13 @@ public class ItemEditorScreen extends Screen {
     private EditBox spawnEggEntityFilterBox;
     private EditBox spawnEggCustomNameBox;
     private EditBox spawnEggOwnerBox;
+    private EditBox tradeItemNbtBox;
+    private EditBox tradeUsesBox;
+    private EditBox tradeMaxUsesBox;
+    private EditBox tradeXpBox;
+    private EditBox tradePriceMultiplierBox;
+    private EditBox tradeSpecialPriceBox;
+    private EditBox tradeDemandBox;
     private InfinityEditorButton attributeInfinityButton;
     private InfinityEditorButton attributeOperationButton;
     private InfinityEditorButton attributeSlotButton;
@@ -332,6 +384,13 @@ public class ItemEditorScreen extends Screen {
         this.spawnEggEntityFilterBox = null;
         this.spawnEggCustomNameBox = null;
         this.spawnEggOwnerBox = null;
+        this.tradeItemNbtBox = null;
+        this.tradeUsesBox = null;
+        this.tradeMaxUsesBox = null;
+        this.tradeXpBox = null;
+        this.tradePriceMultiplierBox = null;
+        this.tradeSpecialPriceBox = null;
+        this.tradeDemandBox = null;
         this.attributeInfinityButton = null;
         this.attributeOperationButton = null;
         this.attributeSlotButton = null;
@@ -362,6 +421,7 @@ public class ItemEditorScreen extends Screen {
             case CONTAINER -> addContainerPanel();
             case BANNER -> addBannerPanel();
             case SPAWN_EGG -> addSpawnEggPanel();
+            case TRADES -> addTradesPanel();
             case BOOK -> addBookPanel();
             case LORE -> addLorePanel();
             case LORE_PAINTER -> addLorePainterPanel();
@@ -407,6 +467,7 @@ public class ItemEditorScreen extends Screen {
             case CONTAINER -> renderContainerPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
             case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
+            case TRADES -> renderTradesPanel(guiGraphics);
             case BOOK -> renderBookPanel(guiGraphics);
             case LORE -> renderLorePanel(guiGraphics, mouseX, mouseY);
             case LORE_PAINTER -> renderLorePainterPanel(guiGraphics, mouseX, mouseY);
@@ -444,6 +505,10 @@ public class ItemEditorScreen extends Screen {
             }
             if (this.activePanel == Panel.CONTAINER) {
                 updateContainerSlotFromNbt();
+                return true;
+            }
+            if (this.activePanel == Panel.TRADES) {
+                updateSelectedTradeFromFields();
                 return true;
             }
         }
@@ -484,6 +549,7 @@ public class ItemEditorScreen extends Screen {
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
             case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
+            case TRADES -> handleTradesClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
             case LORE_PAINTER -> handleLorePainterClick(mouseX, mouseY);
@@ -519,6 +585,14 @@ public class ItemEditorScreen extends Screen {
                 rebuildWidgets();
             }
             return true;
+        }
+
+        if (this.activePanel == Panel.TRADES) {
+            if (isMouseIn(mouseX, mouseY, 10, getTradeRowY(0) - 1, getTradeListWidth(), TRADE_ROWS * TRADE_ROW_HEIGHT + 2)) {
+                setTradeScroll(this.tradeScroll - (int) Math.signum(delta));
+                rebuildWidgets();
+                return true;
+            }
         }
 
         return super.mouseScrolled(mouseX, mouseY, delta);
@@ -705,6 +779,12 @@ public class ItemEditorScreen extends Screen {
             y += 30;
         }
 
+        if (isVillagerTradeEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("trades")), button -> switchPanel(Panel.TRADES)));
+            y += 30;
+        }
+
         if (canShowEnchantingButton(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("enchanting")), button -> switchPanel(Panel.ENCHANTMENTS)));
@@ -763,7 +843,7 @@ public class ItemEditorScreen extends Screen {
     private void addHideFlagsPanel() {
         for (int i = 0; i < HideFlag.values().length; i++) {
             HideFlag flag = HideFlag.values()[i];
-            addRenderableWidget(new InfinityEditorButton(this.midX - 60, 60 + 30 * i, 120, FIELD_HEIGHT,
+            addRenderableWidget(new InfinityEditorButton(this.midX - 60, 60 + 26 * i, 120, FIELD_HEIGHT,
                     getHideFlagText(flag), button -> {
                 toggleHideFlag(flag);
                 rebuildWidgets();
@@ -1147,6 +1227,83 @@ public class ItemEditorScreen extends Screen {
             box.setFilter(value -> isAllowedSpawnEggNumber(value, row.numberType()));
             box.setResponder(value -> applySpawnEggNumber(row, value));
         }
+    }
+
+    private void addTradesPanel() {
+        readTradeFieldsFromStack(this.previewStack);
+
+        int controlsX = getTradeControlsX();
+        int controlsWidth = getTradeControlsWidth();
+        int buttonY = 52;
+        addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.add")), button -> addVillagerTrade()));
+        buttonY += 26;
+
+        InfinityEditorButton remove = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.remove")), button -> removeSelectedVillagerTrade()));
+        remove.active = getVillagerTradeCount() > 0;
+        buttonY += 26;
+
+        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.clear")), button -> clearVillagerTrades()));
+        clear.active = getVillagerTradeCount() > 0;
+        buttonY += 26;
+
+        InfinityEditorButton rewardExp = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.reward_exp." + (this.tradeRewardExp ? 1 : 0))),
+                button -> toggleSelectedTradeRewardExp()));
+        rewardExp.active = getVillagerTradeCount() > 0;
+        buttonY += 26;
+
+        InfinityEditorButton update = addRenderableWidget(new InfinityEditorButton(controlsX, buttonY, controlsWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.update")), button -> updateSelectedTradeFromFields()));
+        update.active = getVillagerTradeCount() > 0;
+
+        int slotButtonY = 96;
+        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
+            int tradeSlot = slot;
+            Component slotText = Component.translatable(key("trades.slot." + slot));
+            if (slot == this.selectedTradeSlot) {
+                slotText = Component.literal("> ").append(slotText);
+            }
+            addRenderableWidget(new InfinityEditorButton(getTradeSlotButtonX(slot), slotButtonY, 74, FIELD_HEIGHT,
+                    slotText, button -> selectTradeSlot(tradeSlot))).active = getVillagerTradeCount() > 0;
+        }
+
+        int boxWidth = Math.min(300, Math.max(180, this.width - 300));
+        this.tradeItemNbtBox = addTrackedBox(legacyTextBox(this.midX - boxWidth / 2, 132, boxWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.item_nbt"))));
+        this.tradeItemNbtBox.setMaxLength(20000);
+        this.tradeItemNbtBox.setValue(this.tradeItemNbtValue);
+        this.tradeItemNbtBox.setResponder(value -> this.tradeItemNbtValue = value);
+        this.tradeItemNbtBox.active = getVillagerTradeCount() > 0;
+
+        int leftBoxX = this.midX - 72;
+        int rightBoxX = this.midX + 88;
+        int fieldWidth = 60;
+        this.tradeUsesBox = addTradeFieldBox(leftBoxX, 166, fieldWidth, this.tradeUsesValue,
+                value -> value.matches("\\d*"), value -> this.tradeUsesValue = value);
+        this.tradeMaxUsesBox = addTradeFieldBox(leftBoxX, 192, fieldWidth, this.tradeMaxUsesValue,
+                value -> value.matches("\\d*"), value -> this.tradeMaxUsesValue = value);
+        this.tradeXpBox = addTradeFieldBox(leftBoxX, 218, fieldWidth, this.tradeXpValue,
+                value -> value.matches("\\d*"), value -> this.tradeXpValue = value);
+        this.tradeSpecialPriceBox = addTradeFieldBox(rightBoxX, 166, fieldWidth, this.tradeSpecialPriceValue,
+                value -> value.matches("-?\\d*"), value -> this.tradeSpecialPriceValue = value);
+        this.tradeDemandBox = addTradeFieldBox(rightBoxX, 192, fieldWidth, this.tradeDemandValue,
+                value -> value.matches("-?\\d*"), value -> this.tradeDemandValue = value);
+        this.tradePriceMultiplierBox = addTradeFieldBox(rightBoxX, 218, fieldWidth, this.tradePriceMultiplierValue,
+                value -> value.matches("\\d*(\\.\\d*)?"), value -> this.tradePriceMultiplierValue = value);
+    }
+
+    private EditBox addTradeFieldBox(int x, int y, int width, String value, java.util.function.Predicate<String> filter,
+                                     java.util.function.Consumer<String> responder) {
+        EditBox box = addTrackedBox(legacyTextBox(x, y, width, FIELD_HEIGHT, Component.empty()));
+        box.setMaxLength(16);
+        box.setFilter(filter);
+        box.setValue(value);
+        box.setResponder(responder);
+        box.active = getVillagerTradeCount() > 0;
+        return box;
     }
 
     private void addAttributesPanel() {
@@ -2483,7 +2640,8 @@ public class ItemEditorScreen extends Screen {
         }
 
         CompoundTag tag = this.previewStack.getOrCreateTag();
-        int next = Mth.positiveModulo(tag.getInt(BOOK_GENERATION_TAG) + 1, MAX_BOOK_GENERATION + 1);
+        int current = Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+        int next = Mth.positiveModulo(current + 1, MAX_BOOK_GENERATION + 1);
         if (next == 0) {
             tag.remove(BOOK_GENERATION_TAG);
         } else {
@@ -2529,9 +2687,11 @@ public class ItemEditorScreen extends Screen {
         if (writableTag != null) {
             convertWrittenPagesToWritable(writableTag);
             writableTag.remove(BOOK_TITLE_TAG);
+            writableTag.remove(BOOK_FILTERED_TITLE_TAG);
             writableTag.remove(BOOK_AUTHOR_TAG);
             writableTag.remove(BOOK_GENERATION_TAG);
             writableTag.remove(BOOK_RESOLVED_TAG);
+            writableTag.remove(BOOK_FILTERED_PAGES_TAG);
             if (writableTag.isEmpty()) {
                 writableTag = null;
             }
@@ -2560,7 +2720,9 @@ public class ItemEditorScreen extends Screen {
         }
 
         signedTag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
+        signedTag.remove(BOOK_FILTERED_TITLE_TAG);
         signedTag.putString(BOOK_AUTHOR_TAG, this.bookAuthorValue == null ? "" : this.bookAuthorValue);
+        signedTag.remove(BOOK_FILTERED_PAGES_TAG);
         if (generation == 0) {
             signedTag.remove(BOOK_GENERATION_TAG);
         } else {
@@ -2949,7 +3111,7 @@ public class ItemEditorScreen extends Screen {
 
     private CompoundTag createFireworkExplosionTag() {
         CompoundTag explosion = new CompoundTag();
-        explosion.putByte(FIREWORK_TYPE_TAG, (byte) Mth.clamp(this.fireworkExplosionType, 0, FIREWORK_EXPLOSION_TYPES - 1));
+        getFireworkShape(this.fireworkExplosionType).save(explosion);
         explosion.putIntArray(FIREWORK_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkColor))});
         if (this.fireworkFadeColor >= 0) {
             explosion.putIntArray(FIREWORK_FADE_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkFadeColor))});
@@ -3666,11 +3828,12 @@ public class ItemEditorScreen extends Screen {
                 return;
             }
 
+            double storedValue = row.toStoredNumber(parsed);
             switch (row.numberType()) {
-                case BYTE -> entityTag.putByte(row.tagKey(), (byte) parsed);
-                case SHORT -> entityTag.putShort(row.tagKey(), (short) parsed);
-                case INT -> entityTag.putInt(row.tagKey(), (int) parsed);
-                case FLOAT -> entityTag.putFloat(row.tagKey(), (float) parsed);
+                case BYTE -> entityTag.putByte(row.tagKey(), (byte) storedValue);
+                case SHORT -> entityTag.putShort(row.tagKey(), (short) storedValue);
+                case INT -> entityTag.putInt(row.tagKey(), (int) storedValue);
+                case FLOAT -> entityTag.putFloat(row.tagKey(), (float) storedValue);
             }
             cleanupSpawnEggEntityTag(entityTag);
         } catch (NumberFormatException exception) {
@@ -3715,15 +3878,20 @@ public class ItemEditorScreen extends Screen {
     private CompoundTag getOrCreateSpawnerEntityTag() {
         CompoundTag blockEntity = getOrCreateSpawnerBlockEntityTag();
         CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
-        CompoundTag entityTag = spawnData.getCompound(SPAWNER_ENTITY_TAG);
+        CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
+        if (entityTag == null) {
+            entityTag = getFirstSpawnerPotentialEntity(blockEntity);
+        }
+        if (entityTag == null) {
+            entityTag = new CompoundTag();
+        }
         if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
             SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
             if (entry != null) {
                 entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
             }
         }
-        spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
-        blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
+        putSpawnerSpawnData(blockEntity, spawnData, entityTag);
         return entityTag;
     }
 
@@ -3752,8 +3920,7 @@ public class ItemEditorScreen extends Screen {
             }
         } else {
             CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
-            spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
-            blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
+            putSpawnerSpawnData(blockEntity, spawnData, entityTag);
             blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
         }
         cleanupSpawnerBlockEntityTag(blockEntity);
@@ -3828,10 +3995,10 @@ public class ItemEditorScreen extends Screen {
         }
 
         return switch (row.numberType()) {
-            case BYTE -> Byte.toString(entityTag.getByte(row.tagKey()));
-            case SHORT -> Short.toString(entityTag.getShort(row.tagKey()));
-            case INT -> Integer.toString(entityTag.getInt(row.tagKey()));
-            case FLOAT -> Float.toString(entityTag.getFloat(row.tagKey()));
+            case BYTE -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getByte(row.tagKey())));
+            case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getShort(row.tagKey())));
+            case INT -> formatSpawnEggNumber(row.toDisplayNumber(entityTag.getInt(row.tagKey())));
+            case FLOAT -> Float.toString((float) row.toDisplayNumber(entityTag.getFloat(row.tagKey())));
         };
     }
 
@@ -4033,23 +4200,58 @@ public class ItemEditorScreen extends Screen {
         }
         if (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
             CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
-            if (spawnData.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
-                return spawnData.getCompound(SPAWNER_ENTITY_TAG);
+            CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
+            if (entityTag != null) {
+                return entityTag;
             }
         }
+        return getFirstSpawnerPotentialEntity(blockEntity);
+    }
+
+    private CompoundTag getFirstSpawnerPotentialEntity(CompoundTag blockEntity) {
         if (blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
             ListTag potentials = blockEntity.getList(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
             if (!potentials.isEmpty()) {
                 CompoundTag potential = potentials.getCompound(0);
-                if (potential.contains(SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
-                    CompoundTag data = potential.getCompound(SPAWNER_POTENTIAL_DATA_TAG);
-                    if (data.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
-                        return data.getCompound(SPAWNER_ENTITY_TAG);
-                    }
+                CompoundTag entityTag = getSpawnerEntityFromPotential(potential);
+                if (entityTag != null) {
+                    return entityTag;
                 }
             }
         }
         return null;
+    }
+
+    private CompoundTag getSpawnerEntityFromPotential(CompoundTag potential) {
+        if (potential.contains(SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag entityTag = getSpawnerEntityFromSpawnData(potential.getCompound(SPAWNER_POTENTIAL_DATA_TAG));
+            if (entityTag != null) {
+                return entityTag;
+            }
+        }
+        if (potential.contains(SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return potential.getCompound(SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG).copy();
+        }
+        return null;
+    }
+
+    private CompoundTag getSpawnerEntityFromSpawnData(CompoundTag spawnData) {
+        if (spawnData.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return spawnData.getCompound(SPAWNER_ENTITY_TAG).copy();
+        }
+        if (spawnData.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            return spawnData.copy();
+        }
+        return null;
+    }
+
+    private void putSpawnerSpawnData(CompoundTag blockEntity, CompoundTag originalSpawnData, CompoundTag entityTag) {
+        CompoundTag spawnData = new CompoundTag();
+        if (originalSpawnData.contains(SPAWNER_CUSTOM_SPAWN_RULES_TAG, Tag.TAG_COMPOUND)) {
+            spawnData.put(SPAWNER_CUSTOM_SPAWN_RULES_TAG, originalSpawnData.getCompound(SPAWNER_CUSTOM_SPAWN_RULES_TAG).copy());
+        }
+        spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
+        blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
     }
 
     private boolean hasSpawnEditorEntityData(ItemStack stack) {
@@ -5269,7 +5471,7 @@ public class ItemEditorScreen extends Screen {
             return;
         }
 
-        this.fireworkExplosionType = Mth.clamp(explosion.getByte(FIREWORK_TYPE_TAG), 0, FIREWORK_EXPLOSION_TYPES - 1);
+        this.fireworkExplosionType = Mth.clamp(FireworkRocketItem.Shape.getShape(explosion).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
         this.fireworkFlicker = explosion.getBoolean(FIREWORK_FLICKER_TAG);
         this.fireworkTrail = explosion.getBoolean(FIREWORK_TRAIL_TAG);
 
@@ -5592,7 +5794,7 @@ public class ItemEditorScreen extends Screen {
             return false;
         }
         Block block = blockItem.getBlock();
-        return block instanceof ChestBlock || block instanceof ShulkerBoxBlock;
+        return block instanceof ChestBlock || block instanceof BarrelBlock || block instanceof ShulkerBoxBlock;
     }
 
     private static boolean isBookEditableItem(ItemStack stack) {
@@ -5671,6 +5873,10 @@ public class ItemEditorScreen extends Screen {
 
     private static int getFireworkRgb(DyeColor color) {
         return color.getFireworkColor();
+    }
+
+    private static FireworkRocketItem.Shape getFireworkShape(int type) {
+        return FIREWORK_SHAPES[Mth.clamp(type, 0, FIREWORK_SHAPES.length - 1)];
     }
 
     private static int getNearestFireworkDyeColorId(int rgb) {

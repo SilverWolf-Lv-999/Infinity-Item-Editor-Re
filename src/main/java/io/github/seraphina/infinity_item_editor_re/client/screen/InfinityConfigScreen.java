@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -98,6 +99,7 @@ public class InfinityConfigScreen extends Screen {
         }
         Config.syncPublicFields();
         Config.save();
+        CreativeTabRefresher.rebuildAllTabs(this.minecraft);
         this.status = Component.translatable(key("saved"));
     }
 

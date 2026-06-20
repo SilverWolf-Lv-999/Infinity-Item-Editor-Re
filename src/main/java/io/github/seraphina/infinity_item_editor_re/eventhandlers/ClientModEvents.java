@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
-import io.github.seraphina.infinity_item_editor_re.data.voids.VoidConsumer;
+import io.github.seraphina.infinity_item_editor_re.client.VoidConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;

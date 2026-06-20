@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 
 final class ContainerItemInventory implements Container {
     private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
+    private static final String CONTAINER_ITEMS_TAG = "Items";
     private static final int SIZE = 27;
 
     private final ItemStack containerStack;
@@ -98,9 +99,30 @@ final class ContainerItemInventory implements Container {
     private void saveToStack() {
         CompoundTag blockEntity = this.containerStack.getOrCreateTagElement(BLOCK_ENTITY_TAG);
         ContainerHelper.saveAllItems(blockEntity, this.items);
+        if (isEmpty()) {
+            blockEntity.remove(CONTAINER_ITEMS_TAG);
+        }
+        cleanupBlockEntityTag(blockEntity);
     }
 
     private boolean isValidSlot(int slot) {
         return slot >= 0 && slot < this.items.size();
+    }
+
+    private void cleanupBlockEntityTag(CompoundTag blockEntity) {
+        CompoundTag tag = this.containerStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        if (blockEntity.isEmpty()) {
+            tag.remove(BLOCK_ENTITY_TAG);
+        } else {
+            tag.put(BLOCK_ENTITY_TAG, blockEntity);
+        }
+
+        if (tag.isEmpty()) {
+            this.containerStack.setTag(null);
+        }
     }
 }

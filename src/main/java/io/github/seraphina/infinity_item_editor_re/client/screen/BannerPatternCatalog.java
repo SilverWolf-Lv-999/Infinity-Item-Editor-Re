@@ -5,7 +5,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.List;
 
-final class BannerPatternCatalog {
+public final class BannerPatternCatalog {
     static final Item[] ITEMS_BY_DYE = {
             Items.WHITE_BANNER,
             Items.ORANGE_BANNER,
@@ -69,5 +69,15 @@ final class BannerPatternCatalog {
     );
 
     private BannerPatternCatalog() {
+    }
+
+    public static Item itemByDyeId(int dyeId) {
+        return ITEMS_BY_DYE[Math.floorMod(dyeId, ITEMS_BY_DYE.length)];
+    }
+
+    public static List<String> patternHashes() {
+        return PATTERNS.stream()
+                .map(BannerPatternEntry::hash)
+                .toList();
     }
 }

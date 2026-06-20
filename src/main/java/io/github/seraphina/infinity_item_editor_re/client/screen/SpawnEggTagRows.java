@@ -35,27 +35,27 @@ final class SpawnEggTagRows {
                 rows.add(booleanRow("ignited", "ignited"));
             }
             case "endermite" -> {
-                rows.add(intNumber("life_time", "LifeTime", 0.0D, 3000.0D));
-                rows.add(booleanRow("player_spawned", "PlayerSpawned"));
+                rows.add(intNumber("life_time", "Lifetime", 0.0D, 3000.0D));
             }
             case "cat", "wolf" -> rows.add(owner());
             case "parrot" -> {
                 rows.add(owner());
                 rows.add(intNumber("variant", "Variant", 0.0D, 4.0D));
             }
+            case "phantom" -> rows.add(intNumber("size", "Size", 0.0D, 64.0D));
             case "pig" -> rows.add(booleanRow("saddle", "Saddle"));
             case "sheep" -> {
                 rows.add(intNumber("color", "Color", 0.0D, 15.0D));
                 rows.add(booleanRow("sheared", "Sheared"));
             }
             case "shulker" -> rows.add(intNumber("color", "Color", 0.0D, 16.0D));
-            case "slime", "magma_cube" -> rows.add(intNumber("size", "Size", 1.0D, 50.0D));
+            case "slime", "magma_cube" -> rows.add(displayOffsetIntNumber("size", "Size", 1.0D, 50.0D, 1.0D));
             case "vindicator" -> rows.add(booleanRow("johnny", "Johnny"));
             case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
                 rows.add(booleanRow("is_baby", "IsBaby"));
                 rows.add(booleanRow("can_break_doors", "CanBreakDoors"));
                 if ("zombified_piglin".equals(path)) {
-                    rows.add(shortNumber("anger", "Anger", 0.0D, 1000.0D));
+                    rows.add(intNumber("anger", "AngerTime", 0.0D, 32767.0D));
                 }
             }
             default -> {
@@ -88,18 +88,42 @@ final class SpawnEggTagRows {
         return number(translationSuffix, tagKey, SpawnEggNumberType.INT, minValue, maxValue);
     }
 
+    private static SpawnEggTagRow displayOffsetIntNumber(String translationSuffix, String tagKey, double minValue,
+                                                         double maxValue, double displayOffset) {
+        return number(translationSuffix, tagKey, SpawnEggNumberType.INT, minValue, maxValue, displayOffset);
+    }
+
     private static SpawnEggTagRow floatNumber(String translationSuffix, String tagKey, double minValue, double maxValue) {
         return number(translationSuffix, tagKey, SpawnEggNumberType.FLOAT, minValue, maxValue);
     }
 
     private static SpawnEggTagRow number(String translationSuffix, String tagKey,
                                          SpawnEggNumberType numberType, double minValue, double maxValue) {
-        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType, minValue, maxValue);
+        return number(translationSuffix, tagKey, numberType, minValue, maxValue, 0.0D);
+    }
+
+    private static SpawnEggTagRow number(String translationSuffix, String tagKey,
+                                         SpawnEggNumberType numberType, double minValue, double maxValue,
+                                         double displayOffset) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType,
+                minValue, maxValue, displayOffset);
     }
 }
 
 record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
-                      SpawnEggNumberType numberType, double minValue, double maxValue) {
+                      SpawnEggNumberType numberType, double minValue, double maxValue, double displayOffset) {
+    SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
+                   SpawnEggNumberType numberType, double minValue, double maxValue) {
+        this(translationSuffix, tagKey, type, numberType, minValue, maxValue, 0.0D);
+    }
+
+    double toStoredNumber(double displayValue) {
+        return displayValue - this.displayOffset;
+    }
+
+    double toDisplayNumber(double storedValue) {
+        return storedValue + this.displayOffset;
+    }
 }
 
 enum SpawnEggTagRowType {

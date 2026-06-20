@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,8 +29,12 @@ public class RealmController {
     public void read() {
         stackList.clear();
 
+        if (!dataFile.exists()) {
+            return;
+        }
+
         try {
-            CompoundTag root = NbtIo.read(dataFile);
+            CompoundTag root = readRootTag();
             if (root == null || !root.contains("realm", Tag.TAG_LIST)) {
                 return;
             }
@@ -64,9 +69,22 @@ public class RealmController {
                 realm.add(itemStack.save(new CompoundTag()));
             }
 
-            NbtIo.write(root, dataFile);
+            NbtIo.writeCompressed(root, dataFile);
         } catch (Exception exception) {
             ModSource.LOGGER.error("Failed to save infinity realm to {}", dataFile.getAbsolutePath(), exception);
+        }
+    }
+
+    private CompoundTag readRootTag() throws IOException {
+        try {
+            return NbtIo.readCompressed(dataFile);
+        } catch (IOException compressedException) {
+            try {
+                return NbtIo.read(dataFile);
+            } catch (IOException uncompressedException) {
+                compressedException.addSuppressed(uncompressedException);
+                throw compressedException;
+            }
         }
     }
 
