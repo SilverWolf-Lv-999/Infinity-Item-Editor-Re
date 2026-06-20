@@ -520,7 +520,8 @@ public class ItemEditorScreen extends Screen {
         if (keyCode == 257 || keyCode == 335) {
             if (this.activePanel == Panel.ITEM) {
                 if (isTradeSlotEditor()) {
-                    return false;
+                    applyTradeSlotEditorAndReturn();
+                    return true;
                 }
                 applyToSelectedSlot();
                 return true;
@@ -2565,10 +2566,17 @@ public class ItemEditorScreen extends Screen {
             return false;
         }
 
+        boolean syncDefaultName = isNameFollowingDefault(this.previewStack);
         CompoundTag tag = this.previewStack.getTag() == null ? null : this.previewStack.getTag().copy();
         int count = this.previewStack.getCount() <= 0 ? 1 : this.previewStack.getCount();
         this.previewStack = new ItemStack(item, count);
         this.previewStack.setTag(tag);
+        if (syncDefaultName) {
+            this.nameValue = getDefaultHoverName(this.previewStack);
+            if (this.nameBox != null) {
+                this.nameBox.setValue(this.nameValue);
+            }
+        }
         this.damageValue = Integer.toString(Math.min(getDamageMaxForField(this.previewStack), parsePositiveOrZero(this.damageValue)));
         tryApplyDamage(false);
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
@@ -4818,6 +4826,7 @@ public class ItemEditorScreen extends Screen {
         this.parentTradeScreen.setTradeSlotItem(this.parentTradeIndex, this.parentTradeSlot, this.previewStack.copy());
         this.parentTradeScreen.activePanel = Panel.TRADE;
         this.parentTradeScreen.status = Component.empty();
+        this.parentTradeScreen.rebuildWidgets();
         this.minecraft.setScreen(this.parentTradeScreen);
     }
 
@@ -6640,6 +6649,17 @@ public class ItemEditorScreen extends Screen {
 
     private boolean isTradeSlotEditor() {
         return this.parentTradeScreen != null && this.parentTradeIndex >= 0 && this.parentTradeSlot >= 0;
+    }
+
+    private boolean isNameFollowingDefault(ItemStack stack) {
+        String currentName = this.nameBox == null ? this.nameValue : this.nameBox.getValue();
+        return !stack.hasCustomHoverName() && Objects.equals(currentName, getDefaultHoverName(stack));
+    }
+
+    private String getDefaultHoverName(ItemStack stack) {
+        ItemStack withoutName = stack.copy();
+        withoutName.resetHoverName();
+        return withoutName.getHoverName().getString();
     }
 
     private static int getDamageMaxForField(ItemStack stack) {
