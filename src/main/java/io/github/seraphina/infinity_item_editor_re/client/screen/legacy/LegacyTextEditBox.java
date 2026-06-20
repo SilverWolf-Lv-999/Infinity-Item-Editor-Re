@@ -1,4 +1,4 @@
-package io.github.seraphina.infinity_item_editor_re.client.screen;
+package io.github.seraphina.infinity_item_editor_re.client.screen.legacy;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
@@ -6,10 +6,10 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
-class LegacyTextEditBox extends EditBox {
+public class LegacyTextEditBox extends EditBox {
     private int legacyMaxLength = 32;
 
-    LegacyTextEditBox(Font font, int x, int y, int width, int height, Component message) {
+    public LegacyTextEditBox(Font font, int x, int y, int width, int height, Component message) {
         super(font, x, y, width, height, message);
     }
 

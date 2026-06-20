@@ -4,6 +4,9 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.legacy.LegacyTextEditBox;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernTextEditBox;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -81,7 +84,7 @@ protected void addItemPanel() {
             return;
         }
 
-        this.itemIdBox = addTrackedBox(new EditBox(this.font, this.midX, 55, 75, FIELD_HEIGHT,
+        this.itemIdBox = addTrackedBox(plainTextBox(this.midX, 55, 75, FIELD_HEIGHT,
                 Component.translatable(key("item.id"))));
         this.itemIdBox.setMaxLength(100);
         this.itemIdBox.setTextColor(MAIN_COLOR);
@@ -131,7 +134,7 @@ protected void addItemPanel() {
         int fieldX = sidebarItemFieldX();
         int fieldWidth = sidebarItemFieldWidth(detailsX);
 
-        this.itemIdBox = addTrackedBox(new EditBox(this.font, fieldX, sidebarItemIdY(), fieldWidth, FIELD_HEIGHT,
+        this.itemIdBox = addTrackedBox(plainTextBox(fieldX, sidebarItemIdY(), fieldWidth, FIELD_HEIGHT,
                 Component.translatable(key("item.id"))));
         this.itemIdBox.setMaxLength(100);
         this.itemIdBox.setTextColor(MAIN_COLOR);
@@ -596,7 +599,7 @@ protected void addItemPanel() {
     }
 
     protected void addEnchantmentsPanel() {
-        this.enchantFilterBox = addTrackedBox(new EditBox(this.font, searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
+        this.enchantFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("enchantment_filter"))));
         this.enchantFilterBox.setMaxLength(20);
         this.enchantFilterBox.setFilter(value -> value.matches("[a-z]*"));
@@ -617,7 +620,7 @@ protected void addItemPanel() {
     }
 
     protected void addPotionPanel() {
-        this.potionFilterBox = addTrackedBox(new EditBox(this.font, searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
+        this.potionFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("potion_filter"))));
         this.potionFilterBox.setMaxLength(20);
         this.potionFilterBox.setFilter(value -> value.matches("[a-z]*"));
@@ -1047,7 +1050,7 @@ protected void addItemPanel() {
         int color = getEditorColor();
         this.colorHexValue = formatColorHex(color);
 
-        this.colorHexBox = addTrackedBox(new EditBox(this.font, this.midX - 25, this.midY - 85, 50, OLD_BUTTON_HEIGHT,
+        this.colorHexBox = addTrackedBox(plainTextBox(this.midX - 25, this.midY - 85, 50, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.hex"))));
         this.colorHexBox.setMaxLength(7);
         this.colorHexBox.setFilter(value -> value.matches("#?[0-9a-fA-F]{0,6}"));
@@ -1290,8 +1293,18 @@ protected void addItemPanel() {
     }
 
     protected EditBox legacyTextBox(int x, int y, int width, int height, Component message) {
-        EditBox box = new LegacyTextEditBox(this.font, x, y, width, height, message);
-        box.setTextColor(MAIN_COLOR);
+        EditBox box = isSidebarUi()
+                ? new ModernTextEditBox(this.font, x, y, width, height, message)
+                : new LegacyTextEditBox(this.font, x, y, width, height, message);
+        box.setTextColor(isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
+        return box;
+    }
+
+    protected EditBox plainTextBox(int x, int y, int width, int height, Component message) {
+        EditBox box = isSidebarUi()
+                ? new ModernTextEditBox(this.font, x, y, width, height, message)
+                : new EditBox(this.font, x, y, width, height, message);
+        box.setTextColor(isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
         return box;
     }
 

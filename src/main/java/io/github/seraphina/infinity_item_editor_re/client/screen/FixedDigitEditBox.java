@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.Config;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -123,9 +125,15 @@ class FixedDigitEditBox extends EditBox {
             return;
         }
 
-        int color = this.active ? InfinityEditorButton.MAIN_COLOR : DISABLED_COLOR;
-        guiGraphics.fill(getX() - 1, getY() - 1, getX() + getWidth() + 1, getY() + getHeight() + 1, color);
-        guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), InfinityEditorButton.ALT_COLOR);
+        boolean sidebarUi = Config.getItemGuiMode() == Config.ItemEditorUiMode.SIDEBAR;
+        int color = this.active ? (sidebarUi ? ModernUi.TEXT_PRIMARY : InfinityEditorButton.MAIN_COLOR) : DISABLED_COLOR;
+        if (sidebarUi) {
+            ModernUi.fillInset(guiGraphics, getX() - 3, getY() - 2, getX() + getWidth() + 3, getY() + getHeight() + 2,
+                    5, isFocused(), this.active);
+        } else {
+            guiGraphics.fill(getX() - 1, getY() - 1, getX() + getWidth() + 1, getY() + getHeight() + 1, color);
+            guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), InfinityEditorButton.ALT_COLOR);
+        }
 
         String value = getValue();
         int textX = getX() + 4;
@@ -145,7 +153,8 @@ class FixedDigitEditBox extends EditBox {
         }
 
         if (isFocused() && this.cursorFrame / 6 % 2 == 0) {
-            guiGraphics.drawString(this.font, "_", cursorX, textY, InfinityEditorButton.CONTRAST_COLOR, true);
+            guiGraphics.drawString(this.font, "_", cursorX, textY,
+                    sidebarUi ? ModernUi.ACCENT_HOVER : InfinityEditorButton.CONTRAST_COLOR, true);
         }
     }
 

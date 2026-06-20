@@ -1,6 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -14,12 +15,9 @@ public class InfinityEditorButton extends AbstractButton {
     private static final int DISABLED_COLOR = 0xFFF44262;
     private static final int LIGHT_SHADE = 0x1AFFFFFF;
     private static final int DARK_SHADE = 0x32000000;
-    private static final int SIDEBAR_FILL = 0xB4211A35;
-    private static final int SIDEBAR_HOVER_FILL = 0xE0322A58;
-    private static final int SIDEBAR_ACCENT = 0xFF2EC8FF;
-    private static final int SIDEBAR_BORDER = 0x887E5CC8;
 
     private final PressAction onPress;
+    private float hoverAmount;
 
     public InfinityEditorButton(int x, int y, int width, int height, Component message, PressAction onPress) {
         super(x, y, width, height, message);
@@ -33,6 +31,7 @@ public class InfinityEditorButton extends AbstractButton {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        updateHoverAmount(partialTick);
         if (Config.getItemGuiMode() == Config.ItemEditorUiMode.SIDEBAR) {
             renderSidebarWidget(guiGraphics);
             return;
@@ -58,26 +57,38 @@ public class InfinityEditorButton extends AbstractButton {
         int y = getY();
         int width = getWidth();
         int height = getHeight();
-        int fillColor = this.isHoveredOrFocused() && this.active ? SIDEBAR_HOVER_FILL : SIDEBAR_FILL;
+        boolean highlighted = this.isHoveredOrFocused() && this.active;
+        int fillColor = this.active
+                ? ModernUi.lerpColor(ModernUi.SURFACE, ModernUi.SURFACE_HOVER, this.hoverAmount)
+                : ModernUi.SURFACE_DISABLED;
+        int borderColor = highlighted ? ModernUi.ACCENT : ModernUi.BORDER;
 
-        guiGraphics.fill(x, y, x + width, y + height, fillColor);
-        guiGraphics.fill(x, y, x + width, y + 1, SIDEBAR_BORDER);
-        guiGraphics.fill(x, y + height - 1, x + width, y + height, DARK_SHADE);
-        guiGraphics.fill(x, y, x + 2, y + height, this.isHoveredOrFocused() ? SIDEBAR_ACCENT : SIDEBAR_BORDER);
-        guiGraphics.fill(x + width - 1, y, x + width, y + height, DARK_SHADE);
-        if (this.isHoveredOrFocused() && this.active) {
-            guiGraphics.fill(x + 2, y + 2, x + width - 2, y + 3, 0x552EC8FF);
-            guiGraphics.fill(x + 2, y + height - 3, x + width - 2, y + height - 2, 0x332EC8FF);
+        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, height >= 20 ? 6 : 4, fillColor, borderColor);
+        if (highlighted) {
+            int accentWidth = Math.min(3 + Math.round(this.hoverAmount * 3.0F), Math.max(2, width / 4));
+            guiGraphics.fill(x + 2, y + 3, x + 2 + accentWidth, y + height - 3, ModernUi.ACCENT);
+            guiGraphics.fill(x + 5, y + 1, x + width - 5, y + 2, ModernUi.alpha(0xFFFFFF, 24));
         }
 
         var font = Minecraft.getInstance().font;
-        int textColor = this.active ? (this.isHoveredOrFocused() ? SIDEBAR_ACCENT : MAIN_COLOR) : DISABLED_COLOR;
+        int textColor = this.active
+                ? ModernUi.lerpColor(ModernUi.TEXT_PRIMARY, ModernUi.ACCENT_HOVER, this.hoverAmount)
+                : 0xFF6D7875;
         int padding = width <= 20 ? 2 : 5;
         Component text = getMessage();
         int textWidth = font.width(text);
         int textX = x + Math.max(padding, (width - textWidth) / 2);
         int textY = y + (height - font.lineHeight) / 2;
         guiGraphics.drawString(font, text, textX, textY, textColor, false);
+    }
+
+    private void updateHoverAmount(float partialTick) {
+        float target = this.active && this.isHoveredOrFocused() ? 1.0F : 0.0F;
+        float speed = 0.18F + Math.min(partialTick, 1.0F) * 0.12F;
+        this.hoverAmount += (target - this.hoverAmount) * speed;
+        if (Math.abs(this.hoverAmount - target) < 0.01F) {
+            this.hoverAmount = target;
+        }
     }
 
     @Override

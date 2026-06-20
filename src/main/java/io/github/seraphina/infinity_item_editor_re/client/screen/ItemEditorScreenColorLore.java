@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -206,11 +207,20 @@ protected void applyColorFromHex(boolean updateStatus) {
 
         int gridX = this.blueSlider.getX();
         int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
+        if (isSidebarUi()) {
+            ModernUi.fillPanel(guiGraphics, gridX - 5, gridY - 5, gridX + 165, gridY + 45, 7,
+                    0xAA101719, ModernUi.BORDER);
+        }
         int index = 0;
         for (DyeColor dyeColor : DyeColor.values()) {
             int x = gridX + 20 * (index % 8);
             int y = gridY + 20 * (index / 8);
-            guiGraphics.fill(x, y, x + 20, y + 20, argb(159, dyeColor.getTextColor()));
+            if (isSidebarUi()) {
+                ModernUi.fillRounded(guiGraphics, x + 1, y + 1, x + 19, y + 19, 4, argb(210, dyeColor.getTextColor()));
+                guiGraphics.fill(x + 3, y + 2, x + 17, y + 3, ModernUi.alpha(0xFFFFFF, 45));
+            } else {
+                guiGraphics.fill(x, y, x + 20, y + 20, argb(159, dyeColor.getTextColor()));
+            }
             DyeItem dyeItem = DyeItem.byColor(dyeColor);
             if (dyeItem != null) {
                 guiGraphics.renderItem(new ItemStack(dyeItem), x + 2, y + 2);

@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -83,31 +84,67 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         int sidebarWidth = sidebarWidth();
-        guiGraphics.fill(0, 0, this.width, this.height, 0x64000000);
-        guiGraphics.fill(0, 0, sidebarWidth, this.height, SIDEBAR_PANEL_COLOR);
+        guiGraphics.fillGradient(0, 0, this.width, this.height, ModernUi.BACKDROP_TOP, ModernUi.BACKDROP_BOTTOM);
+        guiGraphics.fillGradient(0, 0, sidebarWidth, this.height, ModernUi.SIDEBAR_TOP, ModernUi.SIDEBAR_BOTTOM);
         guiGraphics.fill(sidebarWidth, SIDEBAR_SAFE_MARGIN, sidebarWidth + 1, this.height - SIDEBAR_SAFE_MARGIN, SIDEBAR_BORDER_COLOR);
-        guiGraphics.fill(sidebarWidth + 1, SIDEBAR_SAFE_MARGIN, sidebarWidth + 3, this.height - SIDEBAR_SAFE_MARGIN, 0x54000000);
-        guiGraphics.drawCenteredString(this.font, Component.literal(ModSource.NAME), sidebarWidth / 2, 13, SIDEBAR_ACCENT_COLOR);
+        guiGraphics.fill(sidebarWidth + 1, SIDEBAR_SAFE_MARGIN, sidebarWidth + 4, this.height - SIDEBAR_SAFE_MARGIN, 0x42000000);
+
+        ModernUi.fillPanel(guiGraphics, SIDEBAR_SAFE_MARGIN, 10, sidebarWidth - SIDEBAR_SAFE_MARGIN, 82, 8,
+                0xB91A2324, ModernUi.BORDER);
+        guiGraphics.drawCenteredString(this.font, Component.literal(ModSource.NAME), sidebarWidth / 2, 17, SIDEBAR_ACCENT_COLOR);
+        guiGraphics.drawCenteredString(this.font, activePanelTitle(), sidebarWidth / 2, 68, SIDEBAR_MUTED_COLOR);
 
         int left = safeLeft();
         int top = safeTop();
         int right = safeRight();
         int bottom = safeBottom();
         if (right > left && bottom > top) {
-            guiGraphics.fill(left, top, right, bottom, SIDEBAR_CARD_SOFT_COLOR);
-            guiGraphics.fill(left, top, right, top + 1, SIDEBAR_BORDER_COLOR);
-            guiGraphics.fill(left, bottom - 1, right, bottom, SIDEBAR_BORDER_COLOR);
-            guiGraphics.fill(left, top, left + 1, bottom, SIDEBAR_BORDER_COLOR);
-            guiGraphics.fill(right - 1, top, right, bottom, SIDEBAR_BORDER_COLOR);
-            guiGraphics.fill(left, top + 1, right, top + 3, 0x662EC8FF);
-        }
-
-        if (this.activePanel == Panel.ITEM) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("ui.sidebar")), sidebarWidth / 2, 78, SIDEBAR_MUTED_COLOR);
+            ModernUi.fillPanel(guiGraphics, left, top, right, bottom, 10, SIDEBAR_CARD_SOFT_COLOR, SIDEBAR_BORDER_COLOR);
+            int accentRight = Math.min(right - 12, left + 120);
+            guiGraphics.fill(left + 12, top + 1, accentRight, top + 2, ModernUi.ACCENT);
+            renderAnimatedContentGlow(guiGraphics, left, top, right, bottom);
         }
     }
 
+    private void renderAnimatedContentGlow(GuiGraphics guiGraphics, int left, int top, int right, int bottom) {
+        int range = Math.max(1, bottom - top - 56);
+        float phase = (System.currentTimeMillis() % 3600L) / 3600.0F;
+        int y = top + 16 + (int) (range * phase);
+        guiGraphics.fillGradient(left + 2, y, right - 2, Math.min(bottom - 2, y + 24),
+                0x0038D6C5, ModernUi.alpha(0x38D6C5, 26));
+    }
+
+    private Component activePanelTitle() {
+        return switch (this.activePanel) {
+            case ITEM -> Component.translatable(key("item"));
+            case NBT -> Component.translatable(key("nbt"));
+            case NBT_ADVANCED -> Component.translatable(key("nbtadv"));
+            case HIDE_FLAGS -> Component.translatable(key("hideflags"));
+            case ENCHANTMENTS -> Component.translatable(key("enchanting"));
+            case POTION -> Component.translatable(key("potion"));
+            case ATTRIBUTES -> Component.translatable(key("attributes"));
+            case COLOR -> Component.translatable(key("color"));
+            case SIGN -> Component.translatable(key("sign"));
+            case HEAD -> Component.translatable(key("head"));
+            case ARMOR_STAND -> Component.translatable(key("armorstand"));
+            case FIREWORK -> Component.translatable(key("firework"));
+            case CONTAINER -> Component.translatable(key("container"));
+            case BANNER -> Component.translatable(key("banner"));
+            case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
+            case TRADES -> Component.translatable(key("trades"));
+            case TRADE -> Component.translatable(key("trade"));
+            case BOOK -> Component.translatable(key("book"));
+            case LORE -> Component.translatable(key("lore"));
+            case LORE_PAINTER -> Component.translatable(key("lorepainter"));
+        };
+    }
+
     protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (isSidebarUi()) {
+            renderSidebarItemPanel(guiGraphics);
+            return;
+        }
+
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 40);
@@ -121,6 +158,41 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         guiGraphics.drawString(this.font, Component.translatable(key("item.lore")), this.width - 110, 80, MAIN_COLOR);
     }
 
+    private void renderSidebarItemPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        renderPrettyNbt(guiGraphics);
+
+        int sidebarCenter = sidebarWidth() / 2;
+        ModernUi.fillRounded(guiGraphics, sidebarCenter - 22, 33, sidebarCenter + 22, 77, 8, 0xAA0F1516);
+        ModernUi.fillRounded(guiGraphics, sidebarCenter - 20, 35, sidebarCenter + 20, 75, 7, 0xB51F2A2B);
+        renderSmallItem(guiGraphics, sidebarCenter, 55);
+
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("item")), this.midX, 16, ModernUi.TEXT_PRIMARY);
+        drawFieldLabel(guiGraphics, Component.translatable(key("item.id")), this.itemIdBox);
+        drawFieldLabel(guiGraphics, Component.translatable(key("item.count")), this.countBox);
+        drawFieldLabel(guiGraphics, Component.translatable(key("item.meta")), this.damageBox);
+        drawFieldLabel(guiGraphics, Component.translatable(key("item.name")), this.nameBox);
+
+        if (!this.loreBoxes.isEmpty()) {
+            for (int i = 0; i < this.loreBoxes.size(); i++) {
+                EditBox loreBox = this.loreBoxes.get(i);
+                guiGraphics.drawString(this.font, Component.literal("Lore " + (i + 1)),
+                        loreBox.getX(), loreBox.getY() - 9, ModernUi.TEXT_MUTED, false);
+            }
+        }
+
+        if (canShowSidebarActionGrid()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("ui.actions")),
+                    getActionGridX(), getActionGridY() - 12, ModernUi.TEXT_MUTED, false);
+        }
+    }
+
+    private void drawFieldLabel(GuiGraphics guiGraphics, Component text, EditBox box) {
+        if (box != null) {
+            guiGraphics.drawString(this.font, text, box.getX(), box.getY() - 9, ModernUi.TEXT_MUTED, false);
+        }
+    }
+
     protected void renderNbtPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
@@ -132,14 +204,41 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        int mainColor = 0xFF1EC8FF;
-        guiGraphics.fillGradient(18, 18, this.width - 18, 38, 0xFF323232, mainColor);
-        guiGraphics.fill(20, 40, this.width - 20, this.height - 20, 0xDE323232);
-        guiGraphics.fill(18, 38, this.width - 18, 40, mainColor);
-        guiGraphics.fill(18, 40, 20, this.height - 20, mainColor);
-        guiGraphics.fill(this.width - 20, 40, this.width - 18, this.height - 20, mainColor);
-        guiGraphics.fill(18, this.height - 20, this.width - 18, this.height - 18, mainColor);
-        guiGraphics.drawString(this.font, ModSource.MODID + " - " + Component.translatable(key("nbtadv")).getString(), 25, 26, CYAN);
+        if (!isSidebarUi()) {
+            int mainColor = 0xFF1EC8FF;
+            guiGraphics.fillGradient(18, 18, this.width - 18, 38, 0xFF323232, mainColor);
+            guiGraphics.fill(20, 40, this.width - 20, this.height - 20, 0xDE323232);
+            guiGraphics.fill(18, 38, this.width - 18, 40, mainColor);
+            guiGraphics.fill(18, 40, 20, this.height - 20, mainColor);
+            guiGraphics.fill(this.width - 20, 40, this.width - 18, this.height - 20, mainColor);
+            guiGraphics.fill(18, this.height - 20, this.width - 18, this.height - 18, mainColor);
+            guiGraphics.drawString(this.font, ModSource.MODID + " - " + Component.translatable(key("nbtadv")).getString(), 25, 26, CYAN);
+
+            List<NbtRow> rows = buildNbtRows();
+            int visibleRows = getNbtAdvancedVisibleRows();
+            this.advancedScroll = Mth.clamp(this.advancedScroll, 0, Math.max(0, rows.size() - visibleRows));
+            int end = Math.min(rows.size(), this.advancedScroll + visibleRows);
+            for (int i = this.advancedScroll; i < end; i++) {
+                NbtRow row = rows.get(i);
+                int y = 48 + (i - this.advancedScroll) * 12;
+                int x = 25 + row.depth() * 12;
+                int color = row.isExpandable() ? MAIN_COLOR : 0xFFFFFFFF;
+                guiGraphics.drawString(this.font, row.displayText(), x, y, color);
+            }
+
+            String unfinished = Component.translatable(key("nbtadv.unfinished")).getString();
+            guiGraphics.drawString(this.font, unfinished, this.width - this.font.width(unfinished) - 25, this.height - 30, 0xFFFFFF32);
+            return;
+        }
+
+        int left = isSidebarUi() ? safeLeft() + 10 : 18;
+        int top = isSidebarUi() ? safeTop() + 10 : 18;
+        int right = isSidebarUi() ? safeRight() - 10 : this.width - 18;
+        int bottom = isSidebarUi() ? sidebarBottomButtonY() - 8 : this.height - 18;
+        ModernUi.fillPanel(guiGraphics, left, top, right, bottom, 8, 0xE1131B1D, ModernUi.BORDER_STRONG);
+        guiGraphics.fillGradient(left + 1, top + 1, right - 1, top + 22, 0x7638D6C5, 0x22FFB84D);
+        guiGraphics.drawString(this.font, ModSource.MODID + " / " + Component.translatable(key("nbtadv")).getString(),
+                left + 9, top + 8, ModernUi.TEXT_PRIMARY, false);
 
         List<NbtRow> rows = buildNbtRows();
         int visibleRows = getNbtAdvancedVisibleRows();
@@ -147,14 +246,17 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int end = Math.min(rows.size(), this.advancedScroll + visibleRows);
         for (int i = this.advancedScroll; i < end; i++) {
             NbtRow row = rows.get(i);
-            int y = 48 + (i - this.advancedScroll) * 12;
-            int x = 25 + row.depth() * 12;
-            int color = row.isExpandable() ? MAIN_COLOR : 0xFFFFFFFF;
-            guiGraphics.drawString(this.font, row.displayText(), x, y, color);
+            int y = top + 32 + (i - this.advancedScroll) * 12;
+            int x = left + 9 + row.depth() * 12;
+            int color = row.isExpandable() ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY;
+            if ((i - this.advancedScroll) % 2 == 0) {
+                guiGraphics.fill(left + 5, y - 2, right - 5, y + 10, 0x171FFFFF);
+            }
+            guiGraphics.drawString(this.font, row.displayText(), x, y, color, false);
         }
 
         String unfinished = Component.translatable(key("nbtadv.unfinished")).getString();
-        guiGraphics.drawString(this.font, unfinished, this.width - this.font.width(unfinished) - 25, this.height - 30, 0xFFFFFF32);
+        guiGraphics.drawString(this.font, unfinished, right - this.font.width(unfinished) - 10, bottom - 13, ModernUi.WARM);
     }
 
     protected void renderHideFlagsPanel(GuiGraphics guiGraphics) {
@@ -332,29 +434,48 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
-        guiGraphics.renderItem(this.previewStack, this.width / 8 - 8, 5);
+        guiGraphics.renderItem(this.previewStack, isSidebarUi() ? this.midX / 4 - 8 : this.width / 8 - 8, 5);
         guiGraphics.pose().popPose();
 
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("color")), this.midX, 15, MAIN_COLOR);
 
         int color = getEditorColor();
         if (this.redSlider != null && this.greenSlider != null && this.blueSlider != null) {
-            guiGraphics.fill(this.redSlider.getX() - 5, this.redSlider.getY() - 5,
-                    this.blueSlider.getX() + this.blueSlider.getWidth() + 5,
-                    this.blueSlider.getY() + this.blueSlider.getHeight() + 5,
-                    argb(100, color));
-            guiGraphics.fill(this.redSlider.getX() - 2, this.redSlider.getY() - 2,
-                    this.redSlider.getX() + this.redSlider.getWidth() + 2,
-                    this.redSlider.getY() + this.redSlider.getHeight() + 2,
-                    argb(255, getRed(color) << 16));
-            guiGraphics.fill(this.greenSlider.getX() - 2, this.greenSlider.getY() - 2,
-                    this.greenSlider.getX() + this.greenSlider.getWidth() + 2,
-                    this.greenSlider.getY() + this.greenSlider.getHeight() + 2,
-                    argb(255, getGreen(color) << 8));
-            guiGraphics.fill(this.blueSlider.getX() - 2, this.blueSlider.getY() - 2,
-                    this.blueSlider.getX() + this.blueSlider.getWidth() + 2,
-                    this.blueSlider.getY() + this.blueSlider.getHeight() + 2,
-                    argb(255, getBlue(color)));
+            if (isSidebarUi()) {
+                ModernUi.fillPanel(guiGraphics, this.redSlider.getX() - 9, this.redSlider.getY() - 9,
+                        this.blueSlider.getX() + this.blueSlider.getWidth() + 9,
+                        this.blueSlider.getY() + this.blueSlider.getHeight() + 9,
+                        8, argb(70, color), ModernUi.BORDER);
+                guiGraphics.fill(this.redSlider.getX() - 2, this.redSlider.getY() - 2,
+                        this.redSlider.getX() + this.redSlider.getWidth() + 2,
+                        this.redSlider.getY() + this.redSlider.getHeight() + 2,
+                        argb(120, getRed(color) << 16));
+                guiGraphics.fill(this.greenSlider.getX() - 2, this.greenSlider.getY() - 2,
+                        this.greenSlider.getX() + this.greenSlider.getWidth() + 2,
+                        this.greenSlider.getY() + this.greenSlider.getHeight() + 2,
+                        argb(120, getGreen(color) << 8));
+                guiGraphics.fill(this.blueSlider.getX() - 2, this.blueSlider.getY() - 2,
+                        this.blueSlider.getX() + this.blueSlider.getWidth() + 2,
+                        this.blueSlider.getY() + this.blueSlider.getHeight() + 2,
+                        argb(120, getBlue(color)));
+            } else {
+                guiGraphics.fill(this.redSlider.getX() - 5, this.redSlider.getY() - 5,
+                        this.blueSlider.getX() + this.blueSlider.getWidth() + 5,
+                        this.blueSlider.getY() + this.blueSlider.getHeight() + 5,
+                        argb(100, color));
+                guiGraphics.fill(this.redSlider.getX() - 2, this.redSlider.getY() - 2,
+                        this.redSlider.getX() + this.redSlider.getWidth() + 2,
+                        this.redSlider.getY() + this.redSlider.getHeight() + 2,
+                        argb(255, getRed(color) << 16));
+                guiGraphics.fill(this.greenSlider.getX() - 2, this.greenSlider.getY() - 2,
+                        this.greenSlider.getX() + this.greenSlider.getWidth() + 2,
+                        this.greenSlider.getY() + this.greenSlider.getHeight() + 2,
+                        argb(255, getGreen(color) << 8));
+                guiGraphics.fill(this.blueSlider.getX() - 2, this.blueSlider.getY() - 2,
+                        this.blueSlider.getX() + this.blueSlider.getWidth() + 2,
+                        this.blueSlider.getY() + this.blueSlider.getHeight() + 2,
+                        argb(255, getBlue(color)));
+            }
             renderDyeGrid(guiGraphics);
         }
     }
@@ -383,8 +504,12 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int x = gridX + (slot % CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
             int y = gridY + (slot / CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
             boolean selected = slot == this.selectedContainerSlot;
-            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, selected ? CONTRAST_COLOR : 0xFF555555);
-            guiGraphics.fill(x, y, x + ITEM_SIZE, y + ITEM_SIZE, 0xFF1C1C1C);
+            if (isSidebarUi()) {
+                ModernUi.fillSlot(guiGraphics, x, y, selected);
+            } else {
+                guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, selected ? CONTRAST_COLOR : 0xFF555555);
+                guiGraphics.fill(x, y, x + ITEM_SIZE, y + ITEM_SIZE, 0xFF1C1C1C);
+            }
 
             ItemStack slotStack = getContainerSlotItem(slot);
             if (!slotStack.isEmpty()) {
@@ -396,9 +521,10 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         Component selected = Component.translatable(key("container.slot"), this.selectedContainerSlot + 1);
         Component itemCount = Component.translatable(key("container.items"), getContainerItemCount());
         int infoY = gridY + CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 6;
-        guiGraphics.drawString(this.font, selected, gridX, infoY, MAIN_COLOR);
+        guiGraphics.drawString(this.font, selected, gridX, infoY, isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
         guiGraphics.drawString(this.font, itemCount,
-                gridX + CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE - this.font.width(itemCount), infoY, ALT_COLOR);
+                gridX + CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE - this.font.width(itemCount), infoY,
+                isSidebarUi() ? ModernUi.TEXT_MUTED : ALT_COLOR);
         if (this.containerSlotNbtBox != null) {
             guiGraphics.drawCenteredString(this.font, Component.translatable(key("container.slot_nbt")),
                     this.containerSlotNbtBox.getX() + this.containerSlotNbtBox.getWidth() / 2,
@@ -428,8 +554,14 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int end = Math.min(patterns.size(), this.bannerPatternScroll + BANNER_PATTERN_ROWS);
             for (int i = this.bannerPatternScroll; i < end; i++) {
                 int y = getBannerPatternRowY(i - this.bannerPatternScroll);
-                int color = i == this.selectedBannerPatternIndex ? CONTRAST_COLOR : MAIN_COLOR;
+                boolean selectedPattern = i == this.selectedBannerPatternIndex;
+                int color = isSidebarUi()
+                        ? (selectedPattern ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                        : (selectedPattern ? CONTRAST_COLOR : MAIN_COLOR);
                 Component name = getBannerPatternName(patterns.get(i), getBannerPatternColor());
+                if (isSidebarUi() && selectedPattern) {
+                    ModernUi.fillRounded(guiGraphics, 8, y - 3, 162, y + 10, 4, ModernUi.ACCENT_SOFT);
+                }
                 guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(name.getString(), 145), 12, y, color);
             }
         }
@@ -465,7 +597,13 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int end = Math.min(entities.size(), this.spawnEggEntityScroll + SPAWN_EGG_ENTITY_ROWS);
             for (int i = this.spawnEggEntityScroll; i < end; i++) {
                 int y = getSpawnEggEntityRowY(i - this.spawnEggEntityScroll);
-                int color = i == this.selectedSpawnEggEntityIndex ? CONTRAST_COLOR : MAIN_COLOR;
+                boolean selectedEntity = i == this.selectedSpawnEggEntityIndex;
+                int color = isSidebarUi()
+                        ? (selectedEntity ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                        : (selectedEntity ? CONTRAST_COLOR : MAIN_COLOR);
+                if (isSidebarUi() && selectedEntity) {
+                    ModernUi.fillRounded(guiGraphics, 8, y - 3, 184, y + 10, 4, ModernUi.ACCENT_SOFT);
+                }
                 guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(formatSpawnEggEntityEntry(entities.get(i)), 170),
                         12, y, color);
             }
@@ -506,8 +644,16 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             String tradeText = formatTradeRecipe(trades.getCompound(i));
             boolean hovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, tradeText, this.midX, getTradeListRowY(i, size));
             foundHover = foundHover || hovered;
+            int rowY = getTradeListRowY(i, size);
+            if (isSidebarUi() && (hovered || i == this.selectedTradeIndex)) {
+                int rowWidth = Math.min(getTradeListWidth(), this.width - 60);
+                ModernUi.fillRounded(guiGraphics, this.midX - rowWidth / 2, rowY - 5, this.midX + rowWidth / 2, rowY + 12,
+                        5, hovered ? ModernUi.ACCENT_SOFT : 0x2EFFB84D);
+            }
             guiGraphics.drawCenteredString(this.font, tradeText, this.midX, getTradeListRowY(i, size),
-                    hovered ? CONTRAST_COLOR : MAIN_COLOR);
+                    isSidebarUi()
+                            ? (hovered ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                            : (hovered ? CONTRAST_COLOR : MAIN_COLOR));
         }
 
         Component addTrade = Component.translatable(key("trades.addtrade"));
@@ -515,7 +661,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         boolean addHovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, addTradeText,
                 this.midX, getTradeListRowY(size, size));
         guiGraphics.drawCenteredString(this.font, addTrade, this.midX, getTradeListRowY(size, size),
-                addHovered ? CONTRAST_COLOR : MAIN_COLOR);
+                isSidebarUi()
+                        ? (addHovered ? ModernUi.ACCENT_HOVER : ModernUi.WARM)
+                        : (addHovered ? CONTRAST_COLOR : MAIN_COLOR));
     }
 
     protected void renderTradePanel(GuiGraphics guiGraphics) {
@@ -555,7 +703,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         for (int i = this.loreScroll; i < this.loreScroll + spaces && i < size; i++) {
             String label = "Line " + (i + 1);
             y = 55 + 30 * (i - this.loreScroll);
-            guiGraphics.drawString(this.font, label, 90 - this.font.width(label), y + 6, 0xFFFFFFFF);
+            guiGraphics.drawString(this.font, label, loreLineLabelRightX() - this.font.width(label), y + 6,
+                    isSidebarUi() ? ModernUi.TEXT_MUTED : 0xFFFFFFFF);
         }
 
         int actionY = y + 30;
@@ -566,15 +715,27 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             this.copyLoreButton.active = size > 0;
         }
 
-        guiGraphics.hLine(this.width - 15, this.width - 5, 50, 0xFFAAAAAA);
-        guiGraphics.hLine(this.width - 15, this.width - 5, this.height - 50, 0xFFAAAAAA);
-        int scrollHeight = this.height - 103;
+        int scrollX = loreScrollBarX();
+        int scrollTop = loreScrollTop();
+        int scrollHeight = loreScrollHeight();
+        if (isSidebarUi()) {
+            ModernUi.fillRounded(guiGraphics, scrollX, scrollTop, scrollX + 6, scrollTop + scrollHeight, 3, 0x55101618);
+        } else {
+            guiGraphics.hLine(this.width - 15, this.width - 5, 50, 0xFFAAAAAA);
+            guiGraphics.hLine(this.width - 15, this.width - 5, this.height - 50, 0xFFAAAAAA);
+            scrollHeight = this.height - 103;
+            scrollTop = 52;
+        }
         float covered = size < spaces || size == 0 ? 1.0F : spaces / (float) size;
         int coveredHeight = (int) Math.max(1, scrollHeight * covered);
         float div = size - spaces;
         float perc = div <= 0.0F ? 0.0F : this.loreScroll / div;
-        int scrollY = (int) (52 + (scrollHeight - coveredHeight) * perc);
-        guiGraphics.fill(this.width - 14, scrollY, this.width - 5, scrollY + coveredHeight, 0xFF666666);
+        int scrollY = (int) (scrollTop + (scrollHeight - coveredHeight) * perc);
+        if (isSidebarUi()) {
+            ModernUi.fillRounded(guiGraphics, scrollX + 1, scrollY, scrollX + 5, scrollY + coveredHeight, 2, ModernUi.ACCENT);
+        } else {
+            guiGraphics.fill(this.width - 14, scrollY, this.width - 5, scrollY + coveredHeight, 0xFF666666);
+        }
     }
 
     protected void renderLorePainterPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {

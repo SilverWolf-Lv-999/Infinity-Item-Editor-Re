@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import io.github.seraphina.infinity_item_editor_re.client.screen.legacy.LegacyTextEditBox;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
