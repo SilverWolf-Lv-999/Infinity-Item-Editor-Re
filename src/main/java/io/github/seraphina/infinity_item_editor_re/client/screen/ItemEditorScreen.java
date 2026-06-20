@@ -1891,6 +1891,51 @@ public class ItemEditorScreen extends Screen {
         }
     }
 
+    private void renderTradesPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades")), this.midX, 15, MAIN_COLOR);
+
+        ListTag trades = getVillagerTradeRecipes();
+        clampTradeSelection(trades);
+        setTradeScroll(this.tradeScroll);
+        if (trades.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("trades.no_trades")), 12, getTradeRowY(0), ALT_COLOR);
+        } else {
+            int end = Math.min(trades.size(), this.tradeScroll + TRADE_ROWS);
+            for (int i = this.tradeScroll; i < end; i++) {
+                int y = getTradeRowY(i - this.tradeScroll);
+                int color = i == this.selectedTradeIndex ? CONTRAST_COLOR : MAIN_COLOR;
+                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(formatTradeRecipe(trades.getCompound(i)), getTradeListWidth()),
+                        12, y, color);
+            }
+        }
+
+        Component selected = trades.isEmpty()
+                ? Component.translatable(key("trades.no_trades"))
+                : Component.translatable(key("trades.selected"), this.selectedTradeIndex + 1, trades.size());
+        guiGraphics.drawCenteredString(this.font, selected, this.midX, 42, MAIN_COLOR);
+
+        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
+            int x = getTradeSlotIconX(slot);
+            int y = getTradeSlotIconY();
+            boolean selectedSlot = slot == this.selectedTradeSlot;
+            guiGraphics.fill(x - 2, y - 2, x + 18, y + 18, selectedSlot ? CONTRAST_COLOR : 0xFF555555);
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0xFF1C1C1C);
+            ItemStack stack = trades.isEmpty() ? ItemStack.EMPTY : getTradeSlotItem(trades.getCompound(this.selectedTradeIndex), slot);
+            if (!stack.isEmpty()) {
+                guiGraphics.renderItem(stack, x, y);
+                guiGraphics.renderItemDecorations(this.font, stack, x, y);
+            }
+        }
+
+        if (this.tradeItemNbtBox != null) {
+            guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades.item_nbt")),
+                    this.tradeItemNbtBox.getX() + this.tradeItemNbtBox.getWidth() / 2,
+                    this.tradeItemNbtBox.getY() - 12, MAIN_COLOR);
+        }
+        drawTradeFieldLabels(guiGraphics);
+    }
+
     private void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("lore")), this.midX, 15, MAIN_COLOR);
@@ -2056,6 +2101,23 @@ public class ItemEditorScreen extends Screen {
                     this.containerSlotNbtBox.getWidth(), this.containerSlotNbtBox.getHeight())) {
                 guiGraphics.renderTooltip(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
             }
+        } else if (this.activePanel == Panel.TRADES) {
+            int slot = getHoveredTradeSlot(mouseX, mouseY);
+            if (slot >= 0) {
+                CompoundTag recipe = getSelectedTradeRecipe();
+                ItemStack stack = recipe == null ? ItemStack.EMPTY : getTradeSlotItem(recipe, slot);
+                if (!stack.isEmpty()) {
+                    guiGraphics.renderTooltip(this.font, stack, mouseX, mouseY);
+                } else {
+                    guiGraphics.renderTooltip(this.font, Component.translatable(key("trades.empty_slot")), mouseX, mouseY);
+                }
+                return;
+            }
+            if (this.tradeItemNbtBox != null && this.tradeItemNbtBox.getValue().length() > 20
+                    && isMouseIn(mouseX, mouseY, this.tradeItemNbtBox.getX(), this.tradeItemNbtBox.getY(),
+                    this.tradeItemNbtBox.getWidth(), this.tradeItemNbtBox.getHeight())) {
+                guiGraphics.renderTooltip(this.font, Component.literal(this.tradeItemNbtBox.getValue()), mouseX, mouseY);
+            }
         } else if (this.activePanel == Panel.LORE_PAINTER) {
             if (this.lorePainterScaleButton != null && isMouseIn(mouseX, mouseY,
                     this.lorePainterScaleButton.getX(), this.lorePainterScaleButton.getY(),
@@ -2080,6 +2142,33 @@ public class ItemEditorScreen extends Screen {
 
     private void drawRightLabel(GuiGraphics guiGraphics, Component text, int rightX, int y) {
         guiGraphics.drawString(this.font, text, rightX - this.font.width(text), y, MAIN_COLOR);
+    }
+
+    private void drawTradeFieldLabels(GuiGraphics guiGraphics) {
+        if (this.tradeUsesBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.uses")),
+                    this.tradeUsesBox.getX() - 5, this.tradeUsesBox.getY() + 6);
+        }
+        if (this.tradeMaxUsesBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.max_uses")),
+                    this.tradeMaxUsesBox.getX() - 5, this.tradeMaxUsesBox.getY() + 6);
+        }
+        if (this.tradeXpBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.xp")),
+                    this.tradeXpBox.getX() - 5, this.tradeXpBox.getY() + 6);
+        }
+        if (this.tradeSpecialPriceBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.special_price")),
+                    this.tradeSpecialPriceBox.getX() - 5, this.tradeSpecialPriceBox.getY() + 6);
+        }
+        if (this.tradeDemandBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.demand")),
+                    this.tradeDemandBox.getX() - 5, this.tradeDemandBox.getY() + 6);
+        }
+        if (this.tradePriceMultiplierBox != null) {
+            drawRightLabel(guiGraphics, Component.translatable(key("trades.price_multiplier")),
+                    this.tradePriceMultiplierBox.getX() - 5, this.tradePriceMultiplierBox.getY() + 6);
+        }
     }
 
     private boolean handleEnchantingClick(double mouseX, double mouseY) {
@@ -2200,6 +2289,32 @@ public class ItemEditorScreen extends Screen {
         this.selectedSpawnEggEntityIndex = index;
         this.spawnEggTagScroll = 0;
         rebuildWidgets();
+        return true;
+    }
+
+    private boolean handleTradesClick(double mouseX, double mouseY) {
+        int hoveredSlot = getHoveredTradeSlot((int) mouseX, (int) mouseY);
+        if (hoveredSlot >= 0) {
+            selectTradeSlot(hoveredSlot);
+            return true;
+        }
+
+        if (!isMouseIn(mouseX, mouseY, 10, getTradeRowY(0) - 1, getTradeListWidth(), TRADE_ROWS * TRADE_ROW_HEIGHT + 2)) {
+            return false;
+        }
+
+        ListTag trades = getVillagerTradeRecipes();
+        if (trades.isEmpty()) {
+            return false;
+        }
+
+        int row = ((int) mouseY - getTradeRowY(0)) / TRADE_ROW_HEIGHT;
+        int index = this.tradeScroll + row;
+        if (row < 0 || row >= TRADE_ROWS || index < 0 || index >= trades.size()) {
+            return false;
+        }
+
+        selectVillagerTrade(index);
         return true;
     }
 
@@ -4284,6 +4399,426 @@ public class ItemEditorScreen extends Screen {
         return rows;
     }
 
+    private void addVillagerTrade() {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        recipes.add(createDefaultTradeTag());
+        putVillagerTradeRecipes(recipes);
+        this.selectedTradeIndex = recipes.size() - 1;
+        scrollTradeSelectionIntoView(recipes);
+        readTradeFieldsFromStack(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_trade_added"), recipes.size());
+        rebuildWidgets();
+    }
+
+    private void removeSelectedVillagerTrade() {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        if (recipes.isEmpty()) {
+            return;
+        }
+
+        clampTradeSelection(recipes);
+        int removedIndex = this.selectedTradeIndex;
+        recipes.remove(this.selectedTradeIndex);
+        this.selectedTradeIndex = Mth.clamp(this.selectedTradeIndex, 0, Math.max(0, recipes.size() - 1));
+        putVillagerTradeRecipes(recipes);
+        readTradeFieldsFromStack(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_trade_removed"), removedIndex + 1);
+        rebuildWidgets();
+    }
+
+    private void clearVillagerTrades() {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        putVillagerTradeRecipes(new ListTag());
+        this.selectedTradeIndex = 0;
+        this.tradeScroll = 0;
+        resetTradeFieldValues();
+        this.status = Component.translatable(messageKey("editor_trades_cleared"));
+        rebuildWidgets();
+    }
+
+    private void updateSelectedTradeFromFields() {
+        if (!isVillagerTradeEditableItem(this.previewStack)) {
+            return;
+        }
+
+        captureFieldValues();
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        if (recipes.isEmpty()) {
+            return;
+        }
+
+        clampTradeSelection(recipes);
+        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        try {
+            ItemStack slotStack = parseTradeSlotItem(this.tradeItemNbtValue);
+            if (slotStack.isEmpty() && this.selectedTradeSlot != TRADE_SLOT_SECOND_BUY) {
+                throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
+            }
+            putTradeSlotItem(recipe, this.selectedTradeSlot, slotStack);
+            recipe.putInt(TRADE_USES_TAG, parseTradeIntField(this.tradeUsesValue, "uses", 0, 0, Integer.MAX_VALUE));
+            recipe.putInt(TRADE_MAX_USES_TAG, parseTradeIntField(this.tradeMaxUsesValue, "max_uses",
+                    TRADE_DEFAULT_MAX_USES, 0, Integer.MAX_VALUE));
+            recipe.putInt(TRADE_XP_TAG, parseTradeIntField(this.tradeXpValue, "xp", 0, 0, Integer.MAX_VALUE));
+            recipe.putFloat(TRADE_PRICE_MULTIPLIER_TAG, parseTradeFloatField(this.tradePriceMultiplierValue,
+                    "price_multiplier", TRADE_DEFAULT_PRICE_MULTIPLIER));
+            recipe.putInt(TRADE_SPECIAL_PRICE_TAG, parseTradeIntField(this.tradeSpecialPriceValue, "special_price",
+                    0, Integer.MIN_VALUE, Integer.MAX_VALUE));
+            recipe.putInt(TRADE_DEMAND_TAG, parseTradeIntField(this.tradeDemandValue, "demand",
+                    0, Integer.MIN_VALUE, Integer.MAX_VALUE));
+            recipe.putBoolean(TRADE_REWARD_EXP_TAG, this.tradeRewardExp);
+            recipes.set(this.selectedTradeIndex, recipe);
+            putVillagerTradeRecipes(recipes);
+            this.tradeItemNbtValue = getTradeSlotItemNbt(slotStack);
+            this.status = Component.translatable(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
+            readTradeFieldsFromStack(this.previewStack);
+            rebuildWidgets();
+        } catch (CommandSyntaxException exception) {
+            this.status = Component.translatable(messageKey("editor_invalid_nbt"), exception.getMessage());
+        } catch (IllegalArgumentException exception) {
+            this.status = Component.literal(exception.getMessage());
+        }
+    }
+
+    private void toggleSelectedTradeRewardExp() {
+        ListTag recipes = copyTradeRecipes(getVillagerTradeRecipes());
+        if (recipes.isEmpty()) {
+            return;
+        }
+
+        clampTradeSelection(recipes);
+        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        this.tradeRewardExp = !this.tradeRewardExp;
+        recipe.putBoolean(TRADE_REWARD_EXP_TAG, this.tradeRewardExp);
+        recipes.set(this.selectedTradeIndex, recipe);
+        putVillagerTradeRecipes(recipes);
+        this.status = Component.translatable(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
+        rebuildWidgets();
+    }
+
+    private void selectVillagerTrade(int index) {
+        ListTag trades = getVillagerTradeRecipes();
+        if (trades.isEmpty()) {
+            return;
+        }
+
+        this.selectedTradeIndex = Mth.clamp(index, 0, trades.size() - 1);
+        scrollTradeSelectionIntoView(trades);
+        readTradeFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    private void selectTradeSlot(int slot) {
+        this.selectedTradeSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
+        readTradeFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    private void readTradeFieldsFromStack(ItemStack stack) {
+        ListTag trades = getVillagerTradeRecipes(stack);
+        clampTradeSelection(trades);
+        if (!isVillagerTradeEditableItem(stack) || trades.isEmpty()) {
+            resetTradeFieldValues();
+            return;
+        }
+
+        CompoundTag recipe = trades.getCompound(this.selectedTradeIndex);
+        ItemStack slotStack = getTradeSlotItem(recipe, this.selectedTradeSlot);
+        this.tradeItemNbtValue = getTradeSlotItemNbt(slotStack);
+        this.tradeUsesValue = Integer.toString(getTradeInt(recipe, TRADE_USES_TAG, 0));
+        this.tradeMaxUsesValue = Integer.toString(getTradeInt(recipe, TRADE_MAX_USES_TAG, TRADE_DEFAULT_MAX_USES));
+        this.tradeXpValue = Integer.toString(getTradeInt(recipe, TRADE_XP_TAG, 0));
+        this.tradePriceMultiplierValue = Float.toString(getTradeFloat(recipe, TRADE_PRICE_MULTIPLIER_TAG,
+                TRADE_DEFAULT_PRICE_MULTIPLIER));
+        this.tradeSpecialPriceValue = Integer.toString(getTradeInt(recipe, TRADE_SPECIAL_PRICE_TAG, 0));
+        this.tradeDemandValue = Integer.toString(getTradeInt(recipe, TRADE_DEMAND_TAG, 0));
+        this.tradeRewardExp = !recipe.contains(TRADE_REWARD_EXP_TAG, Tag.TAG_BYTE) || recipe.getBoolean(TRADE_REWARD_EXP_TAG);
+    }
+
+    private void resetTradeFieldValues() {
+        this.tradeItemNbtValue = "{}";
+        this.tradeUsesValue = "0";
+        this.tradeMaxUsesValue = Integer.toString(TRADE_DEFAULT_MAX_USES);
+        this.tradeXpValue = "0";
+        this.tradePriceMultiplierValue = Float.toString(TRADE_DEFAULT_PRICE_MULTIPLIER);
+        this.tradeSpecialPriceValue = "0";
+        this.tradeDemandValue = "0";
+        this.tradeRewardExp = true;
+    }
+
+    private ListTag getVillagerTradeRecipes() {
+        return getVillagerTradeRecipes(this.previewStack);
+    }
+
+    private ListTag getVillagerTradeRecipes(ItemStack stack) {
+        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        if (entityTag == null || !entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)) {
+            return new ListTag();
+        }
+
+        CompoundTag offers = entityTag.getCompound(OFFERS_TAG);
+        if (!offers.contains(RECIPES_TAG, Tag.TAG_LIST)) {
+            return new ListTag();
+        }
+        return offers.getList(RECIPES_TAG, Tag.TAG_COMPOUND);
+    }
+
+    private int getVillagerTradeCount() {
+        return getVillagerTradeRecipes().size();
+    }
+
+    private CompoundTag getSelectedTradeRecipe() {
+        ListTag trades = getVillagerTradeRecipes();
+        if (trades.isEmpty()) {
+            return null;
+        }
+        clampTradeSelection(trades);
+        return trades.getCompound(this.selectedTradeIndex);
+    }
+
+    private ListTag copyTradeRecipes(ListTag recipes) {
+        ListTag copy = new ListTag();
+        for (int i = 0; i < recipes.size(); i++) {
+            copy.add(recipes.getCompound(i).copy());
+        }
+        return copy;
+    }
+
+    private void putVillagerTradeRecipes(ListTag recipes) {
+        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        if (!recipes.isEmpty() && !entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
+        }
+
+        CompoundTag offers = entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)
+                ? entityTag.getCompound(OFFERS_TAG)
+                : new CompoundTag();
+        if (recipes.isEmpty()) {
+            offers.remove(RECIPES_TAG);
+        } else {
+            offers.put(RECIPES_TAG, recipes);
+        }
+
+        if (offers.isEmpty()) {
+            entityTag.remove(OFFERS_TAG);
+        } else {
+            entityTag.put(OFFERS_TAG, offers);
+        }
+
+        if (entityTag.isEmpty()) {
+            tag.remove(ENTITY_TAG);
+        } else {
+            tag.put(ENTITY_TAG, entityTag);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    private CompoundTag createDefaultTradeTag() {
+        CompoundTag recipe = new CompoundTag();
+        putTradeSlotItem(recipe, TRADE_SLOT_FIRST_BUY, new ItemStack(Items.EMERALD));
+        putTradeSlotItem(recipe, TRADE_SLOT_SELL, new ItemStack(Items.EMERALD));
+        recipe.putInt(TRADE_USES_TAG, 0);
+        recipe.putInt(TRADE_MAX_USES_TAG, TRADE_DEFAULT_MAX_USES);
+        recipe.putBoolean(TRADE_REWARD_EXP_TAG, true);
+        recipe.putInt(TRADE_XP_TAG, 0);
+        recipe.putFloat(TRADE_PRICE_MULTIPLIER_TAG, TRADE_DEFAULT_PRICE_MULTIPLIER);
+        recipe.putInt(TRADE_SPECIAL_PRICE_TAG, 0);
+        recipe.putInt(TRADE_DEMAND_TAG, 0);
+        return recipe;
+    }
+
+    private void putTradeSlotItem(CompoundTag recipe, int slot, ItemStack stack) {
+        String tagName = getTradeSlotTagName(slot);
+        if (stack.isEmpty()) {
+            recipe.remove(tagName);
+        } else {
+            recipe.put(tagName, stack.save(new CompoundTag()));
+        }
+    }
+
+    private ItemStack getTradeSlotItem(CompoundTag recipe, int slot) {
+        String tagName = getTradeSlotTagName(slot);
+        if (!recipe.contains(tagName, Tag.TAG_COMPOUND)) {
+            return ItemStack.EMPTY;
+        }
+        return ItemStack.of(recipe.getCompound(tagName));
+    }
+
+    private String getTradeSlotTagName(int slot) {
+        return switch (slot) {
+            case TRADE_SLOT_SECOND_BUY -> TRADE_BUY_B_TAG;
+            case TRADE_SLOT_SELL -> TRADE_SELL_TAG;
+            default -> TRADE_BUY_TAG;
+        };
+    }
+
+    private ItemStack parseTradeSlotItem(String value) throws CommandSyntaxException {
+        String trimmed = value == null ? "" : value.trim();
+        if (trimmed.isEmpty() || "{}".equals(trimmed)) {
+            return ItemStack.EMPTY;
+        }
+
+        CompoundTag itemTag = TagParser.parseTag(trimmed);
+        ItemStack stack = ItemStack.of(itemTag);
+        if (stack.isEmpty()) {
+            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
+        }
+        return stack;
+    }
+
+    private String getTradeSlotItemNbt(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return "{}";
+        }
+        return stack.save(new CompoundTag()).toString();
+    }
+
+    private int parseTradeIntField(String value, String fieldSuffix, int defaultValue, int minValue, int maxValue) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            long parsed = Long.parseLong(normalized);
+            if (parsed < minValue || parsed > maxValue) {
+                throw new NumberFormatException();
+            }
+            return (int) parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_number"),
+                    Component.translatable(key("trades." + fieldSuffix)), minValue, maxValue).getString());
+        }
+    }
+
+    private float parseTradeFloatField(String value, String fieldSuffix, float defaultValue) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            float parsed = Float.parseFloat(normalized);
+            if (!Float.isFinite(parsed) || parsed < 0.0F) {
+                throw new NumberFormatException();
+            }
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_decimal"),
+                    Component.translatable(key("trades." + fieldSuffix))).getString());
+        }
+    }
+
+    private int getTradeInt(CompoundTag recipe, String tagName, int defaultValue) {
+        return recipe.contains(tagName, Tag.TAG_ANY_NUMERIC) ? recipe.getInt(tagName) : defaultValue;
+    }
+
+    private float getTradeFloat(CompoundTag recipe, String tagName, float defaultValue) {
+        return recipe.contains(tagName, Tag.TAG_ANY_NUMERIC) ? recipe.getFloat(tagName) : defaultValue;
+    }
+
+    private String formatTradeRecipe(CompoundTag recipe) {
+        ItemStack firstBuy = getTradeSlotItem(recipe, TRADE_SLOT_FIRST_BUY);
+        ItemStack secondBuy = getTradeSlotItem(recipe, TRADE_SLOT_SECOND_BUY);
+        ItemStack sell = getTradeSlotItem(recipe, TRADE_SLOT_SELL);
+        String cost = formatTradeStack(firstBuy);
+        if (!secondBuy.isEmpty()) {
+            cost += " + " + formatTradeStack(secondBuy);
+        }
+        return cost + " -> " + formatTradeStack(sell);
+    }
+
+    private String formatTradeStack(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return Component.translatable(key("trades.empty_slot")).getString();
+        }
+        String name = stack.getHoverName().getString();
+        return stack.getCount() > 1 ? stack.getCount() + "x " + name : name;
+    }
+
+    private void clampTradeSelection(ListTag trades) {
+        this.selectedTradeSlot = Mth.clamp(this.selectedTradeSlot, 0, TRADE_SLOT_COUNT - 1);
+        if (trades.isEmpty()) {
+            this.selectedTradeIndex = 0;
+            this.tradeScroll = 0;
+            return;
+        }
+
+        this.selectedTradeIndex = Mth.clamp(this.selectedTradeIndex, 0, trades.size() - 1);
+        this.tradeScroll = Mth.clamp(this.tradeScroll, 0, Math.max(0, trades.size() - TRADE_ROWS));
+        scrollTradeSelectionIntoView(trades);
+    }
+
+    private void setTradeScroll(int value) {
+        ListTag trades = getVillagerTradeRecipes();
+        this.tradeScroll = Mth.clamp(value, 0, Math.max(0, trades.size() - TRADE_ROWS));
+    }
+
+    private void scrollTradeSelectionIntoView(ListTag trades) {
+        if (trades.isEmpty()) {
+            this.tradeScroll = 0;
+            return;
+        }
+
+        if (this.selectedTradeIndex < this.tradeScroll) {
+            this.tradeScroll = this.selectedTradeIndex;
+        } else if (this.selectedTradeIndex >= this.tradeScroll + TRADE_ROWS) {
+            this.tradeScroll = this.selectedTradeIndex - TRADE_ROWS + 1;
+        }
+        this.tradeScroll = Mth.clamp(this.tradeScroll, 0, Math.max(0, trades.size() - TRADE_ROWS));
+    }
+
+    private int getTradeRowY(int row) {
+        return 58 + row * TRADE_ROW_HEIGHT;
+    }
+
+    private int getTradeListWidth() {
+        return Math.min(210, Math.max(130, this.midX - 20));
+    }
+
+    private int getTradeControlsX() {
+        int width = getTradeControlsWidth();
+        int rightAligned = this.width - width - 10;
+        return Math.min(Math.max(this.midX + 100, rightAligned), rightAligned);
+    }
+
+    private int getTradeControlsWidth() {
+        return 132;
+    }
+
+    private int getTradeSlotButtonX(int slot) {
+        return this.midX - 117 + slot * 80;
+    }
+
+    private int getTradeSlotIconX(int slot) {
+        return getTradeSlotButtonX(slot) + 29;
+    }
+
+    private int getTradeSlotIconY() {
+        return 68;
+    }
+
+    private int getHoveredTradeSlot(int mouseX, int mouseY) {
+        for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
+            if (isMouseIn(mouseX, mouseY, getTradeSlotIconX(slot) - 2, getTradeSlotIconY() - 2, 20, 20)) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
     private void updateRawNbt() {
         String raw = this.rawNbtBox == null ? this.rawNbtValue : this.rawNbtBox.getValue();
         try {
@@ -5342,6 +5877,7 @@ public class ItemEditorScreen extends Screen {
         readFireworkFieldsFromStack(stack);
         readContainerFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
+        readTradeFieldsFromStack(stack);
     }
 
     private String readLoreLine(String raw) {
@@ -5678,6 +6214,27 @@ public class ItemEditorScreen extends Screen {
         if (this.spawnEggOwnerBox != null) {
             this.spawnEggOwnerValue = this.spawnEggOwnerBox.getValue();
         }
+        if (this.tradeItemNbtBox != null) {
+            this.tradeItemNbtValue = this.tradeItemNbtBox.getValue();
+        }
+        if (this.tradeUsesBox != null) {
+            this.tradeUsesValue = this.tradeUsesBox.getValue();
+        }
+        if (this.tradeMaxUsesBox != null) {
+            this.tradeMaxUsesValue = this.tradeMaxUsesBox.getValue();
+        }
+        if (this.tradeXpBox != null) {
+            this.tradeXpValue = this.tradeXpBox.getValue();
+        }
+        if (this.tradePriceMultiplierBox != null) {
+            this.tradePriceMultiplierValue = this.tradePriceMultiplierBox.getValue();
+        }
+        if (this.tradeSpecialPriceBox != null) {
+            this.tradeSpecialPriceValue = this.tradeSpecialPriceBox.getValue();
+        }
+        if (this.tradeDemandBox != null) {
+            this.tradeDemandValue = this.tradeDemandBox.getValue();
+        }
     }
 
     private CompoundTag parseNbt(String nbt) throws CommandSyntaxException {
@@ -5775,6 +6332,10 @@ public class ItemEditorScreen extends Screen {
 
     private static boolean isSpawnEditorItem(ItemStack stack) {
         return isSpawnEggItem(stack) || isSpawnerItem(stack);
+    }
+
+    private boolean isVillagerTradeEditableItem(ItemStack stack) {
+        return isSpawnEggItem(stack) && EntityType.VILLAGER.equals(getCurrentSpawnEggEntityType(stack));
     }
 
     private static boolean isPlayerHeadItem(ItemStack stack) {
