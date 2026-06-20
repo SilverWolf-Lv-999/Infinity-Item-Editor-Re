@@ -60,6 +60,7 @@ Mod 会在客户端游戏目录下创建数据目录：
 
 Forge 客户端配置文件中可以开关部分标签页和行为，主要选项包括：
 
+- `itemGuiMode`：物品编辑器界面模式，默认 `LEGACY` 旧界面；可设为 `SIDEBAR` 使用新版侧边栏，也可以在编辑器内点击 `UI` 按钮即时切换并保存。
 - `voidTab`
 - `voidAddNotification`
 - `voidTabHideHeads`

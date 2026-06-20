@@ -30,6 +30,7 @@ public class InfinityConfigScreen extends Screen {
     private static final int SAVED_TEXT_COLOR = 0xFF55FF55;
 
     private final Screen parent;
+    private Config.ItemEditorUiMode pendingItemGuiMode;
     private final Map<Config.BooleanEntry, Boolean> pendingValues = new LinkedHashMap<>();
     private Component status = Component.empty();
     private ConfigList configList;
@@ -37,6 +38,7 @@ public class InfinityConfigScreen extends Screen {
     public InfinityConfigScreen(Screen parent) {
         super(Component.translatable(key("title")));
         this.parent = parent;
+        this.pendingItemGuiMode = Config.getItemGuiMode();
         for (Config.BooleanEntry entry : Config.booleanEntries()) {
             this.pendingValues.put(entry, entry.get());
         }
@@ -86,7 +88,19 @@ public class InfinityConfigScreen extends Screen {
         this.status = Component.empty();
     }
 
+    private Config.ItemEditorUiMode getPendingItemGuiMode() {
+        return this.pendingItemGuiMode;
+    }
+
+    private void cycleItemGuiMode() {
+        this.pendingItemGuiMode = this.pendingItemGuiMode == Config.ItemEditorUiMode.LEGACY
+                ? Config.ItemEditorUiMode.SIDEBAR
+                : Config.ItemEditorUiMode.LEGACY;
+        this.status = Component.empty();
+    }
+
     private void resetToDefaults() {
+        this.pendingItemGuiMode = Config.ItemEditorUiMode.LEGACY;
         for (Config.BooleanEntry entry : Config.booleanEntries()) {
             this.pendingValues.put(entry, entry.defaultValue());
         }
@@ -94,6 +108,7 @@ public class InfinityConfigScreen extends Screen {
     }
 
     private void saveChanges() {
+        Config.setItemGuiMode(this.pendingItemGuiMode);
         for (Map.Entry<Config.BooleanEntry, Boolean> entry : this.pendingValues.entrySet()) {
             entry.getKey().set(entry.getValue());
         }
@@ -118,6 +133,10 @@ public class InfinityConfigScreen extends Screen {
         return Component.translatable(key(value ? "on" : "off"));
     }
 
+    private static Component itemGuiModeText(Config.ItemEditorUiMode mode) {
+        return Component.translatable("screen." + ModSource.MODID + ".ui.mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
     @OnlyIn(Dist.CLIENT)
     private static final class ConfigList extends ObjectSelectionList<ConfigEntry> {
         private ConfigList(InfinityConfigScreen screen, Minecraft minecraft, int width, int height, int top, int bottom) {
@@ -125,6 +144,7 @@ public class InfinityConfigScreen extends Screen {
             this.setRenderBackground(false);
             this.setRenderTopAndBottom(false);
             this.setRenderSelection(false);
+            this.addEntry(new ConfigEntry(screen, null));
             for (Config.BooleanEntry entry : Config.booleanEntries()) {
                 this.addEntry(new ConfigEntry(screen, entry));
             }
@@ -166,11 +186,26 @@ public class InfinityConfigScreen extends Screen {
                 guiGraphics.fill(left - 4, top - 1, left + width + 4, top + height - 3, HOVER_FILL);
             }
 
-            boolean value = this.screen.getPendingValue(this.entry);
             int toggleX = left + width - TOGGLE_WIDTH - 2;
             int toggleY = top + (height - TOGGLE_HEIGHT) / 2 - 2;
             int textWidth = Math.max(1, toggleX - left - 12);
+            if (this.entry == null) {
+                Component modeTitle = Component.translatable(key("item_gui_mode.title"));
+                Component modeDescription = Component.translatable(key("item_gui_mode.description"));
+                Component modeText = itemGuiModeText(this.screen.getPendingItemGuiMode());
+                guiGraphics.drawString(this.screen.font, modeTitle, left, top + 4, TEXT_COLOR);
+                List<FormattedCharSequence> description = this.screen.font.split(modeDescription, textWidth);
+                for (int line = 0; line < Math.min(2, description.size()); line++) {
+                    guiGraphics.drawString(this.screen.font, description.get(line), left, top + 17 + line * 10, MUTED_TEXT_COLOR);
+                }
+                guiGraphics.fill(toggleX - 1, toggleY - 1, toggleX + TOGGLE_WIDTH + 1, toggleY + TOGGLE_HEIGHT + 1, BORDER_COLOR);
+                guiGraphics.fill(toggleX, toggleY, toggleX + TOGGLE_WIDTH, toggleY + TOGGLE_HEIGHT, 0xFF30345F);
+                int modeTextX = toggleX + (TOGGLE_WIDTH - this.screen.font.width(modeText)) / 2;
+                guiGraphics.drawString(this.screen.font, modeText, modeTextX, toggleY + 6, TOGGLE_TEXT_COLOR);
+                return;
+            }
 
+            boolean value = this.screen.getPendingValue(this.entry);
             guiGraphics.drawString(this.screen.font, Component.translatable(this.entry.titleKey()), left, top + 4, TEXT_COLOR);
             List<FormattedCharSequence> description = this.screen.font.split(
                     Component.translatable(this.entry.descriptionKey()),
@@ -193,12 +228,23 @@ public class InfinityConfigScreen extends Screen {
             if (button != 0) {
                 return false;
             }
+            if (this.entry == null) {
+                this.screen.cycleItemGuiMode();
+                return true;
+            }
             this.screen.toggle(this.entry);
             return true;
         }
 
         @Override
         public Component getNarration() {
+            if (this.entry == null) {
+                return Component.empty()
+                        .append(Component.translatable(key("item_gui_mode.title")))
+                        .append(" ")
+                        .append(itemGuiModeText(this.screen.getPendingItemGuiMode()));
+            }
+
             return Component.empty()
                     .append(Component.translatable(this.entry.titleKey()))
                     .append(" ")
