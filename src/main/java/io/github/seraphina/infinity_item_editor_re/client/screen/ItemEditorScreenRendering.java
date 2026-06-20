@@ -75,7 +75,39 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
 
-protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    protected void renderEditorBackground(GuiGraphics guiGraphics) {
+        renderBackground(guiGraphics);
+
+        if (!isSidebarUi()) {
+            return;
+        }
+
+        int sidebarWidth = sidebarWidth();
+        guiGraphics.fill(0, 0, this.width, this.height, 0x64000000);
+        guiGraphics.fill(0, 0, sidebarWidth, this.height, SIDEBAR_PANEL_COLOR);
+        guiGraphics.fill(sidebarWidth, SIDEBAR_SAFE_MARGIN, sidebarWidth + 1, this.height - SIDEBAR_SAFE_MARGIN, SIDEBAR_BORDER_COLOR);
+        guiGraphics.fill(sidebarWidth + 1, SIDEBAR_SAFE_MARGIN, sidebarWidth + 3, this.height - SIDEBAR_SAFE_MARGIN, 0x54000000);
+        guiGraphics.drawCenteredString(this.font, Component.literal(ModSource.NAME), sidebarWidth / 2, 13, SIDEBAR_ACCENT_COLOR);
+
+        int left = safeLeft();
+        int top = safeTop();
+        int right = safeRight();
+        int bottom = safeBottom();
+        if (right > left && bottom > top) {
+            guiGraphics.fill(left, top, right, bottom, SIDEBAR_CARD_SOFT_COLOR);
+            guiGraphics.fill(left, top, right, top + 1, SIDEBAR_BORDER_COLOR);
+            guiGraphics.fill(left, bottom - 1, right, bottom, SIDEBAR_BORDER_COLOR);
+            guiGraphics.fill(left, top, left + 1, bottom, SIDEBAR_BORDER_COLOR);
+            guiGraphics.fill(right - 1, top, right, bottom, SIDEBAR_BORDER_COLOR);
+            guiGraphics.fill(left, top + 1, right, top + 3, 0x662EC8FF);
+        }
+
+        if (this.activePanel == Panel.ITEM) {
+            guiGraphics.drawCenteredString(this.font, Component.translatable(key("ui.sidebar")), sidebarWidth / 2, 78, SIDEBAR_MUTED_COLOR);
+        }
+    }
+
+    protected void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 40);
         guiGraphics.drawCenteredString(this.font, Component.translatable(key("item")), this.midX, 15, MAIN_COLOR);
 
