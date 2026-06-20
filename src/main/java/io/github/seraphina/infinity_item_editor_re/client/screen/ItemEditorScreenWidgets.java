@@ -76,6 +76,11 @@ abstract class ItemEditorScreenWidgets extends ItemEditorScreenActions {
     }
 
 protected void addItemPanel() {
+        if (isSidebarUi()) {
+            addSidebarItemPanel();
+            return;
+        }
+
         this.itemIdBox = addTrackedBox(new EditBox(this.font, this.midX, 55, 75, FIELD_HEIGHT,
                 Component.translatable(key("item.id"))));
         this.itemIdBox.setMaxLength(100);
@@ -116,6 +121,243 @@ protected void addItemPanel() {
         addSpecialButtons();
         addNameAndLoreWidgets();
         addFormatButtons();
+    }
+
+    protected void addSidebarItemPanel() {
+        int detailsWidth = sidebarDetailsWidth();
+        int detailsX = sidebarItemDetailsX(detailsWidth);
+        int fieldX = sidebarItemFieldX();
+        int fieldWidth = sidebarItemFieldWidth(detailsX);
+
+        this.itemIdBox = addTrackedBox(new EditBox(this.font, fieldX, sidebarItemIdY(), fieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("item.id"))));
+        this.itemIdBox.setMaxLength(100);
+        this.itemIdBox.setTextColor(MAIN_COLOR);
+        this.itemIdBox.setValue(this.itemIdValue);
+        this.itemIdBox.setResponder(value -> {
+            this.itemIdValue = value;
+            if (tryApplyItemId(false)) {
+                rebuildWidgets();
+            }
+        });
+        this.mainTextBoxes.add(this.itemIdBox);
+
+        this.countBox = addTrackedBox(numberBox(fieldX, sidebarItemCountY(), 48, FIELD_HEIGHT, 2, this.countValue, 1, MAX_COUNT));
+        this.countBox.setResponder(value -> {
+            this.countValue = value;
+            tryApplyCount(false);
+        });
+
+        int maxDamage = getDamageMaxForField(this.previewStack);
+        int damageDigits = Math.max(1, Integer.toString(maxDamage).length());
+        this.damageBox = addTrackedBox(numberBox(fieldX, sidebarItemDamageY(), Math.max(10 * damageDigits, 48), FIELD_HEIGHT,
+                damageDigits, this.damageValue, 0, maxDamage));
+        this.damageBox.setResponder(value -> {
+            this.damageValue = value;
+            tryApplyDamage(false);
+        });
+
+        int sidebarX = SIDEBAR_SAFE_MARGIN;
+        int sidebarButtonWidth = sidebarWidth() - SIDEBAR_SAFE_MARGIN * 2;
+        int y = 100;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("pick")), button -> openItemPicker()));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
+        y += 24;
+        if (canShowEnchantingButton(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                    Component.translatable(key("enchanting")), button -> switchPanel(Panel.ENCHANTMENTS)));
+        }
+
+        addSidebarNameAndLoreWidgets(detailsX, sidebarItemNameY(), detailsWidth);
+        if (canShowSidebarActionGrid()) {
+            addSidebarSpecialButtons(getActionGridX(), getActionGridY(), getActionGridButtonWidth());
+        }
+        addFormatButtons();
+    }
+
+    protected int sidebarDetailsWidth() {
+        if (isCompactSidebarItemPanel()) {
+            return contentWidth();
+        }
+
+        return Mth.clamp(contentWidth() / 3, 176, 236);
+    }
+
+    protected int sidebarDetailsX(int detailsWidth) {
+        int x = safeRight() - detailsWidth;
+        if (x < safeLeft() + 268) {
+            return safeLeft();
+        }
+
+        return x;
+    }
+
+    protected void addSidebarNameAndLoreWidgets(int x, int y, int width) {
+        int nameFieldWidth = Math.max(80, width - 46);
+        this.nameBox = addTrackedBox(legacyTextBox(x, y, nameFieldWidth, FIELD_HEIGHT,
+                Component.translatable(key("item.name"))));
+        this.nameBox.setMaxLength(100);
+        this.nameBox.setTextColor(MAIN_COLOR);
+        this.nameBox.setValue(this.nameValue);
+        this.nameBox.setResponder(value -> {
+            this.nameValue = value;
+            applyNameToStack();
+        });
+        this.mainTextBoxes.add(this.nameBox);
+
+        addRenderableWidget(new InfinityEditorButton(x + nameFieldWidth + 4, y, 42, FIELD_HEIGHT,
+                Component.translatable(key("clear")), button -> clearCustomName()));
+
+        int visibleLoreLines = sidebarVisibleLoreLines();
+        for (int i = 0; i < visibleLoreLines; i++) {
+            boolean realLine = i < this.loreValues.size();
+            addSidebarLoreTextField(x, y + 50 + 26 * i, width, i, realLine);
+        }
+
+        if (canShowSidebarLoreButton()) {
+            int loreButtonY = visibleLoreLines == 0 ? y + 28 : y + 50 + 26 * visibleLoreLines + 6;
+            addRenderableWidget(new InfinityEditorButton(x, loreButtonY, width, FIELD_HEIGHT,
+                    Component.translatable(key("lore")), button -> switchPanel(Panel.LORE)));
+        }
+    }
+
+    protected void addSidebarLoreTextField(int x, int y, int width, int line, boolean realLine) {
+        int fieldX = realLine ? x + 18 : x;
+        int fieldWidth = realLine ? width - 18 : width;
+        EditBox loreBox = addTrackedBox(legacyTextBox(fieldX, y, fieldWidth, FIELD_HEIGHT,
+                Component.literal("Lore " + (line + 1))));
+        loreBox.setMaxLength(100);
+        loreBox.setTextColor(MAIN_COLOR);
+        String placeholder = "Lore " + (line + 1);
+        loreBox.setValue(realLine ? this.loreValues.get(line) : placeholder);
+        loreBox.setResponder(value -> {
+            if (!realLine && placeholder.equals(value)) {
+                return;
+            }
+            setLoreLine(line, value);
+            applyLoreToStack();
+            if (!realLine && line < 5) {
+                rebuildWidgets();
+            }
+        });
+        this.loreBoxes.add(loreBox);
+
+        if (realLine) {
+            addRenderableWidget(new InfinityEditorButton(x, y, 16, FIELD_HEIGHT,
+                    Component.literal(ChatFormatting.DARK_RED + "X"), button -> {
+                removeLoreLine(line);
+                rebuildWidgets();
+            }));
+        }
+    }
+
+    protected int getActionGridX() {
+        return safeLeft();
+    }
+
+    protected int getActionGridButtonWidth() {
+        if (isCompactSidebarItemPanel()) {
+            return Math.max(74, (contentWidth() - SIDEBAR_CONTENT_GAP) / 2);
+        }
+
+        int detailsX = sidebarItemDetailsX(sidebarDetailsWidth());
+        int available = detailsX - safeLeft() - SIDEBAR_CONTENT_GAP;
+        return Mth.clamp((available - SIDEBAR_CONTENT_GAP) / 2, 82, 126);
+    }
+
+    protected void addSidebarSpecialButtons(int x, int y, int width) {
+        int index = 0;
+        index = addSidebarActionButton(x, y, width, index, getUnbreakableText(), button -> toggleUnbreakable(), !this.previewStack.isEmpty());
+
+        if (!this.previewStack.isEmpty()) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("attributes")), button -> switchPanel(Panel.ATTRIBUTES));
+        }
+
+        if (isColorApplicable(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("color")), button -> switchPanel(Panel.COLOR));
+        }
+
+        if (isSignItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("sign")), button -> switchPanel(Panel.SIGN));
+        }
+
+        if (isPlayerHeadItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("head")), button -> switchPanel(Panel.HEAD));
+        }
+
+        if (isArmorStandItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND));
+        }
+
+        if (isFireworkEditableItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("firework")), button -> switchPanel(Panel.FIREWORK));
+        }
+
+        if (isContainerEditableItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("container")), button -> openContainerItemEditor());
+        }
+
+        if (isBannerEditableItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER));
+        }
+
+        if (isSpawnEditorItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key(getSpawnEditorTitleKey())), button -> switchPanel(Panel.SPAWN_EGG));
+        }
+
+        if (isVillagerTradeEditableItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("trades")), button -> switchPanel(Panel.TRADES));
+        }
+
+        if (isPotionItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("potion")), button -> switchPanel(Panel.POTION));
+        }
+
+        if (isBookEditableItem(this.previewStack)) {
+            addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("book")), button -> switchPanel(Panel.BOOK));
+        }
+    }
+
+    protected int addSidebarActionButton(int startX, int startY, int width, int index,
+                                         Component text, InfinityEditorButton.PressAction action) {
+        return addSidebarActionButton(startX, startY, width, index, text, action, true);
+    }
+
+    protected int addSidebarActionButton(int startX, int startY, int width, int index,
+                                         Component text, InfinityEditorButton.PressAction action, boolean active) {
+        int column = index % 2;
+        int row = index / 2;
+        int buttonX = startX + column * (width + SIDEBAR_CONTENT_GAP);
+        int buttonY = startY + row * (SIDEBAR_BUTTON_HEIGHT + 6);
+        if (buttonY + SIDEBAR_BUTTON_HEIGHT > sidebarBottomButtonY() - 8) {
+            return index;
+        }
+
+        InfinityEditorButton button = addRenderableWidget(new InfinityEditorButton(buttonX, buttonY, width, SIDEBAR_BUTTON_HEIGHT, text, action));
+        button.active = active;
+
+        return index + 1;
     }
 
     protected void addNameAndLoreWidgets() {
@@ -258,6 +500,11 @@ protected void addItemPanel() {
     }
 
     protected void addFormatButtons() {
+        if (isSidebarUi()) {
+            addSidebarFormatButtons();
+            return;
+        }
+
         ChatFormatting[] formats = ChatFormatting.values();
         int colorAmount = 2 + formats.length;
         int columns = colorAmount / 2;
@@ -277,15 +524,47 @@ protected void addItemPanel() {
         }
     }
 
+    protected void addSidebarFormatButtons() {
+        ChatFormatting[] formats = ChatFormatting.values();
+        int columns = 8;
+        int buttonWidth = 13;
+        int buttonHeight = 15;
+        int colorAmount = 2 + formats.length;
+        int rows = (colorAmount + columns - 1) / columns;
+        int paletteWidth = columns * buttonWidth;
+        int paletteHeight = rows * buttonHeight;
+        int startY = Math.max(82, this.height - 38 - paletteHeight);
+        int startX = Math.max(4, (sidebarWidth() - paletteWidth) / 2);
+        addSidebarFormatButton(startX, startY, columns, 0,
+                Component.literal(String.valueOf(ChatFormatting.PREFIX_CODE)), button -> insertFormattingPrefix());
+        addSidebarFormatButton(startX, startY, columns, 1,
+                Component.literal(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting());
+
+        for (int i = 2; i < colorAmount; i++) {
+            ChatFormatting format = formats[i - 2];
+            addSidebarFormatButton(startX, startY, columns, i,
+                    Component.literal(format.toString() + format.getChar()), button -> insertFocusedText(format.toString()));
+        }
+    }
+
+    protected void addSidebarFormatButton(int startX, int startY, int columns, int index,
+                                          Component text, InfinityEditorButton.PressAction action) {
+        int x = startX + 13 * (index % columns);
+        int y = startY + 15 * (index / columns);
+        addRenderableWidget(new InfinityEditorButton(x, y, 13, 15, text, action));
+    }
+
     protected void addNbtPanel() {
-        this.rawNbtBox = addTrackedBox(legacyTextBox(this.width / 4, 80, this.width / 2, 16,
+        int boxWidth = nbtEditorWidth();
+        this.rawNbtBox = addTrackedBox(legacyTextBox(nbtEditorX(), nbtEditorBoxY(), boxWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt"))));
         this.rawNbtBox.setMaxLength(20000);
         this.rawNbtBox.setTextColor(MAIN_COLOR);
         this.rawNbtBox.setValue(this.rawNbtValue == null ? getInitialNbt(this.previewStack) : this.rawNbtValue);
         this.rawNbtBox.setResponder(value -> this.rawNbtValue = value);
 
-        addRenderableWidget(new InfinityEditorButton(3 * this.width / 7, 100, this.width / 7, FIELD_HEIGHT,
+        int buttonWidth = nbtEditorButtonWidth();
+        addRenderableWidget(new InfinityEditorButton(nbtEditorButtonX(buttonWidth), nbtEditorButtonY(), buttonWidth, SIDEBAR_BUTTON_HEIGHT,
                 Component.translatable(key("nbt.update")), button -> updateRawNbt()));
         addFormatButtons();
     }
@@ -306,7 +585,7 @@ protected void addItemPanel() {
     }
 
     protected void addEnchantmentsPanel() {
-        this.enchantFilterBox = addTrackedBox(new EditBox(this.font, this.width - 115, this.height - 33, 100, 18,
+        this.enchantFilterBox = addTrackedBox(new EditBox(this.font, searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("enchantment_filter"))));
         this.enchantFilterBox.setMaxLength(20);
         this.enchantFilterBox.setFilter(value -> value.matches("[a-z]*"));
@@ -316,17 +595,18 @@ protected void addItemPanel() {
             this.enchantFilterValue = value.toLowerCase(Locale.ROOT);
         });
 
-        this.enchantLevelBox = addTrackedBox(numberBox(15, this.height - 33, 40, 18, 5,
+        int controlLeft = editorControlLeft();
+        this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 5,
                 this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
         this.enchantLevelBox.setResponder(value -> this.enchantLevelValue = value);
 
-        addRenderableWidget(new InfinityEditorButton(15, this.height - 63, 90, OLD_BUTTON_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 63, 90, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("enchanting.enchanttoggle." + (this.showAllEnchantments ? 0 : 1))),
                 button -> toggleEnchantmentsScope()));
     }
 
     protected void addPotionPanel() {
-        this.potionFilterBox = addTrackedBox(new EditBox(this.font, this.width - 115, this.height - 33, 100, 18,
+        this.potionFilterBox = addTrackedBox(new EditBox(this.font, searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("potion_filter"))));
         this.potionFilterBox.setMaxLength(20);
         this.potionFilterBox.setFilter(value -> value.matches("[a-z]*"));
@@ -334,17 +614,18 @@ protected void addItemPanel() {
         this.potionFilterBox.setValue(this.potionFilterValue);
         this.potionFilterBox.setResponder(value -> this.potionFilterValue = value.toLowerCase(Locale.ROOT));
 
-        this.potionLevelBox = addTrackedBox(numberBox(15, this.height - 33, 40, 18, 3,
+        int controlLeft = editorControlLeft();
+        this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 3,
                 this.potionLevelValue, 1, MAX_POTION_LEVEL));
         this.potionLevelBox.setResponder(value -> this.potionLevelValue = value);
 
-        this.potionTimeBox = addTrackedBox(numberBox(15, this.height - 60, 40, 18, 5,
+        this.potionTimeBox = addTrackedBox(numberBox(controlLeft, this.height - 60, 40, 18, 5,
                 this.potionTimeValue, 1, MAX_POTION_SECONDS));
         this.potionTimeBox.setResponder(value -> this.potionTimeValue = value);
 
-        addRenderableWidget(new InfinityEditorButton(15, this.height - 120, 80, OLD_BUTTON_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 120, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color")), button -> switchPanel(Panel.COLOR)));
-        addRenderableWidget(new InfinityEditorButton(15, this.height - 90, 80, OLD_BUTTON_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 90, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("potion.showparticles." + (this.showPotionParticles ? 1 : 0))),
                 button -> togglePotionParticles()));
     }
@@ -809,7 +1090,7 @@ protected void addItemPanel() {
 
     protected void addLorePanel() {
         this.loreScroll = Mth.clamp(this.loreScroll, 0, Math.max(0, this.loreValues.size() - loreLineSpaces()));
-        int x = 100;
+        int x = lorePanelLeft();
         int padding = 2;
         InfinityEditorButton button = addTopButton(x, "lore.addline", pressed -> {
             this.loreValues.add("");
@@ -834,7 +1115,7 @@ protected void addItemPanel() {
             int line = i;
             int row = i - this.loreScroll;
             int y = 55 + 30 * row;
-            EditBox field = addTrackedBox(legacyTextBox(100, y, Math.max(80, this.width - 200), FIELD_HEIGHT,
+            EditBox field = addTrackedBox(legacyTextBox(lorePanelLeft(), y, loreFieldWidth(), FIELD_HEIGHT,
                     Component.literal("Line " + (line + 1))));
             field.setMaxLength(500);
             field.setTextColor(MAIN_COLOR);
@@ -863,14 +1144,22 @@ protected void addItemPanel() {
     protected InfinityEditorButton addTopButton(int x, String keySuffix, InfinityEditorButton.PressAction action) {
         Component text = Component.translatable(key(keySuffix));
         int width = this.font.width(text) + 6;
-        InfinityEditorButton button = addRenderableWidget(new InfinityEditorButton(x, 10, width, FIELD_HEIGHT, text, action));
+        int clampedX = isSidebarUi() ? Math.min(x, Math.max(lorePanelLeft(), safeRight() - width)) : x;
+        InfinityEditorButton button = addRenderableWidget(new InfinityEditorButton(clampedX, 10, width, FIELD_HEIGHT, text, action));
         this.loreActionButtons.add(button);
         return button;
     }
 
     protected void addBottomButtons() {
+        if (isSidebarUi()) {
+            addSidebarBottomButtons();
+            return;
+        }
+
         switch (this.activePanel) {
             case ITEM -> {
+                addRenderableWidget(new InfinityEditorButton(5, legacyUiModeButtonY(), 80, OLD_BUTTON_HEIGHT,
+                        getUiModeButtonText(), button -> toggleUiMode()));
                 if (isTradeSlotEditor()) {
                     addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, OLD_BUTTON_WIDTH, OLD_BUTTON_HEIGHT,
                             Component.translatable(key("back")), button -> goBack()));
@@ -914,6 +1203,71 @@ protected void addItemPanel() {
                         Component.translatable(key("drop")), button -> dropEditedStack()));
             }
         }
+    }
+
+    protected void addSidebarBottomButtons() {
+        int buttonHeight = SIDEBAR_BUTTON_HEIGHT;
+        int gap = 6;
+        int y = sidebarBottomButtonY();
+
+        addRenderableWidget(new InfinityEditorButton(10, sidebarUiModeButtonY(), sidebarWidth() - 20, buttonHeight,
+                getUiModeButtonText(), button -> toggleUiMode()));
+
+        if (this.activePanel == Panel.ITEM) {
+            int count = isTradeSlotEditor() ? 3 : 4;
+            int buttonWidth = sidebarBottomButtonWidth(count, gap);
+            int x = sidebarBottomStartX(count, buttonWidth, gap);
+            addRenderableWidget(new InfinityEditorButton(x, y, buttonWidth, buttonHeight,
+                    Component.translatable(key(isTradeSlotEditor() ? "back" : "close")), button -> {
+                if (isTradeSlotEditor()) {
+                    goBack();
+                } else {
+                    onClose();
+                }
+            }));
+            addRenderableWidget(new InfinityEditorButton(x + buttonWidth + gap, y, buttonWidth, buttonHeight,
+                    Component.translatable(key("reset")), button -> resetStack()));
+            if (!isTradeSlotEditor()) {
+                addRenderableWidget(new InfinityEditorButton(x + 2 * (buttonWidth + gap), y, buttonWidth, buttonHeight,
+                        Component.translatable(key("save")), button -> applyToSelectedSlot()));
+                addRenderableWidget(new InfinityEditorButton(x + 3 * (buttonWidth + gap), y, buttonWidth, buttonHeight,
+                        Component.translatable(key("drop")), button -> dropEditedStack()));
+            } else {
+                addRenderableWidget(new InfinityEditorButton(x + 2 * (buttonWidth + gap), y, buttonWidth, buttonHeight,
+                        Component.translatable(key("drop")), button -> dropEditedStack()));
+            }
+            return;
+        }
+
+        if (this.activePanel == Panel.NBT_ADVANCED) {
+            int buttonWidth = sidebarBottomButtonWidth(1, gap);
+            addRenderableWidget(new InfinityEditorButton(contentLeft() + 16, y, buttonWidth, buttonHeight,
+                    Component.translatable(key("back")), button -> goBack()));
+            return;
+        }
+
+        if (this.activePanel == Panel.TRADE) {
+            int buttonWidth = sidebarBottomButtonWidth(3, gap);
+            int x = sidebarBottomStartX(3, buttonWidth, gap);
+            addRenderableWidget(new InfinityEditorButton(x, y, buttonWidth, buttonHeight,
+                    Component.translatable(key("back")), button -> goBack()));
+            InfinityEditorButton reset = addRenderableWidget(new InfinityEditorButton(x + buttonWidth + gap, y, buttonWidth, buttonHeight,
+                    Component.translatable(key("reset")), button -> {
+            }));
+            reset.active = false;
+            addRenderableWidget(new InfinityEditorButton(x + 2 * (buttonWidth + gap), y, buttonWidth, buttonHeight,
+                    Component.translatable(key("drop")), button -> dropEditedStack()));
+            return;
+        }
+
+        int buttonWidth = sidebarBottomButtonWidth(3, gap);
+        int x = sidebarBottomStartX(3, buttonWidth, gap);
+        addRenderableWidget(new InfinityEditorButton(x, y, buttonWidth, buttonHeight,
+                Component.translatable(key("back")), button -> goBack()));
+        addRenderableWidget(new InfinityEditorButton(x + buttonWidth + gap, y, buttonWidth, buttonHeight,
+                Component.translatable(key("reset")), button -> resetStack()));
+        addRenderableWidget(new InfinityEditorButton(x + 2 * (buttonWidth + gap), y, buttonWidth, buttonHeight,
+                Component.translatable(key("drop")), button -> dropEditedStack()));
     }
 
     protected EditBox addTrackedBox(EditBox box) {
