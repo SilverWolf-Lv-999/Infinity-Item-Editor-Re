@@ -83,7 +83,11 @@ final class ItemCommandBlockEditorScreen extends Screen {
         if (keyCode == 256 && this.commandBox != null && this.commandBox.closeCompletions()) {
             return true;
         }
-        if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
+        if (keyCode == 256) {
+            returnToLastScreen();
+            return true;
+        }
+        if (isInventoryKey(keyCode, scanCode) && !isCommandBoxFocused()) {
             returnToLastScreen();
             return true;
         }
@@ -128,6 +132,10 @@ final class ItemCommandBlockEditorScreen extends Screen {
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
                 && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+    }
+
+    private boolean isCommandBoxFocused() {
+        return this.commandBox != null && this.commandBox.isFocused();
     }
 
     private void applyCommand(boolean returnAfterApply) {

@@ -99,7 +99,11 @@ final class ItemJsonEditorScreen extends Screen {
         if (keyCode == 256 && this.jsonBox != null && this.jsonBox.closeCompletions()) {
             return true;
         }
-        if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
+        if (keyCode == 256) {
+            returnToLastScreen();
+            return true;
+        }
+        if (isInventoryKey(keyCode, scanCode) && !isJsonBoxFocused()) {
             returnToLastScreen();
             return true;
         }
@@ -148,6 +152,10 @@ final class ItemJsonEditorScreen extends Screen {
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
                 && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+    }
+
+    private boolean isJsonBoxFocused() {
+        return this.jsonBox != null && this.jsonBox.isFocused();
     }
 
     private void applyJson(boolean returnAfterApply) {
