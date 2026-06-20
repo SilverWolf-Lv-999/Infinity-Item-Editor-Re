@@ -61,25 +61,25 @@ public class InfinityEditorButton extends AbstractButton {
         int fillColor = this.active
                 ? ModernUi.lerpColor(ModernUi.SURFACE, ModernUi.SURFACE_HOVER, this.hoverAmount)
                 : ModernUi.SURFACE_DISABLED;
-        int borderColor = highlighted ? ModernUi.ACCENT : ModernUi.BORDER;
+        int borderColor = highlighted ? ModernUi.BORDER_STRONG : ModernUi.BORDER;
+        int radius = Math.min(8, Math.max(4, height / 2));
 
-        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, height >= 20 ? 6 : 4, fillColor, borderColor);
+        if (highlighted) {
+            ModernUi.fillRounded(guiGraphics, x - 1, y - 1, x + width + 1, y + height + 1, radius + 1,
+                    ModernUi.alpha(0x62D6FF, Math.round(32.0F * this.hoverAmount)));
+        }
+        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, radius, fillColor, borderColor);
         if (highlighted) {
             int accentWidth = Math.min(3 + Math.round(this.hoverAmount * 3.0F), Math.max(2, width / 4));
-            guiGraphics.fill(x + 2, y + 3, x + 2 + accentWidth, y + height - 3, ModernUi.ACCENT);
-            guiGraphics.fill(x + 5, y + 1, x + width - 5, y + 2, ModernUi.alpha(0xFFFFFF, 24));
+            guiGraphics.fill(x + 2, y + 4, x + 2 + accentWidth, y + height - 4, ModernUi.ACCENT_HOVER);
+            guiGraphics.fill(x + 6, y + 1, x + width - 6, y + 2, ModernUi.alpha(0xFFFFFF, 42));
         }
 
         var font = Minecraft.getInstance().font;
         int textColor = this.active
                 ? ModernUi.lerpColor(ModernUi.TEXT_PRIMARY, ModernUi.ACCENT_HOVER, this.hoverAmount)
                 : 0xFF6D7875;
-        int padding = width <= 20 ? 2 : 5;
-        Component text = getMessage();
-        int textWidth = font.width(text);
-        int textX = x + Math.max(padding, (width - textWidth) / 2);
-        int textY = y + (height - font.lineHeight) / 2;
-        guiGraphics.drawString(font, text, textX, textY, textColor, false);
+        renderScrollingString(guiGraphics, font, width <= 20 ? 1 : 4, textColor);
     }
 
     private void updateHoverAmount(float partialTick) {

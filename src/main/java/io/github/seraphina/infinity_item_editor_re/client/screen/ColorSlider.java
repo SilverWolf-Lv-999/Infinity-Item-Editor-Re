@@ -55,16 +55,22 @@ class ColorSlider extends AbstractSliderButton {
         int width = getWidth();
         int height = getHeight();
         int fill = ModernUi.lerpColor(ModernUi.SURFACE, ModernUi.SURFACE_HOVER, this.hoverAmount);
-        int border = this.isHoveredOrFocused() ? ModernUi.ACCENT : ModernUi.BORDER;
-        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, 6, fill, border);
+        int border = this.isHoveredOrFocused() ? ModernUi.BORDER_STRONG : ModernUi.BORDER;
+        if (this.isHoveredOrFocused()) {
+            ModernUi.fillRounded(guiGraphics, x - 1, y - 1, x + width + 1, y + height + 1, 7,
+                    ModernUi.alpha(0x62D6FF, Math.round(28.0F * this.hoverAmount)));
+        }
+        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, 7, fill, border);
 
         int trackLeft = x + 7;
         int trackRight = x + width - 7;
         int trackY = y + height - 5;
-        guiGraphics.fill(trackLeft, trackY, trackRight, trackY + 2, ModernUi.alpha(0xFFFFFF, 35));
+        ModernUi.fillRounded(guiGraphics, trackLeft, trackY - 1, trackRight, trackY + 3, 2, ModernUi.alpha(0xFFFFFF, 32));
         int knobX = (int) (trackLeft + (trackRight - trackLeft) * this.value);
-        guiGraphics.fill(trackLeft, trackY, knobX, trackY + 2, ModernUi.ACCENT);
-        ModernUi.fillRounded(guiGraphics, knobX - 3, trackY - 2, knobX + 4, trackY + 5, 3, ModernUi.ACCENT_HOVER);
+        ModernUi.fillRounded(guiGraphics, trackLeft, trackY - 1, knobX, trackY + 3, 2, ModernUi.ACCENT);
+        ModernUi.fillRounded(guiGraphics, knobX - 4, trackY - 4, knobX + 5, trackY + 6, 4, ModernUi.SHADOW_SOFT);
+        ModernUi.fillRounded(guiGraphics, knobX - 3, trackY - 4, knobX + 4, trackY + 5, 4, ModernUi.ACCENT_HOVER);
+        guiGraphics.fill(knobX - 1, trackY - 2, knobX + 2, trackY - 1, ModernUi.alpha(0xFFFFFF, 90));
 
         var font = Minecraft.getInstance().font;
         int textColor = ModernUi.lerpColor(ModernUi.TEXT_PRIMARY, ModernUi.ACCENT_HOVER, this.hoverAmount);

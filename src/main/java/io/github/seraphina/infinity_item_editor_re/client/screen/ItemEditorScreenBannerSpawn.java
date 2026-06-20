@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -245,9 +246,14 @@ protected void addSelectedBannerPattern() {
         ListTag patterns = getBannerPatterns();
         int x = this.midX - 70;
         int y = 124;
-        guiGraphics.drawString(this.font, Component.translatable(key("banner.layers")), x, y, MAIN_COLOR);
+        if (isSidebarUi()) {
+            ModernUi.fillPanel(guiGraphics, x - 8, y - 8, x + 164, y + 94, 8, 0x94101820, ModernUi.BORDER);
+        }
+        guiGraphics.drawString(this.font, Component.translatable(key("banner.layers")), x, y,
+                isSidebarUi() ? ModernUi.TEXT_MUTED : MAIN_COLOR);
         if (patterns.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_layers")), x, y + 12, ALT_COLOR);
+            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_layers")), x, y + 12,
+                    isSidebarUi() ? ModernUi.TEXT_SECONDARY : ALT_COLOR);
             return;
         }
 
@@ -260,7 +266,8 @@ protected void addSelectedBannerPattern() {
                     ? Component.literal(patternTag.getString(BANNER_PATTERN_TAG))
                     : getBannerPatternName(entry, color);
             String text = (i + 1) + ". " + name.getString();
-            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text, 150), x, y + 12 + (i - first) * 10, MAIN_COLOR);
+            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text, 150), x, y + 12 + (i - first) * 10,
+                    isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
         }
     }
 

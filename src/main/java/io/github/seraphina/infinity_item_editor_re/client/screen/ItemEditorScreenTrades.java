@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
@@ -548,6 +549,9 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
         int x = getSingleTradeSlotX(slot);
         int y = getSingleTradeSlotY();
+        if (isSidebarUi()) {
+            ModernUi.fillItemWell(guiGraphics, x + 8, y + 8, 30);
+        }
         guiGraphics.renderItem(stack, x, y);
         guiGraphics.renderItemDecorations(this.font, stack, x, y);
     }

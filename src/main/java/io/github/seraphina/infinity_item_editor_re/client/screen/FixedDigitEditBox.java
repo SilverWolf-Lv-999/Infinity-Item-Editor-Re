@@ -129,7 +129,7 @@ class FixedDigitEditBox extends EditBox {
         int color = this.active ? (sidebarUi ? ModernUi.TEXT_PRIMARY : InfinityEditorButton.MAIN_COLOR) : DISABLED_COLOR;
         if (sidebarUi) {
             ModernUi.fillInset(guiGraphics, getX() - 3, getY() - 2, getX() + getWidth() + 3, getY() + getHeight() + 2,
-                    5, isFocused(), this.active);
+                    6, this.active && (isFocused() || isMouseOver(mouseX, mouseY)), this.active);
         } else {
             guiGraphics.fill(getX() - 1, getY() - 1, getX() + getWidth() + 1, getY() + getHeight() + 1, color);
             guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), InfinityEditorButton.ALT_COLOR);
@@ -144,17 +144,17 @@ class FixedDigitEditBox extends EditBox {
         if (!value.isEmpty()) {
             String beforeCursor = value.substring(0, Math.min(cursorStringPosition, value.length()));
             if (!beforeCursor.isEmpty()) {
-                cursorX = guiGraphics.drawString(this.font, beforeCursor, textX, textY, color, true) - 1;
+                cursorX = guiGraphics.drawString(this.font, beforeCursor, textX, textY, color, !sidebarUi) - 1;
             }
 
             if (cursorStringPosition < value.length()) {
-                guiGraphics.drawString(this.font, value.substring(cursorStringPosition), cursorX, textY, color, true);
+                guiGraphics.drawString(this.font, value.substring(cursorStringPosition), cursorX, textY, color, !sidebarUi);
             }
         }
 
         if (isFocused() && this.cursorFrame / 6 % 2 == 0) {
             guiGraphics.drawString(this.font, "_", cursorX, textY,
-                    sidebarUi ? ModernUi.ACCENT_HOVER : InfinityEditorButton.CONTRAST_COLOR, true);
+                    sidebarUi ? ModernUi.ACCENT_HOVER : InfinityEditorButton.CONTRAST_COLOR, !sidebarUi);
         }
     }
 
