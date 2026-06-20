@@ -4,7 +4,9 @@ import com.mojang.logging.LogUtils;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -29,6 +31,7 @@ public class ModSource {
         IEventBus modEventBus = context.getModEventBus();
         CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
         context.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ConfigScreenRegistration.register(context));
     }
 
     public static synchronized void initClientStorage(File minecraftDirectory) {

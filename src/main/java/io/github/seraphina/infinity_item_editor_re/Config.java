@@ -5,39 +5,72 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 @Mod.EventBusSubscriber(modid = ModSource.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+    private static final List<BooleanEntry> BOOLEAN_ENTRIES_BUILDER = new ArrayList<>();
 
-    private static final ForgeConfigSpec.BooleanValue ITEM_GUI_SIDEBAR = BUILDER
-            .comment("Whether the item editor GUI should use the sidebar layout once the GUI is ported.")
-            .define("itemGuiSidebar", false);
-    private static final ForgeConfigSpec.BooleanValue VOID_TAB = BUILDER
-            .comment("Whether the Infinity Void creative tab is shown.")
-            .define("voidTab", true);
-    private static final ForgeConfigSpec.BooleanValue VOID_ADD_NOTIFICATION = BUILDER
-            .comment("Whether newly discovered Infinity Void entries should notify the player.")
-            .define("voidAddNotification", false);
-    private static final ForgeConfigSpec.BooleanValue VOID_TAB_HIDE_HEADS = BUILDER
-            .comment("Whether player heads should be hidden from the Infinity Void tab.")
-            .define("voidTabHideHeads", false);
-    private static final ForgeConfigSpec.BooleanValue UNAVAILABLE_TAB = BUILDER
-            .comment("Whether the unavailable-items creative tab is shown.")
-            .define("unavailableTab", true);
-    private static final ForgeConfigSpec.BooleanValue BANNER_TAB = BUILDER
-            .comment("Whether the banner helper creative tab is shown.")
-            .define("bannerTab", true);
-    private static final ForgeConfigSpec.BooleanValue HEAD_TAB = BUILDER
-            .comment("Whether the head helper creative tab is shown.")
-            .define("headTab", true);
-    private static final ForgeConfigSpec.BooleanValue THIEF_TAB = BUILDER
-            .comment("Whether the thief creative tab is shown.")
-            .define("thiefTab", true);
-    private static final ForgeConfigSpec.BooleanValue FIREWORK_TAB = BUILDER
-            .comment("Whether the firework helper creative tab is shown.")
-            .define("fireworkTab", true);
+    public static final BooleanEntry ITEM_GUI_SIDEBAR = defineBoolean(
+            "itemGuiSidebar",
+            false,
+            "Whether the item editor GUI should use the sidebar layout once the GUI is ported.",
+            "item_gui_sidebar"
+    );
+    public static final BooleanEntry VOID_TAB = defineBoolean(
+            "voidTab",
+            true,
+            "Whether the Infinity Void creative tab is shown.",
+            "void_tab"
+    );
+    public static final BooleanEntry VOID_ADD_NOTIFICATION = defineBoolean(
+            "voidAddNotification",
+            false,
+            "Whether newly discovered Infinity Void entries should notify the player.",
+            "void_add_notification"
+    );
+    public static final BooleanEntry VOID_TAB_HIDE_HEADS = defineBoolean(
+            "voidTabHideHeads",
+            false,
+            "Whether player heads should be hidden from the Infinity Void tab.",
+            "void_tab_hide_heads"
+    );
+    public static final BooleanEntry UNAVAILABLE_TAB = defineBoolean(
+            "unavailableTab",
+            true,
+            "Whether the unavailable-items creative tab is shown.",
+            "unavailable_tab"
+    );
+    public static final BooleanEntry BANNER_TAB = defineBoolean(
+            "bannerTab",
+            true,
+            "Whether the banner helper creative tab is shown.",
+            "banner_tab"
+    );
+    public static final BooleanEntry HEAD_TAB = defineBoolean(
+            "headTab",
+            true,
+            "Whether the head helper creative tab is shown.",
+            "head_tab"
+    );
+    public static final BooleanEntry THIEF_TAB = defineBoolean(
+            "thiefTab",
+            true,
+            "Whether the thief creative tab is shown.",
+            "thief_tab"
+    );
+    public static final BooleanEntry FIREWORK_TAB = defineBoolean(
+            "fireworkTab",
+            true,
+            "Whether the firework helper creative tab is shown.",
+            "firework_tab"
+    );
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();
+    private static final List<BooleanEntry> BOOLEAN_ENTRIES = Collections.unmodifiableList(BOOLEAN_ENTRIES_BUILDER);
 
     public static boolean itemGuiSidebar = false;
     public static boolean voidTab = true;
@@ -54,6 +87,14 @@ public final class Config {
     public static final int CONTRAST_COLOR = colorFromRgba(255, 0, 100, 255);
 
     private Config() {
+    }
+
+    public static List<BooleanEntry> booleanEntries() {
+        return BOOLEAN_ENTRIES;
+    }
+
+    public static void save() {
+        SPEC.save();
     }
 
     public static boolean getItemSidebar() {
@@ -86,6 +127,17 @@ public final class Config {
 
     @SubscribeEvent
     public static void onLoad(ModConfigEvent event) {
+        syncFromSpec();
+    }
+
+    public static void syncFromSpec() {
+        for (BooleanEntry entry : BOOLEAN_ENTRIES) {
+            entry.syncFromSpec();
+        }
+        syncPublicFields();
+    }
+
+    public static void syncPublicFields() {
         itemGuiSidebar = ITEM_GUI_SIDEBAR.get();
         voidTab = VOID_TAB.get();
         voidAddNotification = VOID_ADD_NOTIFICATION.get();
@@ -97,7 +149,74 @@ public final class Config {
         fireworkTab = FIREWORK_TAB.get();
     }
 
+    private static BooleanEntry defineBoolean(String path, boolean defaultValue, String comment, String keySuffix) {
+        String titleKey = translationKey(keySuffix, "title");
+        String descriptionKey = translationKey(keySuffix, "description");
+        ForgeConfigSpec.BooleanValue value = BUILDER
+                .comment(comment)
+                .translation(titleKey)
+                .define(path, defaultValue);
+        BooleanEntry entry = new BooleanEntry(path, defaultValue, titleKey, descriptionKey, value);
+        BOOLEAN_ENTRIES_BUILDER.add(entry);
+        return entry;
+    }
+
     private static int colorFromRgba(int alpha, int red, int green, int blue) {
         return ((alpha & 255) << 24) | ((red & 255) << 16) | ((green & 255) << 8) | (blue & 255);
+    }
+
+    private static String translationKey(String keySuffix, String part) {
+        return "config." + ModSource.MODID + "." + keySuffix + "." + part;
+    }
+
+    public static final class BooleanEntry {
+        private final String path;
+        private final boolean defaultValue;
+        private final String titleKey;
+        private final String descriptionKey;
+        private final ForgeConfigSpec.BooleanValue value;
+        private boolean cachedValue;
+
+        private BooleanEntry(String path, boolean defaultValue, String titleKey, String descriptionKey, ForgeConfigSpec.BooleanValue value) {
+            this.path = path;
+            this.defaultValue = defaultValue;
+            this.titleKey = titleKey;
+            this.descriptionKey = descriptionKey;
+            this.value = value;
+            this.cachedValue = defaultValue;
+        }
+
+        public String path() {
+            return this.path;
+        }
+
+        public boolean defaultValue() {
+            return this.defaultValue;
+        }
+
+        public String titleKey() {
+            return this.titleKey;
+        }
+
+        public String descriptionKey() {
+            return this.descriptionKey;
+        }
+
+        public boolean get() {
+            return this.cachedValue;
+        }
+
+        public void set(boolean value) {
+            this.value.set(value);
+            this.cachedValue = value;
+        }
+
+        public void reset() {
+            set(this.defaultValue);
+        }
+
+        private void syncFromSpec() {
+            this.cachedValue = this.value.get();
+        }
     }
 }
