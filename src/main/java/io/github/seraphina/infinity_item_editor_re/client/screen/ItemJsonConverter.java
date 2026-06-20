@@ -28,9 +28,11 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 final class ItemJsonConverter {
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    private static final Set<String> STACK_ROOT_KEYS = Set.of("id", "item", "Item", "Count", "count", "tag", "nbt");
 
     private ItemJsonConverter() {
     }
@@ -62,14 +64,38 @@ final class ItemJsonConverter {
     }
 
     private static void normalizeStackKeys(CompoundTag saved) {
-        if (!saved.contains("id") && saved.contains("item")) {
-            saved.putString("id", saved.getString("item"));
+        if (!saved.contains("id")) {
+            if (saved.contains("item")) {
+                saved.putString("id", saved.getString("item"));
+            } else if (saved.contains("Item")) {
+                saved.putString("id", saved.getString("Item"));
+            }
         }
         if (!saved.contains("Count") && saved.contains("count")) {
             saved.putByte("Count", saved.getByte("count"));
         }
         if (!saved.contains("Count")) {
             saved.putByte("Count", (byte) 1);
+        }
+        if (!saved.contains("tag") && saved.get("nbt") instanceof CompoundTag nbt) {
+            saved.put("tag", nbt.copy());
+        }
+        moveLooseRootTags(saved);
+    }
+
+    private static void moveLooseRootTags(CompoundTag saved) {
+        CompoundTag itemTag = saved.get("tag") instanceof CompoundTag existing ? existing.copy() : new CompoundTag();
+        for (String key : new ArrayList<>(saved.getAllKeys())) {
+            if (STACK_ROOT_KEYS.contains(key) || itemTag.contains(key)) {
+                continue;
+            }
+            Tag value = saved.get(key);
+            if (value != null) {
+                itemTag.put(key, value.copy());
+            }
+        }
+        if (!itemTag.isEmpty()) {
+            saved.put("tag", itemTag);
         }
     }
 

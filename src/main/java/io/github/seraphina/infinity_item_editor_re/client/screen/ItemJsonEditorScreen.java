@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @OnlyIn(Dist.CLIENT)
 final class ItemJsonEditorScreen extends Screen {
@@ -43,14 +45,17 @@ final class ItemJsonEditorScreen extends Screen {
 
     private final ItemEditorScreen lastScreen;
     private String jsonText;
+    private String appliedJsonText;
     private JsonCodeEditBox jsonBox;
     private Component status = Component.empty();
     private int statusColor = STATUS_NEUTRAL;
+    private boolean discardArmed;
 
     ItemJsonEditorScreen(ItemEditorScreen lastScreen, ItemStack stack) {
         super(Component.translatable(key("json")));
         this.lastScreen = lastScreen;
         this.jsonText = ItemJsonConverter.toJson(stack);
+        this.appliedJsonText = this.jsonText;
     }
 
     @Override
@@ -60,7 +65,10 @@ final class ItemJsonEditorScreen extends Screen {
         this.jsonBox = addRenderableWidget(new JsonCodeEditBox(this.font, EDITOR_MARGIN, EDITOR_TOP,
                 editorWidth, editorHeight, Component.translatable(key("json.placeholder"))));
         this.jsonBox.setValue(this.jsonText);
-        this.jsonBox.setValueListener(value -> this.jsonText = value);
+        this.jsonBox.setValueListener(value -> {
+            this.jsonText = value;
+            this.discardArmed = false;
+        });
         setFocused(this.jsonBox);
         this.jsonBox.setFocused(true);
 
@@ -111,7 +119,7 @@ final class ItemJsonEditorScreen extends Screen {
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 12, InfinityEditorButton.MAIN_COLOR);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         if (!this.status.getString().isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, this.status, this.width / 2, this.height - 40, this.statusColor);
+            guiGraphics.drawCenteredString(this.font, clippedStatus(), this.width / 2, this.height - 40, this.statusColor);
         }
         if (this.jsonBox != null) {
             this.jsonBox.renderCompletions(guiGraphics);
@@ -140,15 +148,17 @@ final class ItemJsonEditorScreen extends Screen {
             this.status = Component.translatable(messageKey("editor_json_applied"), stack.getHoverName());
             this.statusColor = STATUS_GOOD;
             this.jsonText = ItemJsonConverter.toJson(stack);
+            this.appliedJsonText = this.jsonText;
+            this.discardArmed = false;
             if (this.jsonBox != null) {
                 this.jsonBox.setValue(this.jsonText);
+                this.jsonBox.clearError();
             }
             if (returnAfterApply) {
                 returnToLastScreen();
             }
         } catch (JsonParseException | IllegalStateException | NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_json"), exception.getMessage());
-            this.statusColor = STATUS_BAD;
+            showInvalidJson(exception);
         }
     }
 
@@ -157,28 +167,70 @@ final class ItemJsonEditorScreen extends Screen {
             this.jsonText = ItemJsonConverter.format(this.jsonBox == null ? this.jsonText : this.jsonBox.getValue());
             if (this.jsonBox != null) {
                 this.jsonBox.setValue(this.jsonText);
+                this.jsonBox.clearError();
             }
             this.status = Component.translatable(messageKey("editor_json_formatted"));
             this.statusColor = STATUS_GOOD;
         } catch (JsonParseException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_json"), exception.getMessage());
-            this.statusColor = STATUS_BAD;
+            showInvalidJson(exception);
         }
     }
 
     private void resetJson() {
         this.jsonText = ItemJsonConverter.toJson(this.lastScreen.previewStack);
+        this.appliedJsonText = this.jsonText;
+        this.discardArmed = false;
         if (this.jsonBox != null) {
             this.jsonBox.setValue(this.jsonText);
+            this.jsonBox.clearError();
         }
         this.status = Component.translatable(messageKey("editor_json_reset"));
         this.statusColor = STATUS_NEUTRAL;
     }
 
     private void returnToLastScreen() {
+        if (isDirty() && !this.discardArmed) {
+            this.discardArmed = true;
+            this.status = Component.translatable(messageKey("editor_json_unsaved"));
+            this.statusColor = STATUS_NEUTRAL;
+            if (this.jsonBox != null) {
+                setFocused(this.jsonBox);
+                this.jsonBox.setFocused(true);
+            }
+            return;
+        }
         if (this.minecraft != null) {
             this.minecraft.setScreen(this.lastScreen);
         }
+    }
+
+    private boolean isDirty() {
+        String current = this.jsonBox == null ? this.jsonText : this.jsonBox.getValue();
+        return !current.equals(this.appliedJsonText);
+    }
+
+    private Component clippedStatus() {
+        int maxWidth = Math.max(40, this.width - 20);
+        String text = this.status.getString();
+        if (this.font.width(text) <= maxWidth) {
+            return this.status;
+        }
+        return Component.literal(this.font.plainSubstrByWidth(text, maxWidth - this.font.width("...")) + "...");
+    }
+
+    private void showInvalidJson(Exception exception) {
+        JsonErrorLocation location = JsonErrorLocation.from(exception.getMessage());
+        if (location == null) {
+            this.status = Component.translatable(messageKey("editor_invalid_json"), exception.getMessage());
+        } else {
+            this.status = Component.translatable(messageKey("editor_invalid_json_at"),
+                    location.line(), location.column(), exception.getMessage());
+            if (this.jsonBox != null) {
+                this.jsonBox.moveCursorToLineColumn(location.line(), location.column());
+                this.jsonBox.setErrorLine(location.line() - 1);
+            }
+        }
+        this.statusColor = STATUS_BAD;
     }
 
     private static String key(String suffix) {
@@ -189,12 +241,28 @@ final class ItemJsonEditorScreen extends Screen {
         return "message." + ModSource.MODID + "." + suffix;
     }
 
+    private record JsonErrorLocation(int line, int column) {
+        private static final Pattern LINE_COLUMN = Pattern.compile("line (\\d+) column (\\d+)", Pattern.CASE_INSENSITIVE);
+
+        private static JsonErrorLocation from(String message) {
+            if (message == null) {
+                return null;
+            }
+            Matcher matcher = LINE_COLUMN.matcher(message);
+            if (!matcher.find()) {
+                return null;
+            }
+            return new JsonErrorLocation(Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2)));
+        }
+    }
+
     private static final class JsonCodeEditBox extends AbstractScrollWidget {
         private static final int LINE_HEIGHT = 10;
         private static final int LINE_NUMBER_WIDTH = 34;
         private static final int COMPLETION_WIDTH = 176;
         private static final int COMPLETION_ROW_HEIGHT = 12;
-        private static final int MAX_COMPLETIONS = 8;
+        private static final int MAX_COMPLETIONS = 10;
+        private static final String INDENT = "  ";
         private static final int COLOR_BACKGROUND = 0xF0101117;
         private static final int COLOR_LINE_NUMBER = 0xFF697184;
         private static final int COLOR_TEXT = 0xFFE7EAF0;
@@ -207,16 +275,30 @@ final class ItemJsonEditorScreen extends Screen {
         private static final int COLOR_CURSOR = 0xFFE7EAF0;
         private static final int COLOR_COMPLETION_BACKGROUND = 0xF01A1E28;
         private static final int COLOR_COMPLETION_SELECTED = 0xFF243A55;
+        private static final int COLOR_ERROR_LINE = 0x44F44262;
 
         private static final List<String> KEY_COMPLETIONS = List.of(
                 "id", "Count", "tag", "Damage", "display", "Name", "Lore", "HideFlags", "Unbreakable",
-                "Enchantments", "StoredEnchantments", "AttributeModifiers", "AttributeName", "Amount", "Operation",
+                "Enchantments", "StoredEnchantments", "lvl", "AttributeModifiers", "AttributeName", "Amount", "Operation",
                 "UUID", "Slot", "RepairCost", "CanDestroy", "CanPlaceOn", "CustomPotionEffects", "CustomPotionColor",
-                "BlockEntityTag", "EntityTag", "SkullOwner", "Properties", "textures", "Value", "Signature",
+                "Potion", "Ambient", "Amplifier", "Duration", "ShowIcon", "ShowParticles", "BlockEntityTag",
+                "BlockStateTag", "EntityTag", "SkullOwner", "Properties", "textures", "Value", "Signature",
                 "Fireworks", "Flight", "Explosions", "Explosion", "Type", "Colors", "FadeColors", "Flicker",
                 "Trail", "Items", "Slot", "tag", "Offers", "Recipes", "buy", "buyB", "sell", "uses", "maxUses",
-                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand"
+                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color"
         );
+        private static final List<String> ROOT_KEY_COMPLETIONS = List.of("id", "Count", "tag");
+        private static final List<String> DISPLAY_KEY_COMPLETIONS = List.of("Name", "Lore", "color", "italic", "bold",
+                "underlined", "strikethrough", "obfuscated");
+        private static final List<String> ENCHANTMENT_KEY_COMPLETIONS = List.of("id", "lvl");
+        private static final List<String> ATTRIBUTE_KEY_COMPLETIONS = List.of("AttributeName", "Name", "Amount",
+                "Operation", "UUID", "Slot");
+        private static final List<String> POTION_EFFECT_KEY_COMPLETIONS = List.of("Id", "Amplifier", "Duration",
+                "Ambient", "ShowParticles", "ShowIcon");
+        private static final List<String> FIREWORK_KEY_COMPLETIONS = List.of("Flight", "Explosions", "Type", "Colors",
+                "FadeColors", "Flicker", "Trail");
+        private static final List<String> TRADE_KEY_COMPLETIONS = List.of("buy", "buyB", "sell", "uses", "maxUses",
+                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand");
         private static final List<String> VALUE_LITERALS = List.of("true", "false", "0", "1", "{}", "[]");
         private static final List<String> SLOT_VALUES = List.of("mainhand", "offhand", "head", "chest", "legs", "feet");
         private static final List<String> ITEM_IDS = registryKeys(ForgeRegistries.ITEMS.getValues());
@@ -232,6 +314,7 @@ final class ItemJsonEditorScreen extends Screen {
         };
         private int cursor;
         private int selectionAnchor = -1;
+        private int errorLine = -1;
         private int ticks;
         private int selectedCompletion;
         private boolean draggingSelection;
@@ -258,6 +341,24 @@ final class ItemJsonEditorScreen extends Screen {
 
         String getValue() {
             return this.text;
+        }
+
+        void clearError() {
+            this.errorLine = -1;
+        }
+
+        void setErrorLine(int line) {
+            this.errorLine = Math.max(-1, line);
+        }
+
+        void moveCursorToLineColumn(int line, int column) {
+            List<TextLine> lines = lineViews();
+            if (lines.isEmpty()) {
+                moveCursorTo(0, false);
+                return;
+            }
+            TextLine view = lines.get(Mth.clamp(line - 1, 0, lines.size() - 1));
+            moveCursorTo(view.beginIndex() + Mth.clamp(column - 1, 0, view.endIndex() - view.beginIndex()), false);
         }
 
         void tick() {
@@ -309,10 +410,14 @@ final class ItemJsonEditorScreen extends Screen {
                 return false;
             }
             if (keyCode == 258) {
-                if (applySelectedCompletion()) {
+                if (!Screen.hasShiftDown() && applySelectedCompletion()) {
                     return true;
                 }
-                insertText("  ");
+                if (Screen.hasShiftDown()) {
+                    outdentSelectedLines();
+                } else {
+                    indentSelectedLines();
+                }
                 return true;
             }
             if (Screen.hasControlDown() && keyCode == 32) {
@@ -334,6 +439,34 @@ final class ItemJsonEditorScreen extends Screen {
         public boolean charTyped(char codePoint, int modifiers) {
             if (!isFocused() || !SharedConstants.isAllowedChatCharacter(codePoint)) {
                 return false;
+            }
+            if (codePoint == '"') {
+                if (this.cursor < this.text.length() && this.text.charAt(this.cursor) == '"' && !hasSelection()) {
+                    moveCursorTo(this.cursor + 1, false);
+                    return true;
+                }
+                if (isEscapedQuoteAtCursor() || isInsideString(this.cursor)) {
+                    insertText("\"");
+                    return true;
+                }
+                insertPairedText("\"", "\"");
+                return true;
+            }
+            if (codePoint == '{') {
+                insertPairedText("{", "}");
+                return true;
+            }
+            if (codePoint == '[') {
+                insertPairedText("[", "]");
+                return true;
+            }
+            if (codePoint == '}' || codePoint == ']') {
+                if (this.cursor < this.text.length() && this.text.charAt(this.cursor) == codePoint && !hasSelection()) {
+                    moveCursorTo(this.cursor + 1, false);
+                    return true;
+                }
+                insertClosingBracket(codePoint);
+                return true;
             }
             insertText(Character.toString(codePoint));
             return true;
@@ -408,6 +541,12 @@ final class ItemJsonEditorScreen extends Screen {
 
         private void renderLine(GuiGraphics guiGraphics, String value, TextLine view, TextLine selected, int line, int y) {
             int lineNumberColor = line == cursorLineIndex() ? InfinityEditorButton.CONTRAST_COLOR : COLOR_LINE_NUMBER;
+            if (line == this.errorLine) {
+                guiGraphics.fill(getX() + LINE_NUMBER_WIDTH + 1, y, getX() + getWidth() - innerPadding(), y + LINE_HEIGHT, COLOR_ERROR_LINE);
+                lineNumberColor = STATUS_BAD;
+            } else if (line == cursorLineIndex()) {
+                guiGraphics.fill(getX() + LINE_NUMBER_WIDTH + 1, y, getX() + getWidth() - innerPadding(), y + LINE_HEIGHT, 0x221B3142);
+            }
             String lineNumber = Integer.toString(line + 1);
             guiGraphics.drawString(this.font, lineNumber, getX() + LINE_NUMBER_WIDTH - this.font.width(lineNumber) - 6,
                     y + 1, lineNumberColor, false);
@@ -536,7 +675,7 @@ final class ItemJsonEditorScreen extends Screen {
             clearSelection();
             notifyValueChanged();
             ensureCursorVisible();
-            this.completions.clear();
+            rebuildCompletions();
             return true;
         }
 
@@ -566,7 +705,7 @@ final class ItemJsonEditorScreen extends Screen {
             }
             boolean insideString = start > 0 && value.charAt(start - 1) == '"';
             String prefix = value.substring(start, cursor);
-            String key = keyBeforeValue(value, start);
+            String key = keyBeforeValue(value, start, insideString);
             boolean keyContext = key == null && isProbablyKeyContext(value, start, insideString);
             if (!keyContext && key == null && prefix.length() < 2) {
                 return null;
@@ -578,7 +717,8 @@ final class ItemJsonEditorScreen extends Screen {
             int replaceEnd = keyContext && insideString && cursor < value.length() && value.charAt(cursor) == '"' && !existingKeySyntax
                     ? cursor + 1
                     : cursor;
-            return new CompletionRequest(prefix, start, replaceEnd, keyContext, key, insideString, existingKeySyntax);
+            return new CompletionRequest(prefix, start, replaceEnd, keyContext, key, insideString,
+                    existingKeySyntax, pathBeforeCursor(value, start));
         }
 
         private boolean isProbablyKeyContext(String value, int tokenStart, boolean insideString) {
@@ -593,19 +733,12 @@ final class ItemJsonEditorScreen extends Screen {
             return previous == '{' || previous == ',';
         }
 
-        private String keyBeforeValue(String value, int tokenStart) {
+        private String keyBeforeValue(String value, int tokenStart, boolean insideString) {
             int index = tokenStart - 1;
-            while (index >= 0 && Character.isWhitespace(value.charAt(index))) {
+            if (insideString && index >= 0 && value.charAt(index) == '"') {
                 index--;
             }
-            if (index >= 0 && value.charAt(index) == '"') {
-                index--;
-                while (index >= 0 && value.charAt(index) != '"') {
-                    if (value.charAt(index) == '\\') {
-                        return null;
-                    }
-                    index--;
-                }
+            while (index >= 0 && Character.isWhitespace(value.charAt(index))) {
                 index--;
             }
             while (index >= 0 && Character.isWhitespace(value.charAt(index))) {
@@ -638,10 +771,59 @@ final class ItemJsonEditorScreen extends Screen {
             return null;
         }
 
+        private List<String> pathBeforeCursor(String value, int cursor) {
+            List<String> path = new ArrayList<>();
+            String pendingString = null;
+            String currentKey = null;
+            boolean inString = false;
+            boolean escaped = false;
+            int stringStart = -1;
+            int end = Mth.clamp(cursor, 0, value.length());
+            for (int i = 0; i < end; i++) {
+                char c = value.charAt(i);
+                if (inString) {
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == '"') {
+                        pendingString = value.substring(stringStart, i);
+                        inString = false;
+                    }
+                    continue;
+                }
+
+                if (Character.isWhitespace(c)) {
+                    continue;
+                }
+                if (c == '"') {
+                    inString = true;
+                    escaped = false;
+                    stringStart = i + 1;
+                } else if (c == ':' && pendingString != null) {
+                    currentKey = pendingString;
+                    pendingString = null;
+                } else if (c == '{' || c == '[') {
+                    path.add(currentKey == null ? "" : currentKey);
+                    currentKey = null;
+                    pendingString = null;
+                } else if (c == '}' || c == ']') {
+                    if (!path.isEmpty()) {
+                        path.remove(path.size() - 1);
+                    }
+                    currentKey = null;
+                    pendingString = null;
+                } else if (c == ',') {
+                    currentKey = null;
+                    pendingString = null;
+                }
+            }
+            return path;
+        }
+
         private void addKeyCompletions(Set<Completion> results, CompletionRequest request) {
-            String prefix = request.prefix().toLowerCase(Locale.ROOT);
-            for (String key : KEY_COMPLETIONS) {
-                if (!key.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+            for (String key : keyCompletionCandidates(request)) {
+                if (!completionMatches(key, request.prefix())) {
                     continue;
                 }
                 String insert = request.insideString()
@@ -651,26 +833,102 @@ final class ItemJsonEditorScreen extends Screen {
             }
         }
 
+        private List<String> keyCompletionCandidates(CompletionRequest request) {
+            LinkedHashSet<String> keys = new LinkedHashSet<>();
+            String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
+            if (context.isEmpty() && request.path().size() <= 1) {
+                keys.addAll(ROOT_KEY_COMPLETIONS);
+                return new ArrayList<>(keys);
+            } else if (context.equals("display")) {
+                keys.addAll(DISPLAY_KEY_COMPLETIONS);
+            } else if (isEnchantmentContext(context)) {
+                keys.addAll(ENCHANTMENT_KEY_COMPLETIONS);
+            } else if (context.equals("attributemodifiers")) {
+                keys.addAll(ATTRIBUTE_KEY_COMPLETIONS);
+            } else if (context.equals("custompotioneffects")) {
+                keys.addAll(POTION_EFFECT_KEY_COMPLETIONS);
+            } else if (context.equals("fireworks") || context.equals("explosions")) {
+                keys.addAll(FIREWORK_KEY_COMPLETIONS);
+            } else if (context.equals("recipes") || context.equals("offers")) {
+                keys.addAll(TRADE_KEY_COMPLETIONS);
+            }
+            keys.addAll(KEY_COMPLETIONS);
+            return new ArrayList<>(keys);
+        }
+
+        private boolean isEnchantmentContext(String context) {
+            return context.equals("enchantments") || context.equals("storedenchantments");
+        }
+
         private void addValueCompletions(Set<Completion> results, CompletionRequest request) {
             String normalizedKey = request.key() == null ? "" : request.key().toLowerCase(Locale.ROOT);
+            String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
             if (normalizedKey.equals("id")) {
-                addStringValues(results, request, ITEM_IDS);
-                addStringValues(results, request, ENCHANTMENT_IDS);
-                addStringValues(results, request, ENTITY_IDS);
+                if (isEnchantmentContext(context)) {
+                    addStringValues(results, request, ENCHANTMENT_IDS);
+                } else if (context.equals("entitytag")) {
+                    addStringValues(results, request, ENTITY_IDS);
+                } else {
+                    addStringValues(results, request, ITEM_IDS);
+                }
             } else if (normalizedKey.equals("attributename") || normalizedKey.equals("name")) {
-                addStringValues(results, request, ATTRIBUTE_IDS);
+                if (context.equals("attributemodifiers")) {
+                    addStringValues(results, request, ATTRIBUTE_IDS);
+                }
             } else if (normalizedKey.equals("slot")) {
                 addStringValues(results, request, SLOT_VALUES);
+            } else if (normalizedKey.equals("potion")) {
+                addStringValues(results, request, POTION_IDS);
             }
+            addSnippetValues(results, request, normalizedKey);
             addRawValues(results, request, VALUE_LITERALS);
         }
 
+        private static final List<String> POTION_IDS = List.of(
+                "minecraft:water", "minecraft:mundane", "minecraft:thick", "minecraft:awkward",
+                "minecraft:night_vision", "minecraft:invisibility", "minecraft:leaping", "minecraft:fire_resistance",
+                "minecraft:swiftness", "minecraft:slowness", "minecraft:turtle_master", "minecraft:water_breathing",
+                "minecraft:healing", "minecraft:harming", "minecraft:poison", "minecraft:regeneration",
+                "minecraft:strength", "minecraft:weakness", "minecraft:luck", "minecraft:slow_falling"
+        );
+
+        private void addSnippetValues(Set<Completion> results, CompletionRequest request, String normalizedKey) {
+            if (!request.prefix().isEmpty()) {
+                return;
+            }
+            if (request.insideString()) {
+                return;
+            }
+
+            String valueIndent = indentationAt(request.replaceStart()) + INDENT;
+            if (normalizedKey.equals("display")) {
+                results.add(new Completion("display object", "{\n" + valueIndent
+                        + "\"Name\": \"{\\\"text\\\":\\\"Name\\\"}\",\n" + valueIndent
+                        + "\"Lore\": []\n" + indentationAt(request.replaceStart()) + "}",
+                        request.replaceStart(), request.replaceEnd(), false));
+            } else if (normalizedKey.equals("enchantments") || normalizedKey.equals("storedenchantments")) {
+                results.add(new Completion("enchantment list", "[\n" + valueIndent
+                        + "{\"id\": \"minecraft:sharpness\", \"lvl\": 1}\n" + indentationAt(request.replaceStart()) + "]",
+                        request.replaceStart(), request.replaceEnd(), false));
+            } else if (normalizedKey.equals("attributemodifiers")) {
+                results.add(new Completion("attribute modifier", "[\n" + valueIndent
+                        + "{\"AttributeName\": \"minecraft:generic.attack_damage\", \"Name\": \"generic.attack_damage\", "
+                        + "\"Amount\": 1.0, \"Operation\": 0, \"UUID\": [0, 0, 0, 0], \"Slot\": \"mainhand\"}\n"
+                        + indentationAt(request.replaceStart()) + "]",
+                        request.replaceStart(), request.replaceEnd(), false));
+            } else if (normalizedKey.equals("canplaceon") || normalizedKey.equals("candestroy")) {
+                results.add(new Completion("block id list", "[\"minecraft:stone\"]",
+                        request.replaceStart(), request.replaceEnd(), false));
+            }
+        }
+
         private void addStringValues(Set<Completion> results, CompletionRequest request, List<String> values) {
-            String prefix = request.prefix().toLowerCase(Locale.ROOT);
-            for (String value : values) {
-                if (!value.toLowerCase(Locale.ROOT).startsWith(prefix)) {
-                    continue;
-                }
+            List<String> matches = values.stream()
+                    .filter(value -> completionMatches(value, request.prefix()))
+                    .sorted(Comparator.comparingInt(value -> completionScore(value, request.prefix())))
+                    .limit(MAX_COMPLETIONS)
+                    .toList();
+            for (String value : matches) {
                 String insert = request.insideString() ? value : "\"" + value + "\"";
                 results.add(new Completion(value, insert, request.replaceStart(), request.replaceEnd(), false));
                 if (results.size() >= MAX_COMPLETIONS) {
@@ -680,9 +938,8 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private void addRawValues(Set<Completion> results, CompletionRequest request, List<String> values) {
-            String prefix = request.prefix().toLowerCase(Locale.ROOT);
             for (String value : values) {
-                if (!value.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                if (!completionMatches(value, request.prefix())) {
                     continue;
                 }
                 results.add(new Completion(value, value, request.replaceStart(), request.replaceEnd(), false));
@@ -754,7 +1011,7 @@ final class ItemJsonEditorScreen extends Screen {
             boolean selecting = Screen.hasShiftDown();
             return switch (keyCode) {
                 case 257, 335 -> {
-                    insertText("\n");
+                    insertNewlineWithIndent();
                     yield true;
                 }
                 case 259 -> {
@@ -807,13 +1064,132 @@ final class ItemJsonEditorScreen extends Screen {
             if (insert == null || insert.isEmpty()) {
                 return;
             }
+            replaceSelection(insert, insert.length());
+        }
+
+        private void insertPairedText(String open, String close) {
+            if (!hasSelection() && this.cursor < this.text.length() && this.text.charAt(this.cursor) == close.charAt(0)) {
+                moveCursorTo(this.cursor + close.length(), false);
+                return;
+            }
+            if (hasSelection()) {
+                int start = selectionStart();
+                int end = selectionEnd();
+                String selected = this.text.substring(start, end);
+                replaceSelection(open + selected + close, open.length() + selected.length() + close.length());
+                return;
+            }
+            replaceSelection(open + close, open.length());
+        }
+
+        private void insertNewlineWithIndent() {
+            int start = selectionStart();
+            int end = selectionEnd();
+            String indent = indentationAt(start);
+            boolean splitPair = isOpeningBracket(previousNonWhitespaceBefore(start))
+                    && isMatchingPair(previousNonWhitespaceBefore(start), nextNonWhitespaceAfter(end));
+            if (splitPair) {
+                String insert = "\n" + indent + INDENT + "\n" + indent;
+                replaceSelection(insert, 1 + indent.length() + INDENT.length());
+                return;
+            }
+
+            String extra = isOpeningBracket(previousNonWhitespaceBefore(start)) ? INDENT : "";
+            replaceSelection("\n" + indent + extra, 1 + indent.length() + extra.length());
+        }
+
+        private void insertClosingBracket(char close) {
+            if (!hasSelection() && onlyWhitespaceBeforeCursorOnLine()) {
+                outdentCurrentLine();
+            }
+            insertText(Character.toString(close));
+        }
+
+        private void indentSelectedLines() {
+            changeSelectedLineIndent(true);
+        }
+
+        private void outdentSelectedLines() {
+            changeSelectedLineIndent(false);
+        }
+
+        private void outdentCurrentLine() {
+            int line = cursorLineIndex();
+            TextLine view = lineView(line);
+            int amount = removableIndentAt(view.beginIndex());
+            if (amount <= 0) {
+                return;
+            }
+            this.text = this.text.substring(0, view.beginIndex()) + this.text.substring(view.beginIndex() + amount);
+            this.cursor = Math.max(view.beginIndex(), this.cursor - amount);
+            if (this.selectionAnchor >= 0) {
+                this.selectionAnchor = Math.max(view.beginIndex(), this.selectionAnchor - amount);
+            }
+            notifyValueChanged();
+            ensureCursorVisible();
+            rebuildCompletions();
+        }
+
+        private void changeSelectedLineIndent(boolean indent) {
+            List<TextLine> lines = lineViews();
+            int start = selectionStart();
+            int end = selectionEnd();
+            int firstLine = lineIndexAt(start);
+            int lastLine = lineIndexAt(end);
+            if (hasSelection() && lastLine > firstLine && end == lineView(lastLine).beginIndex()) {
+                lastLine--;
+            }
+
+            String updated = this.text;
+            int newCursor = this.cursor;
+            int newAnchor = this.selectionAnchor;
+            for (int line = lastLine; line >= firstLine; line--) {
+                TextLine view = lines.get(Mth.clamp(line, 0, lines.size() - 1));
+                if (indent) {
+                    updated = updated.substring(0, view.beginIndex()) + INDENT + updated.substring(view.beginIndex());
+                    newCursor = adjustPositionForInsert(newCursor, view.beginIndex(), INDENT.length());
+                    newAnchor = adjustPositionForInsert(newAnchor, view.beginIndex(), INDENT.length());
+                } else {
+                    int amount = removableIndentAt(updated, view.beginIndex());
+                    if (amount <= 0) {
+                        continue;
+                    }
+                    updated = updated.substring(0, view.beginIndex()) + updated.substring(view.beginIndex() + amount);
+                    newCursor = adjustPositionForRemoval(newCursor, view.beginIndex(), amount);
+                    newAnchor = adjustPositionForRemoval(newAnchor, view.beginIndex(), amount);
+                }
+            }
+
+            this.text = updated;
+            this.cursor = Mth.clamp(newCursor, 0, this.text.length());
+            this.selectionAnchor = newAnchor >= 0 ? Mth.clamp(newAnchor, 0, this.text.length()) : -1;
+            notifyValueChanged();
+            ensureCursorVisible();
+            rebuildCompletions();
+        }
+
+        private int adjustPositionForInsert(int position, int insertAt, int amount) {
+            if (position < 0) {
+                return position;
+            }
+            return position >= insertAt ? position + amount : position;
+        }
+
+        private int adjustPositionForRemoval(int position, int removeAt, int amount) {
+            if (position < 0 || position <= removeAt) {
+                return position;
+            }
+            return position <= removeAt + amount ? removeAt : position - amount;
+        }
+
+        private void replaceSelection(String insert, int cursorOffset) {
             int start = selectionStart();
             int end = selectionEnd();
             if (this.text.length() - (end - start) + insert.length() > 200000) {
                 return;
             }
             this.text = this.text.substring(0, start) + insert + this.text.substring(end);
-            this.cursor = start + insert.length();
+            this.cursor = Mth.clamp(start + cursorOffset, 0, this.text.length());
             clearSelection();
             notifyValueChanged();
             ensureCursorVisible();
@@ -825,6 +1201,14 @@ final class ItemJsonEditorScreen extends Screen {
                 return;
             }
             if (this.cursor <= 0) {
+                return;
+            }
+            if (this.cursor < this.text.length() && isMatchingPair(this.text.charAt(this.cursor - 1), this.text.charAt(this.cursor))) {
+                this.text = this.text.substring(0, this.cursor - 1) + this.text.substring(this.cursor + 1);
+                this.cursor--;
+                notifyValueChanged();
+                ensureCursorVisible();
+                rebuildCompletions();
                 return;
             }
             this.text = this.text.substring(0, this.cursor - 1) + this.text.substring(this.cursor);
@@ -945,7 +1329,122 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private void notifyValueChanged() {
+            clearError();
             this.valueListener.accept(this.text);
+        }
+
+        private String indentationAt(int position) {
+            int lineStart = lineStartAt(position);
+            int index = lineStart;
+            while (index < this.text.length()) {
+                char c = this.text.charAt(index);
+                if (c != ' ' && c != '\t') {
+                    break;
+                }
+                index++;
+            }
+            return this.text.substring(lineStart, index);
+        }
+
+        private boolean onlyWhitespaceBeforeCursorOnLine() {
+            int lineStart = lineStartAt(this.cursor);
+            for (int i = lineStart; i < this.cursor; i++) {
+                char c = this.text.charAt(i);
+                if (c != ' ' && c != '\t') {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private int lineStartAt(int position) {
+            int index = Mth.clamp(position, 0, this.text.length());
+            while (index > 0 && this.text.charAt(index - 1) != '\n') {
+                index--;
+            }
+            return index;
+        }
+
+        private int lineIndexAt(int position) {
+            int line = 0;
+            int clamped = Mth.clamp(position, 0, this.text.length());
+            for (int i = 0; i < clamped; i++) {
+                if (this.text.charAt(i) == '\n') {
+                    line++;
+                }
+            }
+            return line;
+        }
+
+        private int removableIndentAt(int lineStart) {
+            return removableIndentAt(this.text, lineStart);
+        }
+
+        private int removableIndentAt(String value, int lineStart) {
+            if (lineStart >= value.length()) {
+                return 0;
+            }
+            char first = value.charAt(lineStart);
+            if (first == '\t') {
+                return 1;
+            }
+            int amount = 0;
+            while (amount < INDENT.length() && lineStart + amount < value.length()
+                    && value.charAt(lineStart + amount) == ' ') {
+                amount++;
+            }
+            return amount;
+        }
+
+        private boolean isEscapedQuoteAtCursor() {
+            int slashCount = 0;
+            int index = this.cursor - 1;
+            while (index >= 0 && this.text.charAt(index) == '\\') {
+                slashCount++;
+                index--;
+            }
+            return slashCount % 2 == 1;
+        }
+
+        private boolean isInsideString(int position) {
+            boolean inside = false;
+            boolean escaped = false;
+            int clamped = Mth.clamp(position, 0, this.text.length());
+            for (int i = 0; i < clamped; i++) {
+                char c = this.text.charAt(i);
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == '"') {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        private char previousNonWhitespaceBefore(int position) {
+            int index = Mth.clamp(position, 0, this.text.length()) - 1;
+            while (index >= 0 && Character.isWhitespace(this.text.charAt(index))) {
+                index--;
+            }
+            return index >= 0 ? this.text.charAt(index) : '\0';
+        }
+
+        private char nextNonWhitespaceAfter(int position) {
+            int index = Mth.clamp(position, 0, this.text.length());
+            while (index < this.text.length() && Character.isWhitespace(this.text.charAt(index))) {
+                index++;
+            }
+            return index < this.text.length() ? this.text.charAt(index) : '\0';
+        }
+
+        private boolean isOpeningBracket(char c) {
+            return c == '{' || c == '[';
+        }
+
+        private boolean isMatchingPair(char open, char close) {
+            return open == '{' && close == '}' || open == '[' && close == ']';
         }
 
         private boolean hasExistingKeySyntax(String value, int cursor) {
@@ -957,6 +1456,56 @@ final class ItemJsonEditorScreen extends Screen {
                 index++;
             }
             return index < value.length() && value.charAt(index) == ':';
+        }
+
+        private String lastPathKey(List<String> path) {
+            for (int i = path.size() - 1; i >= 0; i--) {
+                String key = path.get(i);
+                if (key != null && !key.isEmpty()) {
+                    return key;
+                }
+            }
+            return "";
+        }
+
+        private boolean completionMatches(String value, String prefix) {
+            if (prefix == null || prefix.isEmpty()) {
+                return true;
+            }
+            String normalizedValue = value.toLowerCase(Locale.ROOT);
+            String normalizedPrefix = prefix.toLowerCase(Locale.ROOT);
+            String shortName = shortRegistryName(normalizedValue);
+            return normalizedValue.startsWith(normalizedPrefix)
+                    || shortName.startsWith(normalizedPrefix)
+                    || normalizedValue.contains(normalizedPrefix)
+                    || shortName.contains(normalizedPrefix);
+        }
+
+        private int completionScore(String value, String prefix) {
+            if (prefix == null || prefix.isEmpty()) {
+                return 0;
+            }
+            String normalizedValue = value.toLowerCase(Locale.ROOT);
+            String normalizedPrefix = prefix.toLowerCase(Locale.ROOT);
+            String shortName = shortRegistryName(normalizedValue);
+            if (normalizedValue.startsWith(normalizedPrefix)) {
+                return 0;
+            }
+            if (shortName.startsWith(normalizedPrefix)) {
+                return 1;
+            }
+            if (normalizedValue.contains(normalizedPrefix)) {
+                return 2;
+            }
+            if (shortName.contains(normalizedPrefix)) {
+                return 3;
+            }
+            return 4;
+        }
+
+        private String shortRegistryName(String value) {
+            int colon = value.indexOf(':');
+            return colon >= 0 && colon + 1 < value.length() ? value.substring(colon + 1) : value;
         }
 
         private static boolean isCompletionChar(char c) {
@@ -1041,7 +1590,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private record CompletionRequest(String prefix, int replaceStart, int replaceEnd, boolean keyContext,
-                                         String key, boolean insideString, boolean existingKeySyntax) {
+                                         String key, boolean insideString, boolean existingKeySyntax, List<String> path) {
         }
 
         private record Completion(String display, String insert, int replaceStart, int replaceEnd,
