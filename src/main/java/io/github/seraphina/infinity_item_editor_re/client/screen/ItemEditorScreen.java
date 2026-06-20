@@ -97,7 +97,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     @Override
     protected void init() {
         captureFieldValues();
-        this.midX = isSidebarUi() ? safeLeft() + contentWidth() / 2 : this.width / 2;
+        this.midX = this.width / 2;
         this.midY = this.height / 2;
 
         this.tickingBoxes.clear();
@@ -192,15 +192,12 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
-            if (isSidebarUi()) {
-                renderEditorBackground(guiGraphics);
-            }
             renderNbtAdvancedPanel(guiGraphics, mouseX, mouseY);
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
 
-        renderEditorBackground(guiGraphics);
+        renderBackground(guiGraphics);
 
         switch (this.activePanel) {
             case ITEM -> renderItemPanel(guiGraphics, mouseX, mouseY);

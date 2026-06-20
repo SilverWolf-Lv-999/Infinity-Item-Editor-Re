@@ -2,7 +2,6 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
-import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
@@ -77,352 +76,20 @@ abstract class ItemEditorScreenCommon extends ItemEditorScreenState {
     }
 
 protected void updateMouseDistance(int mouseX, int mouseY) {
-        int distX = contentMidX() - mouseX;
+        int distX = this.midX - mouseX;
         int distY = this.midY - mouseY;
         this.mouseDist = (int) Math.sqrt(distX * distX + distY * distY);
     }
 
     protected int getRingRadius() {
-        int verticalRadius = this.height / 3;
-        if (!isSidebarUi()) {
-            return verticalRadius;
-        }
-
-        return Math.max(42, Math.min(verticalRadius, contentWidth() / 3));
+        return this.height / 3;
     }
 
     protected boolean isMouseOverCenter(double mouseX, double mouseY) {
-        int centerX = contentMidX();
-        return mouseX > centerX - CENTER_HIT_RADIUS
-                && mouseX < centerX + CENTER_HIT_RADIUS
+        return mouseX > this.midX - CENTER_HIT_RADIUS
+                && mouseX < this.midX + CENTER_HIT_RADIUS
                 && mouseY > this.midY - CENTER_HIT_RADIUS
                 && mouseY < this.midY + CENTER_HIT_RADIUS;
-    }
-
-    protected boolean isSidebarUi() {
-        return Config.getItemGuiMode() == Config.ItemEditorUiMode.SIDEBAR;
-    }
-
-    protected int sidebarWidth() {
-        return Mth.clamp(this.width / 5, SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX);
-    }
-
-    protected int contentLeft() {
-        return isSidebarUi() ? sidebarWidth() + SIDEBAR_CONTENT_GAP : 0;
-    }
-
-    protected int safeLeft() {
-        return isSidebarUi() ? contentLeft() + SIDEBAR_SAFE_MARGIN : SIDEBAR_SAFE_MARGIN;
-    }
-
-    protected int safeRight() {
-        return this.width - SIDEBAR_SAFE_MARGIN;
-    }
-
-    protected int safeTop() {
-        return SIDEBAR_SAFE_MARGIN;
-    }
-
-    protected int safeBottom() {
-        return this.height - SIDEBAR_SAFE_MARGIN;
-    }
-
-    protected int contentWidth() {
-        return Math.max(1, safeRight() - safeLeft());
-    }
-
-    protected int contentMidX() {
-        if (!isSidebarUi()) {
-            return this.midX;
-        }
-
-        return safeLeft() + contentWidth() / 2;
-    }
-
-    protected int centeredContentX(int width) {
-        return contentMidX() - width / 2;
-    }
-
-    protected int contentLimitedWidth(int preferred, int minWidth, int margin) {
-        int available = isSidebarUi() ? contentWidth() - margin * 2 : this.width - margin * 2;
-        return Mth.clamp(preferred, Math.min(minWidth, Math.max(1, available)), Math.max(1, available));
-    }
-
-    protected int editorControlLeft() {
-        return isSidebarUi() ? safeLeft() + 8 : 15;
-    }
-
-    protected int editorListTextLeft() {
-        return isSidebarUi() ? safeLeft() + 10 : 5;
-    }
-
-    protected int itemPreviewCenterX() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM ? sidebarWidth() / 2 : this.midX;
-    }
-
-    protected int itemPreviewCenterY() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM ? 56 : 40;
-    }
-
-    protected boolean isCompactSidebarItemPanel() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM && contentWidth() < 420;
-    }
-
-    protected boolean isNarrowSidebarItemPanel() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM && contentWidth() < 260;
-    }
-
-    protected boolean isShortSidebarItemPanel() {
-        return isCompactSidebarItemPanel() && this.height < 300;
-    }
-
-    protected int sidebarItemLabelRightX() {
-        if (isNarrowSidebarItemPanel()) {
-            return safeLeft() + 8;
-        }
-
-        return safeLeft() + (isCompactSidebarItemPanel() ? 74 : 88);
-    }
-
-    protected int sidebarItemFieldX() {
-        if (isNarrowSidebarItemPanel()) {
-            return safeLeft() + 8;
-        }
-
-        return sidebarItemLabelRightX() + 10;
-    }
-
-    protected int sidebarItemDetailsY() {
-        return isCompactSidebarItemPanel() ? 204 : 76;
-    }
-
-    protected int sidebarItemDetailsX(int detailsWidth) {
-        if (isCompactSidebarItemPanel()) {
-            return safeLeft();
-        }
-
-        return sidebarDetailsX(detailsWidth);
-    }
-
-    protected int sidebarDetailsX(int detailsWidth) {
-        int x = safeRight() - detailsWidth;
-        if (x < safeLeft() + 268) {
-            return safeLeft();
-        }
-
-        return x;
-    }
-
-    protected int sidebarItemFieldWidth(int detailsX) {
-        int maxRight = isCompactSidebarItemPanel() ? safeRight() : detailsX - SIDEBAR_CONTENT_GAP;
-        if (isNarrowSidebarItemPanel()) {
-            return Math.max(48, maxRight - sidebarItemFieldX());
-        }
-
-        return Mth.clamp(maxRight - sidebarItemFieldX(), 96, 240);
-    }
-
-    protected int sidebarItemCoreHeight() {
-        return isNarrowSidebarItemPanel() ? 128 : 124;
-    }
-
-    protected int sidebarItemNameY() {
-        if (isNarrowSidebarItemPanel() || isShortSidebarItemPanel()) {
-            return 184;
-        }
-
-        return sidebarItemDetailsY();
-    }
-
-    protected int sidebarItemIdY() {
-        return isNarrowSidebarItemPanel() ? 76 : 78;
-    }
-
-    protected int sidebarItemCountY() {
-        return isNarrowSidebarItemPanel() ? 112 : 108;
-    }
-
-    protected int sidebarItemDamageY() {
-        return isNarrowSidebarItemPanel() ? 148 : 138;
-    }
-
-    protected int sidebarVisibleLoreLines() {
-        if (isCompactSidebarItemPanel()) {
-            return 0;
-        }
-
-        int maxBottom = sidebarBottomButtonY() - 8;
-        int maxLines = (maxBottom - sidebarItemNameY() - 76) / 26;
-        return Mth.clamp(Math.min(this.loreValues.size() + 1, maxLines), 0, 6);
-    }
-
-    protected boolean canShowSidebarLoreButton() {
-        return sidebarNameCardBottom() <= sidebarBottomButtonY() - 8;
-    }
-
-    protected int sidebarNameCardBottom() {
-        int visibleLoreLines = sidebarVisibleLoreLines();
-        if (visibleLoreLines == 0) {
-            return sidebarItemNameY() + 48;
-        }
-
-        return sidebarItemNameY() + 50 + 26 * visibleLoreLines + 26;
-    }
-
-    protected boolean canShowSidebarActionGrid() {
-        return getActionGridY() >= sidebarNameCardBottom() + SIDEBAR_CONTENT_GAP
-                && getActionGridY() + SIDEBAR_BUTTON_HEIGHT <= sidebarBottomButtonY() - 8;
-    }
-
-    protected int getActionGridY() {
-        return isCompactSidebarItemPanel() ? safeBottom() - 78 : 184;
-    }
-
-    protected int sidebarBottomButtonY() {
-        return this.height - 34;
-    }
-
-    protected int sidebarBottomButtonHeight() {
-        return 22;
-    }
-
-    protected int sidebarBottomButtonWidth(int count, int gap) {
-        int availableWidth = Math.max(24, this.width - contentLeft() - 32);
-        int fittedWidth = (availableWidth - (count - 1) * gap) / count;
-        return Mth.clamp(fittedWidth, 24, 66);
-    }
-
-    protected int sidebarBottomStartX(int count, int buttonWidth, int gap) {
-        int totalWidth = count * buttonWidth + (count - 1) * gap;
-        return Mth.clamp(contentMidX() - totalWidth / 2, contentLeft() + 16, this.width - 16 - totalWidth);
-    }
-
-    protected int sidebarItemDropButtonX() {
-        int gap = 6;
-        int buttonWidth = sidebarBottomButtonWidth(4, gap);
-        return sidebarBottomStartX(4, buttonWidth, gap) + 3 * (buttonWidth + gap);
-    }
-
-    protected int sidebarItemDropButtonWidth() {
-        return sidebarBottomButtonWidth(4, 6);
-    }
-
-    protected int sidebarUiModeButtonY() {
-        int formatRows = (2 + ChatFormatting.values().length + 7) / 8;
-        int formatTop = Math.max(82, this.height - 38 - formatRows * 15);
-        return Math.max(54, formatTop - 28);
-    }
-
-    protected int legacyUiModeButtonY() {
-        return this.midX - 90 <= 90 ? 5 : this.height - 25;
-    }
-
-    protected int searchFilterWidth() {
-        return isSidebarUi() ? Math.min(140, Math.max(92, contentWidth() / 4)) : 100;
-    }
-
-    protected int searchFilterX() {
-        return isSidebarUi() ? contentMidX() - searchFilterWidth() / 2 : this.width - 115;
-    }
-
-    protected int searchFilterY() {
-        return isSidebarUi() ? 42 : this.height - 33;
-    }
-
-    protected int nbtEditorWidth() {
-        if (isSidebarUi()) {
-            return Math.max(120, contentWidth() - 48);
-        }
-
-        return contentLimitedWidth(this.width / 2, 120, 32);
-    }
-
-    protected int nbtEditorX() {
-        if (isSidebarUi()) {
-            return safeLeft() + 24;
-        }
-
-        return centeredContentX(nbtEditorWidth());
-    }
-
-    protected int nbtEditorBoxY() {
-        return isSidebarUi() ? 96 : 80;
-    }
-
-    protected int nbtEditorButtonWidth() {
-        if (isSidebarUi()) {
-            return Math.min(96, nbtEditorWidth());
-        }
-
-        return contentLimitedWidth(this.width / 7, 70, 32);
-    }
-
-    protected int nbtEditorButtonX(int buttonWidth) {
-        if (isSidebarUi()) {
-            return nbtEditorX() + nbtEditorWidth() - buttonWidth;
-        }
-
-        return centeredContentX(buttonWidth);
-    }
-
-    protected int nbtEditorButtonY() {
-        return isSidebarUi() ? 128 : 100;
-    }
-
-    protected int lorePanelLeft() {
-        return isSidebarUi() ? safeLeft() + 18 : 100;
-    }
-
-    protected int lorePanelRight() {
-        return isSidebarUi() ? safeRight() - 18 : this.width - 100;
-    }
-
-    protected int lorePanelWidth() {
-        return Math.max(80, lorePanelRight() - lorePanelLeft());
-    }
-
-    protected int loreLineLabelRightX() {
-        return isSidebarUi() ? lorePanelLeft() - 10 : 90;
-    }
-
-    protected int loreFieldWidth() {
-        int actionButtonWidth = 66;
-        return Math.max(80, lorePanelWidth() - actionButtonWidth);
-    }
-
-    protected int loreScrollBarX() {
-        return isSidebarUi() ? safeRight() - 10 : this.width - 15;
-    }
-
-    protected int loreScrollTop() {
-        return 50;
-    }
-
-    protected int loreScrollBottom() {
-        return isSidebarUi() ? sidebarBottomButtonY() - 10 : this.height - 50;
-    }
-
-    protected int loreScrollHeight() {
-        return Math.max(1, loreScrollBottom() - loreScrollTop() + 1);
-    }
-
-    protected int lorePreviewCenterX() {
-        return contentMidX();
-    }
-
-    protected Component getUiModeButtonText() {
-        return Component.translatable(key("ui.mode"), getUiModeDisplayName(Config.getItemGuiMode()));
-    }
-
-    protected Component getUiModeDisplayName(Config.ItemEditorUiMode mode) {
-        return Component.translatable(key("ui.mode." + mode.name().toLowerCase(Locale.ROOT)));
-    }
-
-    protected void toggleUiMode() {
-        captureFieldValues();
-        Config.ItemEditorUiMode mode = Config.toggleItemGuiMode();
-        this.status = Component.translatable(messageKey("editor_ui_mode_updated"), getUiModeDisplayName(mode));
-        rebuildWidgets();
     }
 
     protected void insertFormattingPrefix() {
@@ -475,8 +142,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int getNbtAdvancedVisibleRows() {
-        int bottom = isSidebarUi() ? sidebarBottomButtonY() - 10 : this.height - 20;
-        return Math.max(1, (bottom - 48) / 12);
+        return Math.max(1, (this.height - 75) / 12);
     }
 
     protected void readMainFieldsFromStack(ItemStack stack) {
@@ -748,7 +414,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             setLoreScroll(0);
             return;
         }
-        float perc = (float) ((mouseY - loreScrollTop()) / (double) loreScrollHeight());
+        float perc = (float) ((mouseY - 50.0D) / (this.height - 99.0D));
         setLoreScroll(Mth.clamp(Math.round(max * perc), 0, max));
     }
 
@@ -890,8 +556,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int loreLineSpaces() {
-        int bottom = isSidebarUi() ? sidebarBottomButtonY() - 36 : this.height - 70;
-        return Math.max(1, (bottom / 30) - 1);
+        return Math.max(1, ((this.height - 70) / 30) - 1);
     }
 
     protected boolean isMouseIn(double mouseX, double mouseY, int x, int y, int width, int height) {

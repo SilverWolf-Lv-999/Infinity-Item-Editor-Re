@@ -86,17 +86,6 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final int MAIN_COLOR = InfinityEditorButton.MAIN_COLOR;
     protected static final int ALT_COLOR = InfinityEditorButton.ALT_COLOR;
     protected static final int CONTRAST_COLOR = InfinityEditorButton.CONTRAST_COLOR;
-    protected static final int SIDEBAR_WIDTH_MIN = 136;
-    protected static final int SIDEBAR_WIDTH_MAX = 168;
-    protected static final int SIDEBAR_SAFE_MARGIN = 12;
-    protected static final int SIDEBAR_CONTENT_GAP = 14;
-    protected static final int SIDEBAR_BUTTON_HEIGHT = 22;
-    protected static final int SIDEBAR_PANEL_COLOR = 0xE0100E1C;
-    protected static final int SIDEBAR_CARD_COLOR = 0xC81B1830;
-    protected static final int SIDEBAR_CARD_SOFT_COLOR = 0x7A241F3A;
-    protected static final int SIDEBAR_BORDER_COLOR = 0xAA7E5CC8;
-    protected static final int SIDEBAR_ACCENT_COLOR = 0xFF2EC8FF;
-    protected static final int SIDEBAR_MUTED_COLOR = 0xFFB9A8CE;
     protected static final int BAD_RED = 0xFFF44262;
     protected static final int GOOD_GREEN = 0xFF32CC64;
     protected static final int CYAN = 0xFF00FFFF;

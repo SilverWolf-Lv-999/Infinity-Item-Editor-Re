@@ -142,7 +142,7 @@ protected void updateRawNbt() {
         for (int i = 0; i < activeEnchantments.size(); i++) {
             EnchantmentEntry entry = activeEnchantments.get(i);
             int color = entry.enchantment() == null ? BAD_RED : MAIN_COLOR;
-            guiGraphics.drawString(this.font, formatStoredEnchantment(entry), editorListTextLeft(), startY + i * 10, color);
+            guiGraphics.drawString(this.font, formatStoredEnchantment(entry), 5, startY + i * 10, color);
         }
     }
 
@@ -158,8 +158,7 @@ protected void updateRawNbt() {
             listWidth = Math.max(listWidth, this.font.width(formatStoredEnchantment(entry)));
         }
 
-        int listLeft = editorListTextLeft();
-        if (mouseX < listLeft || mouseX > listLeft + listWidth || mouseY < startY || mouseY >= startY + activeEnchantments.size() * 10) {
+        if (mouseX < 0 || mouseX > 5 + listWidth || mouseY < startY || mouseY >= startY + activeEnchantments.size() * 10) {
             return false;
         }
 
@@ -185,7 +184,7 @@ protected void updateRawNbt() {
         Enchantment closestEnchantment = null;
         for (int i = 0; i < filteredEnchantments.size(); i++) {
             double enchantmentAngle = this.rotOff / 60.0D + angle * i;
-            int x = (int) (contentMidX() + getRingRadius() * Math.cos(enchantmentAngle));
+            int x = (int) (this.midX + getRingRadius() * Math.cos(enchantmentAngle));
             int y = (int) (this.midY + getRingRadius() * Math.sin(enchantmentAngle));
             int distX = x - (int) mouseX;
             int distY = y - (int) mouseY;
@@ -367,8 +366,7 @@ protected void updateRawNbt() {
             listWidth = Math.max(listWidth, this.font.width(formatPotionEffect(effect)));
         }
 
-        int listLeft = editorListTextLeft();
-        if (mouseX < listLeft || mouseX > listLeft + listWidth || mouseY < startY || mouseY >= startY + effects.size() * 10) {
+        if (mouseX < 0 || mouseX > 5 + listWidth || mouseY < startY || mouseY >= startY + effects.size() * 10) {
             return false;
         }
 
@@ -388,7 +386,7 @@ protected void updateRawNbt() {
         MobEffect closestEffect = null;
         for (int i = 0; i < filteredEffects.size(); i++) {
             double effectAngle = this.rotOff / 60.0D + angle * i;
-            int x = (int) (contentMidX() + getRingRadius() * Math.cos(effectAngle));
+            int x = (int) (this.midX + getRingRadius() * Math.cos(effectAngle));
             int y = (int) (this.midY + getRingRadius() * Math.sin(effectAngle));
             int distX = x - (int) mouseX;
             int distY = y - (int) mouseY;
@@ -558,8 +556,7 @@ protected void updateRawNbt() {
             listWidth = Math.max(listWidth, this.font.width(formatAttributeEntry(entry)));
         }
 
-        int listLeft = editorListTextLeft();
-        if (mouseX < listLeft || mouseX > listLeft + listWidth || mouseY < startY || mouseY >= startY + entries.size() * 10) {
+        if (mouseX < 0 || mouseX > 5 + listWidth || mouseY < startY || mouseY >= startY + entries.size() * 10) {
             return false;
         }
 
@@ -581,7 +578,7 @@ protected void updateRawNbt() {
         Attribute closestAttribute = null;
         for (int i = 0; i < attributes.size(); i++) {
             double attributeAngle = this.rotOff / 60.0D + angle * i;
-            int x = (int) (contentMidX() + getRingRadius() * Math.cos(attributeAngle));
+            int x = (int) (this.midX + getRingRadius() * Math.cos(attributeAngle));
             int y = (int) (this.midY + getRingRadius() * Math.sin(attributeAngle));
             int distX = x - (int) mouseX;
             int distY = y - (int) mouseY;
