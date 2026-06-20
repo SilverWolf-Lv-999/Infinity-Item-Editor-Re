@@ -112,6 +112,18 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
     }
 
+    protected void openJsonEditor() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true)) {
+            return;
+        }
+        this.status = Component.empty();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
+    }
+
     protected void openItemPicker() {
         if (this.minecraft == null) {
             return;
@@ -160,6 +172,17 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
+    }
+
+    void applyJsonEditedStack(ItemStack stack) {
+        if (stack == null) {
+            return;
+        }
+        this.previewStack = stack.copy();
+        readMainFieldsFromStack(this.previewStack);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.nbtFeedback = "";
+        this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
     }
 
     protected void goBack() {

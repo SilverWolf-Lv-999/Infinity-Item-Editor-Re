@@ -104,10 +104,12 @@ protected void addItemPanel() {
             tryApplyDamage(false);
         });
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 82, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(this.midX - 124, 145, 80, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 2, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(this.midX - 40, 145, 80, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
+        addRenderableWidget(new InfinityEditorButton(this.midX + 44, 145, 80, FIELD_HEIGHT,
+                Component.translatable(key("json")), button -> openJsonEditor()));
         addRenderableWidget(new InfinityEditorButton(this.width - 75, 74, 70, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
         addRenderableWidget(new InfinityEditorButton(this.width / 8 - 40, this.midY - 45, 80, FIELD_HEIGHT,
