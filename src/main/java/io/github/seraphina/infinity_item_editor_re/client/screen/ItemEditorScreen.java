@@ -1,6 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
@@ -237,6 +238,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             return true;
         }
 
+        if (isInventoryKey(keyCode, scanCode)) {
+            return true;
+        }
+
         if (keyCode == 257 || keyCode == 335) {
             if (this.activePanel == Panel.ITEM) {
                 if (isTradeSlotEditor()) {
@@ -261,6 +266,11 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         }
 
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean isInventoryKey(int keyCode, int scanCode) {
+        return this.minecraft != null
+                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
     }
 
     @Override
