@@ -255,8 +255,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (this.nameBox != null) {
-            int left = Math.max(safeLeft() + 8, this.nameBox.getX() - 8);
-            int right = Math.min(safeRight() - 8, this.nameBox.getX() + this.nameBox.getWidth() + 58);
+            int left = Math.max(safeLeft(), this.nameBox.getX() - SIDEBAR_DRAWER_PADDING);
+            int right = Math.min(safeRight(), this.nameBox.getX() + this.nameBox.getWidth() + 58);
             int top = Math.max(42, this.nameBox.getY() - 20);
             int bottom = Math.min(sidebarBottomButtonY() - 8, sidebarNameCardBottom() + 10);
             if (right > left && bottom > top) {
@@ -266,8 +266,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         if (canShowSidebarActionGrid()) {
             int width = getActionGridButtonWidth();
-            int left = Math.max(safeLeft() + 8, getActionGridX() - 8);
-            int right = Math.min(safeRight() - 8, getActionGridX() + width * 2 + SIDEBAR_CONTENT_GAP + 8);
+            int left = Math.max(safeLeft(), getActionGridX() - SIDEBAR_DRAWER_PADDING);
+            int right = Math.min(safeRight(), getActionGridX() + width * 2 + SIDEBAR_CONTENT_GAP + SIDEBAR_DRAWER_PADDING);
             int top = getActionGridY() - 18;
             int bottom = sidebarBottomButtonY() - 8;
             if (right > left && bottom > top) {

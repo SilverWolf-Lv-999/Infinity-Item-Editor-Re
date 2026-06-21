@@ -91,6 +91,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final int SIDEBAR_WIDTH_MAX = 168;
     protected static final int SIDEBAR_SAFE_MARGIN = 12;
     protected static final int SIDEBAR_CONTENT_GAP = 14;
+    protected static final int SIDEBAR_DRAWER_PADDING = 8;
     protected static final int SIDEBAR_BUTTON_HEIGHT = 22;
     protected static final int SIDEBAR_PANEL_COLOR = ModernUi.SIDEBAR_TOP;
     protected static final int SIDEBAR_CARD_COLOR = ModernUi.SURFACE;

@@ -215,8 +215,12 @@ protected void addItemPanel() {
     }
 
     protected void addSidebarNameAndLoreWidgets(int x, int y, int width) {
-        int nameFieldWidth = Math.max(80, width - 46);
-        this.nameBox = addTrackedBox(legacyTextBox(x, y, nameFieldWidth, FIELD_HEIGHT,
+        int controlX = x + SIDEBAR_DRAWER_PADDING;
+        int controlWidth = Math.max(1, width - SIDEBAR_DRAWER_PADDING * 2);
+        int buttonGap = 4;
+        int clearButtonWidth = Math.min(42, Math.max(20, controlWidth / 3));
+        int nameFieldWidth = Math.max(1, controlWidth - clearButtonWidth - buttonGap);
+        this.nameBox = addTrackedBox(legacyTextBox(controlX, y, nameFieldWidth, FIELD_HEIGHT,
                 Component.translatable(key("item.name"))));
         this.nameBox.setMaxLength(100);
         this.nameBox.setTextColor(MAIN_COLOR);
@@ -227,18 +231,18 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.nameBox);
 
-        addRenderableWidget(new InfinityEditorButton(x + nameFieldWidth + 4, y, 42, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(controlX + nameFieldWidth + buttonGap, y, clearButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("clear")), button -> clearCustomName()));
 
         int visibleLoreLines = sidebarVisibleLoreLines();
         for (int i = 0; i < visibleLoreLines; i++) {
             boolean realLine = i < this.loreValues.size();
-            addSidebarLoreTextField(x, y + 50 + 26 * i, width, i, realLine);
+            addSidebarLoreTextField(controlX, y + 50 + 26 * i, controlWidth, i, realLine);
         }
 
         if (canShowSidebarLoreButton()) {
             int loreButtonY = visibleLoreLines == 0 ? y + 28 : y + 50 + 26 * visibleLoreLines + 6;
-            addRenderableWidget(new InfinityEditorButton(x, loreButtonY, width, FIELD_HEIGHT,
+            addRenderableWidget(new InfinityEditorButton(controlX, loreButtonY, controlWidth, FIELD_HEIGHT,
                     Component.translatable(key("lore")), button -> switchPanel(Panel.LORE)));
         }
     }
@@ -273,7 +277,7 @@ protected void addItemPanel() {
     }
 
     protected int getActionGridX() {
-        return safeLeft();
+        return safeLeft() + SIDEBAR_DRAWER_PADDING;
     }
 
     protected int getActionGridButtonWidth() {
@@ -288,6 +292,7 @@ protected void addItemPanel() {
             preferredMin = 74;
         }
 
+        available = Math.max(1, available - SIDEBAR_DRAWER_PADDING * 2);
         int maxColumnWidth = Math.max(1, (available - SIDEBAR_CONTENT_GAP) / 2);
         int minColumnWidth = Math.min(preferredMin, maxColumnWidth);
         return Mth.clamp(maxColumnWidth, minColumnWidth, 126);
