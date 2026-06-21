@@ -3,6 +3,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -58,28 +59,37 @@ public class InfinityEditorButton extends AbstractButton {
         int width = getWidth();
         int height = getHeight();
         boolean highlighted = this.isHoveredOrFocused() && this.active;
-        int fillColor = this.active
-                ? ModernUi.lerpColor(ModernUi.SURFACE, ModernUi.SURFACE_HOVER, this.hoverAmount)
-                : ModernUi.SURFACE_DISABLED;
-        int borderColor = highlighted ? ModernUi.BORDER_STRONG : ModernUi.BORDER;
-        int radius = Math.min(8, Math.max(4, height / 2));
-
-        if (highlighted) {
-            ModernUi.fillRounded(guiGraphics, x - 1, y - 1, x + width + 1, y + height + 1, radius + 1,
-                    ModernUi.alpha(0x62D6FF, Math.round(32.0F * this.hoverAmount)));
-        }
-        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, radius, fillColor, borderColor);
-        if (highlighted) {
-            int accentWidth = Math.min(3 + Math.round(this.hoverAmount * 3.0F), Math.max(2, width / 4));
-            guiGraphics.fill(x + 2, y + 4, x + 2 + accentWidth, y + height - 4, ModernUi.ACCENT_HOVER);
-            guiGraphics.fill(x + 6, y + 1, x + width - 6, y + 2, ModernUi.alpha(0xFFFFFF, 42));
+        if (width <= 16 || height <= 16) {
+            ModernUi.fillToolPaletteCell(guiGraphics, x, y, x + width, y + height, highlighted, this.active);
+        } else {
+            ModernUi.fillToolButton(guiGraphics, x, y, x + width, y + height, highlighted, this.active, this.hoverAmount);
         }
 
         var font = Minecraft.getInstance().font;
         int textColor = this.active
                 ? ModernUi.lerpColor(ModernUi.TEXT_PRIMARY, ModernUi.ACCENT_HOVER, this.hoverAmount)
                 : 0xFF6D7875;
-        renderScrollingString(guiGraphics, font, width <= 20 ? 1 : 4, textColor);
+        int inset = width <= 20 ? 1 : 7;
+        renderCenteredModernText(guiGraphics, font, x + inset, y, x + width - inset, y + height, textColor);
+    }
+
+    private void renderCenteredModernText(GuiGraphics guiGraphics, Font font, int left, int top, int right, int bottom, int color) {
+        int maxWidth = Math.max(0, right - left);
+        int centerX = (left + right) / 2;
+        int textY = top + (bottom - top - 8) / 2;
+        Component message = getMessage();
+        if (font.width(message) <= maxWidth) {
+            guiGraphics.drawCenteredString(font, message, centerX, textY, color);
+            return;
+        }
+
+        String ellipsis = "...";
+        int ellipsisWidth = font.width(ellipsis);
+        String text = message.getString();
+        String clipped = maxWidth <= ellipsisWidth
+                ? font.plainSubstrByWidth(text, maxWidth)
+                : font.plainSubstrByWidth(text, maxWidth - ellipsisWidth) + ellipsis;
+        guiGraphics.drawCenteredString(font, clipped, centerX, textY, color);
     }
 
     private void updateHoverAmount(float partialTick) {

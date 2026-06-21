@@ -247,7 +247,7 @@ protected void addSelectedBannerPattern() {
         int x = this.midX - 70;
         int y = 124;
         if (isSidebarUi()) {
-            ModernUi.fillPanel(guiGraphics, x - 8, y - 8, x + 164, y + 94, 8, 0x94101820, ModernUi.BORDER);
+            ModernUi.fillPanel(guiGraphics, x - 8, y - 8, x + 164, y + 94, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         guiGraphics.drawString(this.font, Component.translatable(key("banner.layers")), x, y,
                 isSidebarUi() ? ModernUi.TEXT_MUTED : MAIN_COLOR);

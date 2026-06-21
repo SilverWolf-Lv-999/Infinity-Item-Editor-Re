@@ -84,11 +84,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         int sidebarWidth = sidebarWidth();
-        guiGraphics.fillGradient(0, 0, this.width, this.height, ModernUi.BACKDROP_TOP, ModernUi.BACKDROP_BOTTOM);
+        ModernUi.fillToolboxBackdrop(guiGraphics, this.width, this.height);
         ModernUi.fillContentGlow(guiGraphics, sidebarWidth, 0, this.width, Math.min(this.height, 72));
-        guiGraphics.fillGradient(0, 0, sidebarWidth, this.height, ModernUi.SIDEBAR_TOP, ModernUi.SIDEBAR_BOTTOM);
+        ModernUi.fillToolboxSidebar(guiGraphics, 0, 0, sidebarWidth, this.height);
         guiGraphics.fill(sidebarWidth, SIDEBAR_SAFE_MARGIN, sidebarWidth + 1, this.height - SIDEBAR_SAFE_MARGIN, ModernUi.BORDER_SOFT);
-        guiGraphics.fill(sidebarWidth + 1, SIDEBAR_SAFE_MARGIN, sidebarWidth + 5, this.height - SIDEBAR_SAFE_MARGIN, 0x36000000);
+        guiGraphics.fill(sidebarWidth + 1, SIDEBAR_SAFE_MARGIN, sidebarWidth + 7, this.height - SIDEBAR_SAFE_MARGIN, 0x4A000000);
 
         ModernUi.fillHeaderPanel(guiGraphics, SIDEBAR_SAFE_MARGIN, 10, sidebarWidth - SIDEBAR_SAFE_MARGIN, 82, 8);
         ModernUi.drawWindowControls(guiGraphics, SIDEBAR_SAFE_MARGIN + 8, 18);
@@ -101,9 +101,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int right = safeRight();
         int bottom = safeBottom();
         if (right > left && bottom > top) {
-            ModernUi.fillGlassPanel(guiGraphics, left, top, right, bottom, 8);
-            int accentRight = Math.min(right - 14, left + 140);
-            guiGraphics.fill(left + 14, top + 1, accentRight, top + 2, ModernUi.ACCENT_HOVER);
+            ModernUi.fillWorkSurface(guiGraphics, left, top, right, bottom);
+            int accentRight = Math.min(right - 18, left + 160);
+            guiGraphics.fill(left + 18, top + 15, accentRight, top + 16, ModernUi.ACCENT_HOVER);
             renderAnimatedContentGlow(guiGraphics, left, top, right, bottom);
         }
     }
@@ -113,7 +113,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         float phase = (System.currentTimeMillis() % 3600L) / 3600.0F;
         int y = top + 16 + (int) (range * phase);
         guiGraphics.fillGradient(left + 2, y, right - 2, Math.min(bottom - 2, y + 24),
-                0x0062D6FF, ModernUi.alpha(0x62D6FF, 24));
+                0x00FFB347, ModernUi.alpha(0xFFB347, 18));
     }
 
     private Component activePanelTitle() {
@@ -158,11 +158,18 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     private void drawPanelTitle(GuiGraphics guiGraphics, Component title) {
-        guiGraphics.drawCenteredString(this.font, title, this.midX, 15, panelTitleColor());
         if (isSidebarUi()) {
-            int width = Math.min(108, Math.max(34, this.font.width(title) + 18));
-            ModernUi.fillRounded(guiGraphics, this.midX - width / 2, 29, this.midX + width / 2, 30, 1, ModernUi.ACCENT);
+            int textWidth = this.font.width(title);
+            int plateWidth = Mth.clamp(textWidth + 38, Math.min(72, Math.max(1, contentWidth() - 36)),
+                    Math.max(72, contentWidth() - 36));
+            int left = contentMidX() - plateWidth / 2;
+            int top = 13;
+            ModernUi.fillToolDrawer(guiGraphics, left, top, left + plateWidth, top + 22, true);
+            guiGraphics.drawCenteredString(this.font, title, contentMidX(), top + 7, ModernUi.TEXT_PRIMARY);
+            return;
         }
+
+        guiGraphics.drawCenteredString(this.font, title, this.midX, 15, panelTitleColor());
     }
 
     private void drawCenteredLabel(GuiGraphics guiGraphics, Component label, int centerX, int y) {
@@ -200,6 +207,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         int sidebarCenter = sidebarWidth() / 2;
         renderSmallItem(guiGraphics, sidebarCenter, 55);
+        renderSidebarItemDrawers(guiGraphics);
 
         drawPanelTitle(guiGraphics, Component.translatable(key("item")));
         drawFieldLabel(guiGraphics, Component.translatable(key("item.id")), this.itemIdBox);
@@ -218,6 +226,40 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (canShowSidebarActionGrid()) {
             guiGraphics.drawString(this.font, Component.translatable(key("ui.actions")),
                     getActionGridX(), getActionGridY() - 12, ModernUi.TEXT_MUTED, false);
+        }
+    }
+
+    private void renderSidebarItemDrawers(GuiGraphics guiGraphics) {
+        if (this.itemIdBox != null && this.countBox != null && this.damageBox != null) {
+            int left = safeLeft() + 8;
+            int right = Math.min(safeRight() - 8, Math.max(this.itemIdBox.getX() + this.itemIdBox.getWidth(),
+                    this.damageBox.getX() + this.damageBox.getWidth()) + 12);
+            int top = Math.max(42, this.itemIdBox.getY() - 20);
+            int bottom = this.damageBox.getY() + this.damageBox.getHeight() + 12;
+            if (right > left && bottom > top) {
+                ModernUi.fillToolDrawer(guiGraphics, left, top, right, bottom, false);
+            }
+        }
+
+        if (this.nameBox != null) {
+            int left = Math.max(safeLeft() + 8, this.nameBox.getX() - 8);
+            int right = Math.min(safeRight() - 8, this.nameBox.getX() + this.nameBox.getWidth() + 58);
+            int top = Math.max(42, this.nameBox.getY() - 20);
+            int bottom = Math.min(sidebarBottomButtonY() - 8, sidebarNameCardBottom() + 10);
+            if (right > left && bottom > top) {
+                ModernUi.fillToolDrawer(guiGraphics, left, top, right, bottom, false);
+            }
+        }
+
+        if (canShowSidebarActionGrid()) {
+            int width = getActionGridButtonWidth();
+            int left = Math.max(safeLeft() + 8, getActionGridX() - 8);
+            int right = Math.min(safeRight() - 8, getActionGridX() + width * 2 + SIDEBAR_CONTENT_GAP + 8);
+            int top = getActionGridY() - 18;
+            int bottom = sidebarBottomButtonY() - 8;
+            if (right > left && bottom > top) {
+                ModernUi.fillToolDrawer(guiGraphics, left, top, right, bottom, false);
+            }
         }
     }
 
@@ -270,7 +312,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int right = isSidebarUi() ? safeRight() - 10 : this.width - 18;
         int bottom = isSidebarUi() ? sidebarBottomButtonY() - 8 : this.height - 18;
         ModernUi.fillGlassPanel(guiGraphics, left, top, right, bottom, 8);
-        guiGraphics.fillGradient(left + 1, top + 1, right - 1, top + 22, ModernUi.alpha(0x62D6FF, 74), ModernUi.alpha(0xFFC56E, 20));
+        guiGraphics.fillGradient(left + 1, top + 1, right - 1, top + 22,
+                ModernUi.alpha(0xFFB347, 64), ModernUi.alpha(0x62D1C7, 18));
         guiGraphics.drawString(this.font, ModSource.MODID + " / " + Component.translatable(key("nbtadv")).getString(),
                 left + 9, top + 8, ModernUi.TEXT_PRIMARY, false);
 
@@ -599,7 +642,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         clampBannerPatternSelection(patterns);
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, 7, getBannerPatternRowY(0) - 7, 168,
-                    getBannerPatternRowY(BANNER_PATTERN_ROWS - 1) + 15, 8, 0x9E101820, ModernUi.BORDER);
+                    getBannerPatternRowY(BANNER_PATTERN_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         if (patterns.isEmpty()) {
             guiGraphics.drawString(this.font, Component.translatable(key("banner.no_match")), 12, 58, BAD_RED);
@@ -644,7 +687,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         clampSpawnEggEntitySelection(entities);
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, 7, getSpawnEggEntityRowY(0) - 7, 190,
-                    getSpawnEggEntityRowY(SPAWN_EGG_ENTITY_ROWS - 1) + 15, 8, 0x9E101820, ModernUi.BORDER);
+                    getSpawnEggEntityRowY(SPAWN_EGG_ENTITY_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         if (entities.isEmpty()) {
             guiGraphics.drawString(this.font, Component.translatable(key("spawnegg.no_match")), 12, 58, BAD_RED);
@@ -698,7 +741,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int top = size == 0 ? getTradeListRowY(0, 0) - 8 : getTradeListRowY(0, size) - 8;
             int bottom = getTradeListRowY(size, size) + 18;
             ModernUi.fillPanel(guiGraphics, this.midX - listWidth / 2 - 8, top,
-                    this.midX + listWidth / 2 + 8, bottom, 8, 0x94101820, ModernUi.BORDER);
+                    this.midX + listWidth / 2 + 8, bottom, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         for (int i = 0; i < size; i++) {
             String tradeText = formatTradeRecipe(trades.getCompound(i));
@@ -739,7 +782,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (isSidebarUi()) {
             int tradeTop = this.midY - 26;
             ModernUi.fillPanel(guiGraphics, contentMidX() - Math.min(190, contentWidth() / 2), tradeTop,
-                    contentMidX() + Math.min(190, contentWidth() / 2), this.midY + 42, 8, 0x94101820, ModernUi.BORDER);
+                    contentMidX() + Math.min(190, contentWidth() / 2), this.midY + 42, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         guiGraphics.drawCenteredString(this.font, Component.literal("Price 1"), part + 8, this.midY - 10, panelAccentColor());
         guiGraphics.drawCenteredString(this.font, Component.literal("Price 2"), 2 * part + 8, this.midY - 10, panelAccentColor());
@@ -784,7 +827,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int scrollTop = loreScrollTop();
         int scrollHeight = loreScrollHeight();
         if (isSidebarUi()) {
-            ModernUi.fillRounded(guiGraphics, scrollX, scrollTop, scrollX + 6, scrollTop + scrollHeight, 3, 0x66101820);
+            ModernUi.fillRounded(guiGraphics, scrollX, scrollTop, scrollX + 6, scrollTop + scrollHeight, 3,
+                    ModernUi.alpha(0x000000, 90));
         } else {
             guiGraphics.hLine(this.width - 15, this.width - 5, 50, 0xFFAAAAAA);
             guiGraphics.hLine(this.width - 15, this.width - 5, this.height - 50, 0xFFAAAAAA);
@@ -819,7 +863,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, gridX - 8, gridY - 8,
                     gridX + getLorePainterSizeX() + 8, gridY + getLorePainterSizeY() + 8,
-                    8, 0x94101820, ModernUi.BORDER);
+                    8, ModernUi.SURFACE, ModernUi.BORDER);
         }
 
         int yOffset = 0;
@@ -900,8 +944,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (isSidebarUi()) {
-            ModernUi.fillSoftHalo(guiGraphics, this.midX, this.midY + 18, 104, 34, ModernUi.alpha(0x62D6FF, 24));
-            ModernUi.fillSoftHalo(guiGraphics, this.midX, this.midY + 21, 76, 18, ModernUi.alpha(0xFFC56E, 18));
+            ModernUi.fillSoftHalo(guiGraphics, this.midX, this.midY + 18, 104, 34, ModernUi.alpha(0xFFB347, 22));
+            ModernUi.fillSoftHalo(guiGraphics, this.midX, this.midY + 21, 76, 18, ModernUi.alpha(0x62D1C7, 18));
         }
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.midX, this.midY, 100.0F);

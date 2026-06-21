@@ -54,23 +54,22 @@ class ColorSlider extends AbstractSliderButton {
         int y = getY();
         int width = getWidth();
         int height = getHeight();
-        int fill = ModernUi.lerpColor(ModernUi.SURFACE, ModernUi.SURFACE_HOVER, this.hoverAmount);
-        int border = this.isHoveredOrFocused() ? ModernUi.BORDER_STRONG : ModernUi.BORDER;
-        if (this.isHoveredOrFocused()) {
-            ModernUi.fillRounded(guiGraphics, x - 1, y - 1, x + width + 1, y + height + 1, 7,
-                    ModernUi.alpha(0x62D6FF, Math.round(28.0F * this.hoverAmount)));
-        }
-        ModernUi.fillPill(guiGraphics, x, y, x + width, y + height, 7, fill, border);
+        boolean highlighted = this.isHoveredOrFocused() && this.active;
+        ModernUi.fillToolButton(guiGraphics, x, y, x + width, y + height, highlighted, this.active, this.hoverAmount);
 
         int trackLeft = x + 7;
         int trackRight = x + width - 7;
         int trackY = y + height - 5;
-        ModernUi.fillRounded(guiGraphics, trackLeft, trackY - 1, trackRight, trackY + 3, 2, ModernUi.alpha(0xFFFFFF, 32));
+        ModernUi.fillRounded(guiGraphics, trackLeft, trackY - 2, trackRight, trackY + 3, 2, ModernUi.alpha(0x000000, 92));
+        guiGraphics.fill(trackLeft + 1, trackY - 1, trackRight - 1, trackY, ModernUi.alpha(0xFFFFFF, 24));
         int knobX = (int) (trackLeft + (trackRight - trackLeft) * this.value);
-        ModernUi.fillRounded(guiGraphics, trackLeft, trackY - 1, knobX, trackY + 3, 2, ModernUi.ACCENT);
-        ModernUi.fillRounded(guiGraphics, knobX - 4, trackY - 4, knobX + 5, trackY + 6, 4, ModernUi.SHADOW_SOFT);
-        ModernUi.fillRounded(guiGraphics, knobX - 3, trackY - 4, knobX + 4, trackY + 5, 4, ModernUi.ACCENT_HOVER);
-        guiGraphics.fill(knobX - 1, trackY - 2, knobX + 2, trackY - 1, ModernUi.alpha(0xFFFFFF, 90));
+        ModernUi.fillRounded(guiGraphics, trackLeft + 1, trackY - 1, knobX, trackY + 2, 2,
+                ModernUi.lerpColor(ModernUi.ACCENT, ModernUi.WARM, this.hoverAmount));
+        ModernUi.fillRounded(guiGraphics, knobX - 5, trackY - 5, knobX + 6, trackY + 7, 3, ModernUi.SHADOW_SOFT);
+        ModernUi.fillRounded(guiGraphics, knobX - 4, trackY - 5, knobX + 5, trackY + 6, 3,
+                ModernUi.lerpColor(ModernUi.ACCENT, ModernUi.ACCENT_HOVER, this.hoverAmount));
+        guiGraphics.fill(knobX - 2, trackY - 3, knobX + 3, trackY - 2, ModernUi.alpha(0xFFFFFF, 95));
+        guiGraphics.fill(knobX - 2, trackY + 3, knobX + 3, trackY + 4, ModernUi.alpha(0x000000, 70));
 
         var font = Minecraft.getInstance().font;
         int textColor = ModernUi.lerpColor(ModernUi.TEXT_PRIMARY, ModernUi.ACCENT_HOVER, this.hoverAmount);

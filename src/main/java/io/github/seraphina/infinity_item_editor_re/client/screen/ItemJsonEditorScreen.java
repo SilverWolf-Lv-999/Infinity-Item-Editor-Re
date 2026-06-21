@@ -541,6 +541,7 @@ final class ItemJsonEditorScreen extends Screen {
             if (!isFocused() || !SharedConstants.isAllowedChatCharacter(codePoint)) {
                 return false;
             }
+            normalizeCursorAndSelection();
             if (codePoint == '"') {
                 if (this.cursor < this.text.length() && this.text.charAt(this.cursor) == '"' && !hasSelection()) {
                     moveCursorTo(this.cursor + 1, false);
@@ -1793,6 +1794,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private boolean handleEditKey(int keyCode) {
+            normalizeCursorAndSelection();
             if (Screen.isSelectAll(keyCode)) {
                 this.selectionAnchor = 0;
                 this.cursor = this.text.length();
@@ -2047,6 +2049,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private void replaceSelection(String insert, int cursorOffset) {
+            normalizeCursorAndSelection();
             int start = selectionStart();
             int end = selectionEnd();
             if (this.text.length() - (end - start) + insert.length() > 200000) {
@@ -2099,11 +2102,16 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private boolean deleteSelection() {
+            normalizeCursorAndSelection();
             if (!hasSelection()) {
                 return false;
             }
             int start = selectionStart();
             int end = selectionEnd();
+            if (start >= end) {
+                clearSelection();
+                return false;
+            }
             this.text = this.text.substring(0, start) + this.text.substring(end);
             this.cursor = start;
             clearSelection();
@@ -2133,6 +2141,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private void moveCursorVertical(int lines, boolean selecting) {
+            normalizeCursorAndSelection();
             int currentLine = cursorLineIndex();
             TextLine current = lineView(currentLine);
             int column = this.cursor - current.beginIndex();
@@ -2143,19 +2152,26 @@ final class ItemJsonEditorScreen extends Screen {
 
         private void moveCursorTo(int position, boolean selecting) {
             int clamped = Mth.clamp(position, 0, this.text.length());
+            int currentCursor = Mth.clamp(this.cursor, 0, this.text.length());
             if (selecting) {
                 if (this.selectionAnchor < 0) {
-                    this.selectionAnchor = this.cursor;
+                    this.selectionAnchor = currentCursor;
+                } else {
+                    this.selectionAnchor = Mth.clamp(this.selectionAnchor, 0, this.text.length());
                 }
             } else {
                 clearSelection();
             }
             this.cursor = clamped;
+            if (this.selectionAnchor == this.cursor) {
+                clearSelection();
+            }
             ensureCursorVisible();
             rebuildCompletions();
         }
 
         private void copySelection() {
+            normalizeCursorAndSelection();
             if (!hasSelection()) {
                 return;
             }
@@ -2199,19 +2215,34 @@ final class ItemJsonEditorScreen extends Screen {
         }
 
         private boolean hasSelection() {
-            return this.selectionAnchor >= 0 && this.selectionAnchor != this.cursor;
+            return this.selectionAnchor >= 0
+                    && Mth.clamp(this.selectionAnchor, 0, this.text.length()) != Mth.clamp(this.cursor, 0, this.text.length());
         }
 
         private int selectionStart() {
-            return hasSelection() ? Math.min(this.selectionAnchor, this.cursor) : this.cursor;
+            int cursor = Mth.clamp(this.cursor, 0, this.text.length());
+            int anchor = Mth.clamp(this.selectionAnchor, 0, this.text.length());
+            return hasSelection() ? Math.min(anchor, cursor) : cursor;
         }
 
         private int selectionEnd() {
-            return hasSelection() ? Math.max(this.selectionAnchor, this.cursor) : this.cursor;
+            int cursor = Mth.clamp(this.cursor, 0, this.text.length());
+            int anchor = Mth.clamp(this.selectionAnchor, 0, this.text.length());
+            return hasSelection() ? Math.max(anchor, cursor) : cursor;
         }
 
         private void clearSelection() {
             this.selectionAnchor = -1;
+        }
+
+        private void normalizeCursorAndSelection() {
+            this.cursor = Mth.clamp(this.cursor, 0, this.text.length());
+            if (this.selectionAnchor >= 0) {
+                this.selectionAnchor = Mth.clamp(this.selectionAnchor, 0, this.text.length());
+                if (this.selectionAnchor == this.cursor) {
+                    clearSelection();
+                }
+            }
         }
 
         private void notifyValueChanged() {

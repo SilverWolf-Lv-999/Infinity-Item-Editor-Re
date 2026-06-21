@@ -209,7 +209,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, gridX - 5, gridY - 5, gridX + 165, gridY + 45, 7,
-                    0xAA101719, ModernUi.BORDER);
+                    ModernUi.SURFACE, ModernUi.BORDER);
         }
         int index = 0;
         for (DyeColor dyeColor : DyeColor.values()) {
