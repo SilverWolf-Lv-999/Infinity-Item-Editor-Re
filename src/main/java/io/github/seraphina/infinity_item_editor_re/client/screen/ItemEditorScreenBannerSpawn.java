@@ -215,7 +215,7 @@ protected void addSelectedBannerPattern() {
     }
 
     protected int getBannerPatternRowY(int row) {
-        return 58 + row * 10;
+        return sideListStartY() + row * 10;
     }
 
     protected List<BannerPatternEntry> getFilteredBannerPatterns() {
@@ -957,7 +957,7 @@ protected void addSelectedBannerPattern() {
     }
 
     protected int getSpawnEggEntityRowY(int row) {
-        return 58 + row * 10;
+        return sideListStartY() + row * 10;
     }
 
     protected int getSpawnEggTagRowY(int row) {
@@ -966,7 +966,7 @@ protected void addSelectedBannerPattern() {
 
     protected int getSpawnEggControlsX() {
         int width = getSpawnEggControlsWidth();
-        return Math.max(this.midX + 76, this.width - width - 10);
+        return rightControlsX(width, spawnEggEntityListX(), spawnEggEntityListWidth());
     }
 
     protected int getSpawnEggControlsWidth() {

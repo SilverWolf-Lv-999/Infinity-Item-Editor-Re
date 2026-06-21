@@ -71,7 +71,23 @@ public class ModernTextEditBox extends EditBox {
             int glow = ModernUi.alpha(0xFFB347, Math.round(32.0F * this.focusAmount));
             guiGraphics.fill(getX() + 2, getY() + getHeight() - 2, getX() + getWidth() - 2, getY() + getHeight() - 1, glow);
         }
-        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+        renderVanillaTextInsideFrame(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    private void renderVanillaTextInsideFrame(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        int originalX = getX();
+        int originalY = getY();
+        int originalWidth = getWidth();
+        setX(originalX + 4);
+        setY(originalY + (getHeight() - 8) / 2);
+        setWidth(Math.max(1, originalWidth - 8));
+        try {
+            super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+        } finally {
+            setX(originalX);
+            setY(originalY);
+            setWidth(originalWidth);
+        }
     }
 
     private void updateFocusAmount(float partialTick, boolean highlighted) {

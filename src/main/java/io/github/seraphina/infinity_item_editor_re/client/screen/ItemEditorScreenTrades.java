@@ -543,14 +543,16 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
     protected void renderTradeSlotItem(GuiGraphics guiGraphics, CompoundTag recipe, int slot) {
         ItemStack stack = getTradeSlotItem(recipe, slot);
-        if (stack.isEmpty()) {
-            return;
-        }
-
         int x = getSingleTradeSlotX(slot);
         int y = getSingleTradeSlotY();
         if (isSidebarUi()) {
             ModernUi.fillItemWell(guiGraphics, x + 8, y + 8, 30);
+        } else if (stack.isEmpty()) {
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0xFF555555);
+            guiGraphics.fill(x, y, x + ITEM_SIZE, y + ITEM_SIZE, 0xFF1C1C1C);
+        }
+        if (stack.isEmpty()) {
+            return;
         }
         guiGraphics.renderItem(stack, x, y);
         guiGraphics.renderItemDecorations(this.font, stack, x, y);
@@ -584,6 +586,16 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
     }
 
     protected int getSingleTradeSlotX(int slot) {
+        if (isSidebarUi()) {
+            int spacing = Mth.clamp(contentWidth() / 4, 58, 92);
+            int center = contentMidX();
+            return switch (slot) {
+                case TRADE_SLOT_SECOND_BUY -> center - 8;
+                case TRADE_SLOT_SELL -> center + spacing - 8;
+                default -> center - spacing - 8;
+            };
+        }
+
         int part = this.midX / 2;
         return switch (slot) {
             case TRADE_SLOT_SECOND_BUY -> 2 * part;

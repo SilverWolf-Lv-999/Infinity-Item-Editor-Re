@@ -157,11 +157,11 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int itemPreviewCenterX() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM ? sidebarWidth() / 2 : this.midX;
+        return isSidebarUi() ? sidebarWidth() / 2 : this.midX;
     }
 
     protected int itemPreviewCenterY() {
-        return isSidebarUi() && this.activePanel == Panel.ITEM ? 56 : 40;
+        return isSidebarUi() ? 45 : 40;
     }
 
     protected boolean isCompactSidebarItemPanel() {
@@ -270,12 +270,21 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected boolean canShowSidebarActionGrid() {
-        return getActionGridY() >= sidebarNameCardBottom() + SIDEBAR_CONTENT_GAP
-                && getActionGridY() + SIDEBAR_BUTTON_HEIGHT <= sidebarBottomButtonY() - 8;
+        int actionY = getActionGridY();
+        if (!isCompactSidebarItemPanel()) {
+            return actionY + SIDEBAR_BUTTON_HEIGHT <= sidebarBottomButtonY() - 8;
+        }
+
+        return actionY >= sidebarNameCardBottom() + SIDEBAR_CONTENT_GAP
+                && actionY + SIDEBAR_BUTTON_HEIGHT <= sidebarBottomButtonY() - 8;
     }
 
     protected int getActionGridY() {
-        return isCompactSidebarItemPanel() ? safeBottom() - 78 : 184;
+        if (isCompactSidebarItemPanel()) {
+            return Math.max(sidebarNameCardBottom() + SIDEBAR_CONTENT_GAP, safeBottom() - 78);
+        }
+
+        return 184;
     }
 
     protected int sidebarBottomButtonY() {
@@ -326,7 +335,41 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int searchFilterY() {
-        return isSidebarUi() ? 42 : this.height - 33;
+        return isSidebarUi() ? 58 : this.height - 33;
+    }
+
+    protected int sideListSearchY() {
+        return isSidebarUi() ? 48 : 28;
+    }
+
+    protected int sideListStartY() {
+        return isSidebarUi() ? 80 : 58;
+    }
+
+    protected int bannerPatternListX() {
+        return isSidebarUi() ? safeLeft() + 10 : 10;
+    }
+
+    protected int bannerPatternListWidth() {
+        return isSidebarUi() ? Mth.clamp(contentWidth() / 4, 132, 176) : 150;
+    }
+
+    protected int spawnEggEntityListX() {
+        return isSidebarUi() ? safeLeft() + 10 : 10;
+    }
+
+    protected int spawnEggEntityListWidth() {
+        return isSidebarUi() ? Mth.clamp(contentWidth() / 4, 150, 210) : 170;
+    }
+
+    protected int rightControlsX(int width, int listX, int listWidth) {
+        if (!isSidebarUi()) {
+            return Math.max(this.midX + 76, this.width - width - 10);
+        }
+
+        int rightAligned = safeRight() - width;
+        int afterList = listX + listWidth + SIDEBAR_CONTENT_GAP;
+        return afterList <= rightAligned ? rightAligned : Math.max(safeLeft(), rightAligned);
     }
 
     protected int nbtEditorWidth() {

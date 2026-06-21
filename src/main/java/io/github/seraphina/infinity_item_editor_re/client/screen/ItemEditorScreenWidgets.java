@@ -242,10 +242,9 @@ protected void addItemPanel() {
                 Component.literal("Lore " + (line + 1))));
         loreBox.setMaxLength(100);
         loreBox.setTextColor(MAIN_COLOR);
-        String placeholder = "Lore " + (line + 1);
-        loreBox.setValue(realLine ? this.loreValues.get(line) : placeholder);
+        loreBox.setValue(realLine ? this.loreValues.get(line) : "");
         loreBox.setResponder(value -> {
-            if (!realLine && placeholder.equals(value)) {
+            if (!realLine && value.isEmpty()) {
                 return;
             }
             setLoreLine(line, value);
@@ -339,8 +338,10 @@ protected void addItemPanel() {
         }
 
         if (isBookEditableItem(this.previewStack)) {
-            addSidebarActionButton(x, y, width, index,
+            index = addSidebarActionButton(x, y, width, index,
                     Component.translatable(key("book")), button -> switchPanel(Panel.BOOK));
+            addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("book.edit_pages")), button -> openBookItemEditor());
         }
     }
 
@@ -395,10 +396,9 @@ protected void addItemPanel() {
                 Component.literal("Lore " + (line + 1))));
         loreBox.setMaxLength(100);
         loreBox.setTextColor(MAIN_COLOR);
-        String placeholder = "Lore " + (line + 1);
-        loreBox.setValue(realLine ? this.loreValues.get(line) : placeholder);
+        loreBox.setValue(realLine ? this.loreValues.get(line) : "");
         loreBox.setResponder(value -> {
-            if (!realLine && placeholder.equals(value)) {
+            if (!realLine && value.isEmpty()) {
                 return;
             }
             setLoreLine(line, value);
@@ -645,8 +645,8 @@ protected void addItemPanel() {
     }
 
     protected void addSignPanel() {
-        int fieldWidth = Math.max(120, Math.min(220, this.width - 160));
-        int x = this.midX - fieldWidth / 2;
+        int fieldWidth = contentLimitedWidth(220, 120, 80);
+        int x = centeredContentX(fieldWidth);
 
         for (int i = 0; i < SIGN_LINES; i++) {
             int line = i;
@@ -661,8 +661,8 @@ protected void addItemPanel() {
             this.signBoxes.add(lineBox);
         }
 
-        int commandWidth = Math.max(120, Math.min(260, this.width - 120));
-        this.signCommandBox = addTrackedBox(legacyTextBox(this.midX - commandWidth / 2, 190, commandWidth, FIELD_HEIGHT,
+        int commandWidth = contentLimitedWidth(260, 120, 60);
+        this.signCommandBox = addTrackedBox(legacyTextBox(centeredContentX(commandWidth), 190, commandWidth, FIELD_HEIGHT,
                 Component.translatable(key("sign.command"))));
         this.signCommandBox.setMaxLength(512);
         this.signCommandBox.setValue(this.signCommandValue == null ? "" : this.signCommandValue);
@@ -677,8 +677,8 @@ protected void addItemPanel() {
 
     protected void addBookPanel() {
         boolean written = this.previewStack.is(Items.WRITTEN_BOOK);
-        int fieldWidth = Math.max(120, Math.min(220, this.width - 160));
-        int x = this.midX - fieldWidth / 2;
+        int fieldWidth = contentLimitedWidth(220, 120, 80);
+        int x = centeredContentX(fieldWidth);
 
         this.bookTitleBox = addTrackedBox(legacyTextBox(x, 70, fieldWidth, FIELD_HEIGHT,
                 Component.translatable(key("book.title"))));
@@ -718,8 +718,8 @@ protected void addItemPanel() {
     }
 
     protected void addHeadPanel() {
-        int fieldWidth = Math.max(180, Math.min(320, this.width - 160));
-        int x = this.midX - fieldWidth / 2;
+        int fieldWidth = contentLimitedWidth(320, 180, 80);
+        int x = centeredContentX(fieldWidth);
 
         this.headOwnerBox = addTrackedBox(legacyTextBox(x, 64, fieldWidth, FIELD_HEIGHT,
                 Component.translatable(key("head.owner"))));
@@ -841,15 +841,15 @@ protected void addItemPanel() {
 
     protected void addContainerPanel() {
         this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, CONTAINER_SIZE - 1);
-        int boxWidth = Math.min(300, Math.max(180, this.width - 40));
-        this.containerSlotNbtBox = addTrackedBox(legacyTextBox(this.midX - boxWidth / 2, 132, boxWidth, FIELD_HEIGHT,
+        int boxWidth = contentLimitedWidth(300, 180, 20);
+        this.containerSlotNbtBox = addTrackedBox(legacyTextBox(centeredContentX(boxWidth), 132, boxWidth, FIELD_HEIGHT,
                 Component.translatable(key("container.slot_nbt"))));
         this.containerSlotNbtBox.setMaxLength(20000);
         this.containerSlotNbtBox.setValue(this.containerSlotNbtValue == null ? getContainerSelectedSlotNbt() : this.containerSlotNbtValue);
         this.containerSlotNbtBox.setResponder(value -> this.containerSlotNbtValue = value);
 
         int controlsWidth = 270;
-        int x = this.midX - controlsWidth / 2;
+        int x = centeredContentX(controlsWidth);
         addRenderableWidget(new InfinityEditorButton(x, 158, 24, FIELD_HEIGHT,
                 Component.literal("<"), button -> cycleContainerSlot(-1)));
         addRenderableWidget(new InfinityEditorButton(x + 28, 158, 24, FIELD_HEIGHT,
@@ -864,7 +864,9 @@ protected void addItemPanel() {
     }
 
     protected void addBannerPanel() {
-        this.bannerPatternFilterBox = addTrackedBox(legacyTextBox(10, 28, 125, FIELD_HEIGHT,
+        int listX = bannerPatternListX();
+        int listWidth = bannerPatternListWidth();
+        this.bannerPatternFilterBox = addTrackedBox(legacyTextBox(listX, sideListSearchY(), Math.min(160, listWidth), FIELD_HEIGHT,
                 Component.translatable(key("banner.search"))));
         this.bannerPatternFilterBox.setMaxLength(32);
         this.bannerPatternFilterBox.setValue(this.bannerPatternFilterValue);
@@ -874,8 +876,8 @@ protected void addItemPanel() {
             this.selectedBannerPatternIndex = 0;
         });
 
-        int controlsX = Math.max(this.midX + 76, this.width - 142);
         int width = 132;
+        int controlsX = rightControlsX(width, listX, listWidth);
         addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
                 Component.translatable(key("banner.base"), getDyeColorName(getBannerBaseColor())),
                 button -> cycleBannerBaseColor(Screen.hasShiftDown() ? -1 : 1)));
@@ -895,16 +897,20 @@ protected void addItemPanel() {
                 Component.translatable(key("banner.clear")), button -> clearBannerPatterns()));
         clear.active = getBannerPatternCount() > 0;
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
-                Component.literal("<"), button -> cycleSelectedBannerPattern(-1)));
-        addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
-                Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
-                Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
+        if (!isSidebarUi()) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal("<"), button -> cycleSelectedBannerPattern(-1)));
+            addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                    Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
+            addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
+        }
     }
 
     protected void addSpawnEggPanel() {
-        this.spawnEggEntityFilterBox = addTrackedBox(legacyTextBox(10, 28, 145, FIELD_HEIGHT,
+        int listX = spawnEggEntityListX();
+        int listWidth = spawnEggEntityListWidth();
+        this.spawnEggEntityFilterBox = addTrackedBox(legacyTextBox(listX, sideListSearchY(), Math.min(180, listWidth), FIELD_HEIGHT,
                 Component.translatable(key("spawnegg.search"))));
         this.spawnEggEntityFilterBox.setMaxLength(48);
         this.spawnEggEntityFilterBox.setValue(this.spawnEggEntityFilterValue);
@@ -944,12 +950,14 @@ protected void addItemPanel() {
             addSpawnEggTagControl(rows.get(i), getSpawnEggTagRowY(i - this.spawnEggTagScroll), controlsX, width);
         }
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
-                Component.literal("<"), button -> cycleSelectedSpawnEggEntity(-1)));
-        addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
-                Component.translatable(key("spawnegg.apply_entity")), button -> applySelectedSpawnEggEntity()));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
-                Component.literal(">"), button -> cycleSelectedSpawnEggEntity(1)));
+        if (!isSidebarUi()) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal("<"), button -> cycleSelectedSpawnEggEntity(-1)));
+            addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                    Component.translatable(key("spawnegg.apply_entity")), button -> applySelectedSpawnEggEntity()));
+            addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal(">"), button -> cycleSelectedSpawnEggEntity(1)));
+        }
     }
 
     protected void addSpawnEggTagControl(SpawnEggTagRow row, int y, int controlsX, int width) {
@@ -993,15 +1001,47 @@ protected void addItemPanel() {
 
     protected void addTradePanel() {
         readTradeFieldsFromStack(this.previewStack);
-        int maxUsesFieldWidth = this.width / 7;
-        int maxUsesFieldY = 80;
-        this.tradeMaxUsesBox = addTrackedBox(numberBox((this.width - maxUsesFieldWidth) / 2, maxUsesFieldY,
-                maxUsesFieldWidth, 16, TRADE_MAX_USES_DIGITS, this.tradeMaxUsesValue,
-                -TRADE_MAX_USES_LIMIT, TRADE_MAX_USES_LIMIT));
-        this.tradeMaxUsesBox.setResponder(value -> {
-            this.tradeMaxUsesValue = value;
-            updateSelectedTradeMaxUses();
-        });
+        int nbtWidth = contentLimitedWidth(420, 180, 48);
+        int nbtY = Math.max(66, Math.min(getSingleTradeSlotY() + 52, sidebarBottomButtonY() - 132));
+        this.tradeItemNbtBox = addTrackedBox(legacyTextBox(centeredContentX(nbtWidth), nbtY, nbtWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.item_nbt"))));
+        this.tradeItemNbtBox.setMaxLength(20000);
+        this.tradeItemNbtBox.setValue(this.tradeItemNbtValue);
+        this.tradeItemNbtBox.setResponder(value -> this.tradeItemNbtValue = value);
+        this.tradeItemNbtBox.active = getVillagerTradeCount() > 0;
+
+        int labelWidth = isSidebarUi() ? 78 : 86;
+        int fieldWidth = 58;
+        int columnGap = 24;
+        int columnWidth = labelWidth + fieldWidth;
+        int fieldsLeft = centeredContentX(columnWidth * 2 + columnGap);
+        int leftFieldX = fieldsLeft + labelWidth;
+        int rightFieldX = fieldsLeft + columnWidth + columnGap + labelWidth;
+        int fieldsY = nbtY + 34;
+
+        this.tradeUsesBox = addTradeFieldBox(leftFieldX, fieldsY, fieldWidth, this.tradeUsesValue,
+                value -> value.matches("\\d{0,10}"), value -> this.tradeUsesValue = value);
+        this.tradeMaxUsesBox = addTradeFieldBox(rightFieldX, fieldsY, fieldWidth, this.tradeMaxUsesValue,
+                value -> value.matches("-?\\d{0,10}"), value -> this.tradeMaxUsesValue = value);
+        this.tradeXpBox = addTradeFieldBox(leftFieldX, fieldsY + 24, fieldWidth, this.tradeXpValue,
+                value -> value.matches("\\d{0,10}"), value -> this.tradeXpValue = value);
+        this.tradeSpecialPriceBox = addTradeFieldBox(rightFieldX, fieldsY + 24, fieldWidth, this.tradeSpecialPriceValue,
+                value -> value.matches("-?\\d{0,10}"), value -> this.tradeSpecialPriceValue = value);
+        this.tradeDemandBox = addTradeFieldBox(leftFieldX, fieldsY + 48, fieldWidth, this.tradeDemandValue,
+                value -> value.matches("-?\\d{0,10}"), value -> this.tradeDemandValue = value);
+        this.tradePriceMultiplierBox = addTradeFieldBox(rightFieldX, fieldsY + 48, fieldWidth, this.tradePriceMultiplierValue,
+                value -> value.matches("\\d{0,8}(\\.\\d{0,6})?"), value -> this.tradePriceMultiplierValue = value);
+
+        int buttonY = fieldsY + 76;
+        int buttonWidth = 94;
+        InfinityEditorButton update = addRenderableWidget(new InfinityEditorButton(centeredContentX(buttonWidth * 2 + 8), buttonY,
+                buttonWidth, FIELD_HEIGHT, Component.translatable(key("trades.update")), button -> updateSelectedTradeFromFields()));
+        update.active = getVillagerTradeCount() > 0;
+        InfinityEditorButton reward = addRenderableWidget(new InfinityEditorButton(centeredContentX(buttonWidth * 2 + 8) + buttonWidth + 8,
+                buttonY, buttonWidth, FIELD_HEIGHT,
+                Component.translatable(key("trades.reward_exp." + (this.tradeRewardExp ? 1 : 0))),
+                button -> toggleSelectedTradeRewardExp()));
+        reward.active = getVillagerTradeCount() > 0;
     }
 
     protected EditBox addTradeFieldBox(int x, int y, int width, String value, java.util.function.Predicate<String> filter,
@@ -1016,31 +1056,32 @@ protected void addItemPanel() {
     }
 
     protected void addAttributesPanel() {
-        this.attributeInfinityButton = addRenderableWidget(new InfinityEditorButton(15, this.height - 123, 80, OLD_BUTTON_HEIGHT,
+        int controlLeft = editorControlLeft();
+        this.attributeInfinityButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 123, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.infinity." + (this.attributeInfinity ? 1 : 0))),
                 button -> toggleAttributeInfinity()));
 
-        this.attributeOperationButton = addRenderableWidget(new InfinityEditorButton(15, this.height - 93, 80, OLD_BUTTON_HEIGHT,
+        this.attributeOperationButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 93, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.operation." + this.attributeOperation)),
                 button -> cycleAttributeOperation()));
         this.attributeOperationButton.active = !this.attributeInfinity;
 
-        this.attributeSlotButton = addRenderableWidget(new InfinityEditorButton(15, this.height - 63, 80, OLD_BUTTON_HEIGHT,
+        this.attributeSlotButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 63, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.slot." + this.attributeSlot)),
                 button -> cycleAttributeSlot()));
 
-        addRenderableWidget(new InfinityEditorButton(15, this.height - 33, 20, OLD_BUTTON_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 33, 20, OLD_BUTTON_HEIGHT,
                 Component.literal(this.attributeNegative ? "-" : "+"), button -> {
             this.attributeNegative = !this.attributeNegative;
             rebuildWidgets();
         }));
 
-        this.attributeAmountBox = addTrackedBox(numberBox(38, this.height - 32, 55, 18, 8,
+        this.attributeAmountBox = addTrackedBox(numberBox(controlLeft + 23, this.height - 32, 55, 18, 8,
                 this.attributeAmountValue, 0, MAX_ATTRIBUTE_INTEGER));
         this.attributeAmountBox.setResponder(value -> this.attributeAmountValue = value);
         this.attributeAmountBox.active = !this.attributeInfinity;
 
-        this.attributeDecimalBox = addTrackedBox(numberBox(100, this.height - 32, 25, 18, 3,
+        this.attributeDecimalBox = addTrackedBox(numberBox(controlLeft + 85, this.height - 32, 25, 18, 3,
                 this.attributeDecimalValue, 0, 999));
         this.attributeDecimalBox.setResponder(value -> this.attributeDecimalValue = value);
         this.attributeDecimalBox.active = !this.attributeInfinity;
@@ -1070,7 +1111,7 @@ protected void addItemPanel() {
         this.blueSlider = addRenderableWidget(new ColorSlider(this.midX - 80, this.midY + 30, 160, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.blue")), getBlue(color), value -> setColorComponent(0, value)));
 
-        addRenderableWidget(new InfinityEditorButton((this.width - 60) / 2, this.midY + 65, 60, OLD_BUTTON_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(centeredContentX(60), this.midY + 65, 60, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.random")), button -> {
             setEditorColor(ThreadLocalRandom.current().nextInt(0x1000000));
             syncColorControlsFromStack();
@@ -1309,8 +1350,41 @@ protected void addItemPanel() {
     }
 
     protected EditBox numberBox(int x, int y, int width, int height, int digits, String value, int minValue, int maxValue) {
+        if (isSidebarUi()) {
+            EditBox box = plainTextBox(x, y, width, height, Component.empty());
+            int normalizedDigits = Math.max(1, digits);
+            box.setMaxLength(normalizedDigits + (minValue < 0 ? 1 : 0));
+            box.setFilter(text -> isAllowedSidebarNumber(text, normalizedDigits, minValue < 0));
+            box.setValue(value == null ? "" : value);
+            return box;
+        }
+
         EditBox box = new FixedDigitEditBox(this.font, x, y, width, height, digits, minValue, maxValue);
         box.setValue(value);
         return box;
+    }
+
+    private boolean isAllowedSidebarNumber(String value, int digits, boolean allowNegative) {
+        if (value == null || value.isEmpty()) {
+            return true;
+        }
+
+        int start = 0;
+        if (value.charAt(0) == '-') {
+            if (!allowNegative || value.length() == 1) {
+                return allowNegative;
+            }
+            start = 1;
+        }
+        if (value.length() - start > digits) {
+            return false;
+        }
+        for (int i = start; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (character < '0' || character > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 }

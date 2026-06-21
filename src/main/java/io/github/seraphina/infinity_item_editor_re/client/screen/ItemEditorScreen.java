@@ -345,7 +345,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         }
 
         if (this.activePanel == Panel.SPAWN_EGG) {
-            if (isMouseIn(mouseX, mouseY, 10, getSpawnEggEntityRowY(0) - 1, 170, SPAWN_EGG_ENTITY_ROWS * 10 + 2)) {
+            if (isMouseIn(mouseX, mouseY, spawnEggEntityListX(), getSpawnEggEntityRowY(0) - 1,
+                    spawnEggEntityListWidth(), SPAWN_EGG_ENTITY_ROWS * 10 + 2)) {
                 setSpawnEggEntityScroll(this.spawnEggEntityScroll - (int) Math.signum(delta));
                 rebuildWidgets();
             } else {
