@@ -127,7 +127,7 @@ final class ItemJsonEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 12, InfinityEditorButton.MAIN_COLOR);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         if (!this.status.getString().isEmpty()) {

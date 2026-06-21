@@ -75,7 +75,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected void renderEditorBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
 
         if (!isSidebarUi()) {
             return;

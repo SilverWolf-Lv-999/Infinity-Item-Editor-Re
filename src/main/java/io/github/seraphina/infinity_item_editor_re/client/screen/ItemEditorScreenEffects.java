@@ -80,7 +80,10 @@ protected void updateRawNbt() {
         String raw = this.rawNbtBox == null ? this.rawNbtValue : this.rawNbtBox.getValue();
         try {
             CompoundTag tag = parseNbt(raw);
-            ItemStackNbt.set(this.previewStack, tag);
+            this.previewStack = tag == null ? this.previewStack.copy() : ItemStackNbt.parseEditorNbt(this.previewStack, tag);
+            if (tag == null) {
+                ItemStackNbt.set(this.previewStack, null);
+            }
             readMainFieldsFromStack(this.previewStack);
             this.rawNbtValue = getInitialNbt(this.previewStack);
             this.nbtFeedbackGood = true;

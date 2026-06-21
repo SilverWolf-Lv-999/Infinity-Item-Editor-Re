@@ -34,7 +34,7 @@ import java.util.Set;
 
 final class ItemJsonConverter {
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    private static final Set<String> STACK_ROOT_KEYS = Set.of("id", "item", "Item", "Count", "count", "tag", "nbt");
+    private static final Set<String> STACK_ROOT_KEYS = Set.of("id", "item", "Item", "Count", "count", "components", "tag", "nbt");
 
     private ItemJsonConverter() {
     }
