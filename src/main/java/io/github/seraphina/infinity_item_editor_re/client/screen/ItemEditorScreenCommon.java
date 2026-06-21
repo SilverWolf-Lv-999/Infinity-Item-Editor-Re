@@ -140,7 +140,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int centeredContentX(int width) {
-        return contentMidX() - width / 2;
+        int x = contentMidX() - width / 2;
+        if (!isSidebarUi()) {
+            return x;
+        }
+
+        return Mth.clamp(x, safeLeft(), Math.max(safeLeft(), safeRight() - width));
     }
 
     protected int contentLimitedWidth(int preferred, int minWidth, int margin) {
@@ -351,7 +356,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int bannerPatternListWidth() {
-        return isSidebarUi() ? Mth.clamp(contentWidth() / 4, 132, 176) : 150;
+        if (!isSidebarUi()) {
+            return 150;
+        }
+
+        int maxWidth = Math.max(1, Math.min(176, contentWidth() - 20));
+        return Mth.clamp(contentWidth() / 4, Math.min(132, maxWidth), maxWidth);
     }
 
     protected int spawnEggEntityListX() {
@@ -359,7 +369,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int spawnEggEntityListWidth() {
-        return isSidebarUi() ? Mth.clamp(contentWidth() / 4, 150, 210) : 170;
+        if (!isSidebarUi()) {
+            return 170;
+        }
+
+        int maxWidth = Math.max(1, Math.min(210, contentWidth() - 20));
+        return Mth.clamp(contentWidth() / 4, Math.min(150, maxWidth), maxWidth);
     }
 
     protected int rightControlsX(int width, int listX, int listWidth) {
@@ -369,7 +384,8 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
         int rightAligned = safeRight() - width;
         int afterList = listX + listWidth + SIDEBAR_CONTENT_GAP;
-        return afterList <= rightAligned ? rightAligned : Math.max(safeLeft(), rightAligned);
+        int x = afterList <= rightAligned ? rightAligned : Math.max(safeLeft(), rightAligned);
+        return Mth.clamp(x, safeLeft(), Math.max(safeLeft(), safeRight() - width));
     }
 
     protected int nbtEditorWidth() {

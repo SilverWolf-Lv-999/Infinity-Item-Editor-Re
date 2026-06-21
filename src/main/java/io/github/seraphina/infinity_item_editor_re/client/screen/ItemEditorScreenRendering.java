@@ -760,7 +760,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int size = trades.size();
         boolean foundHover = false;
         if (isSidebarUi()) {
-            int listWidth = Math.min(getTradeListWidth(), Math.max(120, contentWidth() - 48));
+            int listWidth = Math.min(getTradeListWidth(), Math.max(1, contentWidth() - 48));
             int top = size == 0 ? getTradeListRowY(0, 0) - 8 : getTradeListRowY(0, size) - 8;
             int bottom = getTradeListRowY(size, size) + 18;
             ModernUi.fillPanel(guiGraphics, this.midX - listWidth / 2 - 8, top,
@@ -772,7 +772,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             foundHover = foundHover || hovered;
             int rowY = getTradeListRowY(i, size);
             if (isSidebarUi() && (hovered || i == this.selectedTradeIndex)) {
-                int rowWidth = Math.min(getTradeListWidth(), this.width - 60);
+                int rowWidth = Math.min(getTradeListWidth(), Math.max(1, contentWidth() - 48));
                 ModernUi.fillSelection(guiGraphics, this.midX - rowWidth / 2, rowY - 5, this.midX + rowWidth / 2, rowY + 12,
                         5, true);
             }
@@ -1169,15 +1169,17 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             return false;
         }
 
-        int gridX = this.blueSlider.getX();
+        int columns = dyeGridColumns();
+        int cellSize = dyeGridCellSize();
+        int gridX = dyeGridX(columns, cellSize);
         int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
-        if (!isMouseIn(mouseX, mouseY, gridX, gridY, 160, 40)) {
+        if (!isMouseIn(mouseX, mouseY, gridX, gridY, columns * cellSize, dyeGridRows(columns) * cellSize)) {
             return false;
         }
 
-        int column = ((int) mouseX - gridX) / 20;
-        int row = ((int) mouseY - gridY) / 20;
-        int index = column + row * 8;
+        int column = ((int) mouseX - gridX) / cellSize;
+        int row = ((int) mouseY - gridY) / cellSize;
+        int index = column + row * columns;
         DyeColor[] colors = DyeColor.values();
         if (index < 0 || index >= colors.length) {
             return false;

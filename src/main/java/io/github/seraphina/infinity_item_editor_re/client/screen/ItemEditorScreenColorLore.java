@@ -205,28 +205,53 @@ protected void applyColorFromHex(boolean updateStatus) {
             return;
         }
 
-        int gridX = this.blueSlider.getX();
+        int columns = dyeGridColumns();
+        int cellSize = dyeGridCellSize();
+        int gridWidth = columns * cellSize;
+        int gridHeight = dyeGridRows(columns) * cellSize;
+        int gridX = dyeGridX(columns, cellSize);
         int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
         if (isSidebarUi()) {
-            ModernUi.fillPanel(guiGraphics, gridX - 5, gridY - 5, gridX + 165, gridY + 45, 7,
+            ModernUi.fillPanel(guiGraphics, gridX - 5, gridY - 5, gridX + gridWidth + 5, gridY + gridHeight + 5, 7,
                     ModernUi.SURFACE, ModernUi.BORDER);
         }
         int index = 0;
         for (DyeColor dyeColor : DyeColor.values()) {
-            int x = gridX + 20 * (index % 8);
-            int y = gridY + 20 * (index / 8);
+            int x = gridX + cellSize * (index % columns);
+            int y = gridY + cellSize * (index / columns);
             if (isSidebarUi()) {
-                ModernUi.fillRounded(guiGraphics, x + 1, y + 1, x + 19, y + 19, 4, argb(210, dyeColor.getTextColor()));
-                guiGraphics.fill(x + 3, y + 2, x + 17, y + 3, ModernUi.alpha(0xFFFFFF, 45));
+                ModernUi.fillRounded(guiGraphics, x + 1, y + 1, x + cellSize - 1, y + cellSize - 1, 4, argb(210, dyeColor.getTextColor()));
+                guiGraphics.fill(x + 3, y + 2, x + cellSize - 3, y + 3, ModernUi.alpha(0xFFFFFF, 45));
             } else {
-                guiGraphics.fill(x, y, x + 20, y + 20, argb(159, dyeColor.getTextColor()));
+                guiGraphics.fill(x, y, x + cellSize, y + cellSize, argb(159, dyeColor.getTextColor()));
             }
             DyeItem dyeItem = DyeItem.byColor(dyeColor);
             if (dyeItem != null) {
-                guiGraphics.renderItem(new ItemStack(dyeItem), x + 2, y + 2);
+                guiGraphics.renderItem(new ItemStack(dyeItem), x + (cellSize - ITEM_SIZE) / 2, y + (cellSize - ITEM_SIZE) / 2);
             }
             index++;
         }
+    }
+
+    protected int dyeGridColumns() {
+        return isSidebarUi() && this.blueSlider != null && this.blueSlider.getWidth() < 160 ? 4 : 8;
+    }
+
+    protected int dyeGridCellSize() {
+        return 20;
+    }
+
+    protected int dyeGridRows(int columns) {
+        return (DyeColor.values().length + columns - 1) / columns;
+    }
+
+    protected int dyeGridX(int columns, int cellSize) {
+        if (this.blueSlider == null) {
+            return 0;
+        }
+
+        int gridWidth = columns * cellSize;
+        return this.blueSlider.getX() + (this.blueSlider.getWidth() - gridWidth) / 2;
     }
 
     protected boolean shouldShowDyeGrid() {

@@ -277,13 +277,20 @@ protected void addItemPanel() {
     }
 
     protected int getActionGridButtonWidth() {
+        int available;
+        int preferredMin;
         if (isCompactSidebarItemPanel()) {
-            return Math.max(74, (contentWidth() - SIDEBAR_CONTENT_GAP) / 2);
+            available = contentWidth();
+            preferredMin = 64;
+        } else {
+            int detailsX = sidebarItemDetailsX(sidebarDetailsWidth());
+            available = detailsX - safeLeft() - SIDEBAR_CONTENT_GAP;
+            preferredMin = 74;
         }
 
-        int detailsX = sidebarItemDetailsX(sidebarDetailsWidth());
-        int available = detailsX - safeLeft() - SIDEBAR_CONTENT_GAP;
-        return Mth.clamp((available - SIDEBAR_CONTENT_GAP) / 2, 82, 126);
+        int maxColumnWidth = Math.max(1, (available - SIDEBAR_CONTENT_GAP) / 2);
+        int minColumnWidth = Math.min(preferredMin, maxColumnWidth);
+        return Mth.clamp(maxColumnWidth, minColumnWidth, 126);
     }
 
     protected void addSidebarSpecialButtons(int x, int y, int width) {
@@ -708,18 +715,20 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.bookAuthorBox);
 
-        InfinityEditorButton generation = addRenderableWidget(new InfinityEditorButton(this.midX - 75, 140, 150, FIELD_HEIGHT,
+        int buttonWidth = contentLimitedWidth(150, 100, 32);
+        int buttonX = centeredContentX(buttonWidth);
+        InfinityEditorButton generation = addRenderableWidget(new InfinityEditorButton(buttonX, 140, buttonWidth, FIELD_HEIGHT,
                 Component.translatable(key("book.generation"), getBookGeneration()), button -> cycleBookGeneration()));
         generation.active = written;
 
-        InfinityEditorButton resolved = addRenderableWidget(new InfinityEditorButton(this.midX - 75, 170, 150, FIELD_HEIGHT,
+        InfinityEditorButton resolved = addRenderableWidget(new InfinityEditorButton(buttonX, 170, buttonWidth, FIELD_HEIGHT,
                 getBookResolvedText(), button -> toggleBookResolved()));
         resolved.active = written;
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 75, 200, 150, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(buttonX, 200, buttonWidth, FIELD_HEIGHT,
                 getBookSignButtonText(), button -> toggleBookSignedState()));
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 75, 230, 150, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(buttonX, 230, buttonWidth, FIELD_HEIGHT,
                 Component.translatable(key("book.edit_pages")), button -> openBookItemEditor()));
 
         addFormatButtons();
@@ -769,35 +778,40 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.headTextureSignatureBox);
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 105, 190, 100, FIELD_HEIGHT,
+        int buttonGap = 8;
+        int buttonAreaWidth = contentLimitedWidth(208, 120, 20);
+        int buttonWidth = Math.max(1, (buttonAreaWidth - buttonGap) / 2);
+        int buttonX = centeredContentX(buttonAreaWidth);
+        addRenderableWidget(new InfinityEditorButton(buttonX, 190, buttonWidth, FIELD_HEIGHT,
                 Component.translatable(key("head.random_uuid")), button -> randomizeHeadUuid()));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 5, 190, 100, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(buttonX + buttonWidth + buttonGap, 190, buttonWidth, FIELD_HEIGHT,
                 Component.translatable(key("head.clear_owner")), button -> clearHeadOwner()));
     }
 
     protected void addArmorStandPanel() {
-        int x = this.midX - 75;
+        int width = contentLimitedWidth(150, 100, 32);
+        int x = centeredContentX(width);
         int y = 54;
-        addArmorStandToggleButton(x, y, "show_arms", ARMOR_STAND_SHOW_ARMS_TAG);
-        addArmorStandToggleButton(x, y + 26, "small", ARMOR_STAND_SMALL_TAG);
-        addArmorStandToggleButton(x, y + 52, "invisible", ARMOR_STAND_INVISIBLE_TAG);
-        addArmorStandToggleButton(x, y + 78, "no_base_plate", ARMOR_STAND_NO_BASE_PLATE_TAG);
-        addArmorStandToggleButton(x, y + 104, "marker", ARMOR_STAND_MARKER_TAG);
-        addArmorStandToggleButton(x, y + 130, "no_gravity", ARMOR_STAND_NO_GRAVITY_TAG);
-        addArmorStandToggleButton(x, y + 156, "invulnerable", ARMOR_STAND_INVULNERABLE_TAG);
-        addRenderableWidget(new InfinityEditorButton(x, y + 190, 150, FIELD_HEIGHT,
+        addArmorStandToggleButton(x, y, width, "show_arms", ARMOR_STAND_SHOW_ARMS_TAG);
+        addArmorStandToggleButton(x, y + 26, width, "small", ARMOR_STAND_SMALL_TAG);
+        addArmorStandToggleButton(x, y + 52, width, "invisible", ARMOR_STAND_INVISIBLE_TAG);
+        addArmorStandToggleButton(x, y + 78, width, "no_base_plate", ARMOR_STAND_NO_BASE_PLATE_TAG);
+        addArmorStandToggleButton(x, y + 104, width, "marker", ARMOR_STAND_MARKER_TAG);
+        addArmorStandToggleButton(x, y + 130, width, "no_gravity", ARMOR_STAND_NO_GRAVITY_TAG);
+        addArmorStandToggleButton(x, y + 156, width, "invulnerable", ARMOR_STAND_INVULNERABLE_TAG);
+        addRenderableWidget(new InfinityEditorButton(x, y + 190, width, FIELD_HEIGHT,
                 Component.translatable(key("armorstand.clear_entity_tag")), button -> clearArmorStandEntityTag()));
     }
 
-    protected void addArmorStandToggleButton(int x, int y, String translationSuffix, String tagKey) {
-        addRenderableWidget(new InfinityEditorButton(x, y, 150, FIELD_HEIGHT,
+    protected void addArmorStandToggleButton(int x, int y, int width, String translationSuffix, String tagKey) {
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 getArmorStandToggleText(translationSuffix, tagKey), button -> toggleArmorStandFlag(tagKey, translationSuffix)));
     }
 
     protected void addFireworkPanel() {
-        int x = this.midX - 78;
+        int width = contentLimitedWidth(156, 104, 32);
+        int x = centeredContentX(width);
         int y = 52;
-        int width = 156;
 
         if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
             addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
@@ -856,17 +870,26 @@ protected void addItemPanel() {
         this.containerSlotNbtBox.setValue(this.containerSlotNbtValue == null ? getContainerSelectedSlotNbt() : this.containerSlotNbtValue);
         this.containerSlotNbtBox.setResponder(value -> this.containerSlotNbtValue = value);
 
-        int controlsWidth = 270;
+        int controlsWidth = contentLimitedWidth(270, 160, 20);
         int x = centeredContentX(controlsWidth);
-        addRenderableWidget(new InfinityEditorButton(x, 158, 24, FIELD_HEIGHT,
+        int gap = isSidebarUi() ? 4 : 4;
+        int smallWidth = isSidebarUi() ? 20 : 24;
+        int remainingWidth = Math.max(1, controlsWidth - smallWidth * 2 - gap * 4);
+        int updateWidth = isSidebarUi() ? Math.max(1, remainingWidth * 84 / 204) : 84;
+        int clearWidth = isSidebarUi() ? Math.max(1, remainingWidth * 58 / 204) : 58;
+        int clearAllWidth = isSidebarUi() ? Math.max(1, remainingWidth - updateWidth - clearWidth) : 62;
+
+        addRenderableWidget(new InfinityEditorButton(x, 158, smallWidth, FIELD_HEIGHT,
                 Component.literal("<"), button -> cycleContainerSlot(-1)));
-        addRenderableWidget(new InfinityEditorButton(x + 28, 158, 24, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(x + smallWidth + gap, 158, smallWidth, FIELD_HEIGHT,
                 Component.literal(">"), button -> cycleContainerSlot(1)));
-        addRenderableWidget(new InfinityEditorButton(x + 58, 158, 84, FIELD_HEIGHT,
+        int updateX = x + smallWidth * 2 + gap * 2;
+        addRenderableWidget(new InfinityEditorButton(updateX, 158, updateWidth, FIELD_HEIGHT,
                 Component.translatable(key("container.update_slot")), button -> updateContainerSlotFromNbt()));
-        addRenderableWidget(new InfinityEditorButton(x + 146, 158, 58, FIELD_HEIGHT,
+        int clearX = updateX + updateWidth + gap;
+        addRenderableWidget(new InfinityEditorButton(clearX, 158, clearWidth, FIELD_HEIGHT,
                 Component.translatable(key("container.clear_slot")), button -> clearContainerSlot()));
-        InfinityEditorButton clearAll = addRenderableWidget(new InfinityEditorButton(x + 208, 158, 62, FIELD_HEIGHT,
+        InfinityEditorButton clearAll = addRenderableWidget(new InfinityEditorButton(clearX + clearWidth + gap, 158, clearAllWidth, FIELD_HEIGHT,
                 Component.translatable(key("container.clear_all")), button -> clearContainerItems()));
         clearAll.active = getContainerItemCount() > 0;
     }
@@ -884,7 +907,7 @@ protected void addItemPanel() {
             this.selectedBannerPatternIndex = 0;
         });
 
-        int width = 132;
+        int width = isSidebarUi() ? contentLimitedWidth(132, 88, 20) : 132;
         int controlsX = rightControlsX(width, listX, listWidth);
         addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
                 Component.translatable(key("banner.base"), getDyeColorName(getBannerBaseColor())),
@@ -1041,11 +1064,14 @@ protected void addItemPanel() {
                 value -> value.matches("\\d{0,8}(\\.\\d{0,6})?"), value -> this.tradePriceMultiplierValue = value);
 
         int buttonY = fieldsY + 76;
-        int buttonWidth = 94;
-        InfinityEditorButton update = addRenderableWidget(new InfinityEditorButton(centeredContentX(buttonWidth * 2 + 8), buttonY,
+        int buttonGap = 8;
+        int buttonAreaWidth = contentLimitedWidth(196, 130, 32);
+        int buttonWidth = Math.max(1, (buttonAreaWidth - buttonGap) / 2);
+        int buttonX = centeredContentX(buttonAreaWidth);
+        InfinityEditorButton update = addRenderableWidget(new InfinityEditorButton(buttonX, buttonY,
                 buttonWidth, FIELD_HEIGHT, Component.translatable(key("trades.update")), button -> updateSelectedTradeFromFields()));
         update.active = getVillagerTradeCount() > 0;
-        InfinityEditorButton reward = addRenderableWidget(new InfinityEditorButton(centeredContentX(buttonWidth * 2 + 8) + buttonWidth + 8,
+        InfinityEditorButton reward = addRenderableWidget(new InfinityEditorButton(buttonX + buttonWidth + buttonGap,
                 buttonY, buttonWidth, FIELD_HEIGHT,
                 Component.translatable(key("trades.reward_exp." + (this.tradeRewardExp ? 1 : 0))),
                 button -> toggleSelectedTradeRewardExp()));
@@ -1099,7 +1125,7 @@ protected void addItemPanel() {
         int color = getEditorColor();
         this.colorHexValue = formatColorHex(color);
 
-        this.colorHexBox = addTrackedBox(plainTextBox(this.midX - 25, this.midY - 85, 50, OLD_BUTTON_HEIGHT,
+        this.colorHexBox = addTrackedBox(plainTextBox(centeredContentX(50), this.midY - 85, 50, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.hex"))));
         this.colorHexBox.setMaxLength(7);
         this.colorHexBox.setFilter(value -> value.matches("#?[0-9a-fA-F]{0,6}"));
@@ -1112,11 +1138,13 @@ protected void addItemPanel() {
             }
         });
 
-        this.redSlider = addRenderableWidget(new ColorSlider(this.midX - 80, this.midY - 50, 160, OLD_BUTTON_HEIGHT,
+        int sliderWidth = contentLimitedWidth(160, 100, 32);
+        int sliderX = centeredContentX(sliderWidth);
+        this.redSlider = addRenderableWidget(new ColorSlider(sliderX, this.midY - 50, sliderWidth, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.red")), getRed(color), value -> setColorComponent(16, value)));
-        this.greenSlider = addRenderableWidget(new ColorSlider(this.midX - 80, this.midY - 10, 160, OLD_BUTTON_HEIGHT,
+        this.greenSlider = addRenderableWidget(new ColorSlider(sliderX, this.midY - 10, sliderWidth, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.green")), getGreen(color), value -> setColorComponent(8, value)));
-        this.blueSlider = addRenderableWidget(new ColorSlider(this.midX - 80, this.midY + 30, 160, OLD_BUTTON_HEIGHT,
+        this.blueSlider = addRenderableWidget(new ColorSlider(sliderX, this.midY + 30, sliderWidth, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("color.blue")), getBlue(color), value -> setColorComponent(0, value)));
 
         addRenderableWidget(new InfinityEditorButton(centeredContentX(60), this.midY + 65, 60, OLD_BUTTON_HEIGHT,
@@ -1210,6 +1238,9 @@ protected void addItemPanel() {
     protected InfinityEditorButton addTopButton(int x, String keySuffix, InfinityEditorButton.PressAction action) {
         Component text = Component.translatable(key(keySuffix));
         int width = this.font.width(text) + 6;
+        if (isSidebarUi()) {
+            width = Math.min(width, Math.max(24, safeRight() - lorePanelLeft()));
+        }
         int clampedX = isSidebarUi() ? Math.min(x, Math.max(lorePanelLeft(), safeRight() - width)) : x;
         InfinityEditorButton button = addRenderableWidget(new InfinityEditorButton(clampedX, 10, width, FIELD_HEIGHT, text, action));
         this.loreActionButtons.add(button);

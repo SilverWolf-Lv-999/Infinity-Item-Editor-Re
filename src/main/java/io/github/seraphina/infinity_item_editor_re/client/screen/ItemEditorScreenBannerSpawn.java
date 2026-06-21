@@ -970,7 +970,7 @@ protected void addSelectedBannerPattern() {
     }
 
     protected int getSpawnEggControlsWidth() {
-        return 132;
+        return isSidebarUi() ? contentLimitedWidth(132, 88, 20) : 132;
     }
 
     protected SpawnEggEntityEntry getSelectedSpawnEggEntityEntry() {

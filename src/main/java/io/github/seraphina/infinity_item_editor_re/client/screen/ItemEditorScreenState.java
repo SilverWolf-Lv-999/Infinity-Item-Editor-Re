@@ -405,7 +405,7 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void addArmorStandPanel();
 
-    protected abstract void addArmorStandToggleButton(int x, int y, String translationSuffix, String tagKey);
+    protected abstract void addArmorStandToggleButton(int x, int y, int width, String translationSuffix, String tagKey);
 
     protected abstract void addFireworkPanel();
 
