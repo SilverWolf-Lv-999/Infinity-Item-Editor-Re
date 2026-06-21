@@ -65,11 +65,11 @@ public class ModernTextEditBox extends EditBox {
 
         boolean highlighted = this.active && (isFocused() || isMouseOver(mouseX, mouseY));
         updateFocusAmount(partialTick, highlighted);
-        ModernUi.fillToolInput(guiGraphics, getX() - 3, getY() - 2, getX() + getWidth() + 3,
-                getY() + getHeight() + 2, highlighted, this.active);
+        ModernUi.fillToolInput(guiGraphics, getX() - 2, getY() + 1, getX() + getWidth() + 2,
+                getY() + getHeight() - 1, highlighted, this.active);
         if (this.focusAmount > 0.0F && this.active) {
             int glow = ModernUi.alpha(0xFFB347, Math.round(32.0F * this.focusAmount));
-            guiGraphics.fill(getX() + 2, getY() + getHeight(), getX() + getWidth() - 2, getY() + getHeight() + 1, glow);
+            guiGraphics.fill(getX() + 2, getY() + getHeight() - 2, getX() + getWidth() - 2, getY() + getHeight() - 1, glow);
         }
         super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
     }

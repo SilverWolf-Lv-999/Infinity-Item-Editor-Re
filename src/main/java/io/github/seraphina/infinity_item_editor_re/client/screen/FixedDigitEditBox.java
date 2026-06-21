@@ -128,7 +128,7 @@ class FixedDigitEditBox extends EditBox {
         boolean sidebarUi = Config.getItemGuiMode() == Config.ItemEditorUiMode.SIDEBAR;
         int color = this.active ? (sidebarUi ? ModernUi.TEXT_PRIMARY : InfinityEditorButton.MAIN_COLOR) : DISABLED_COLOR;
         if (sidebarUi) {
-            ModernUi.fillInset(guiGraphics, getX() - 3, getY() - 2, getX() + getWidth() + 3, getY() + getHeight() + 2,
+            ModernUi.fillInset(guiGraphics, getX() - 2, getY() + 1, getX() + getWidth() + 2, getY() + getHeight() - 1,
                     6, this.active && (isFocused() || isMouseOver(mouseX, mouseY)), this.active);
         } else {
             guiGraphics.fill(getX() - 1, getY() - 1, getX() + getWidth() + 1, getY() + getHeight() + 1, color);
