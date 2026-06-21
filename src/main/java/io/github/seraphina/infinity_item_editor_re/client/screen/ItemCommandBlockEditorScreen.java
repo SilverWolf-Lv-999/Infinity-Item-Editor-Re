@@ -17,18 +17,30 @@ final class ItemCommandBlockEditorScreen extends Screen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int EDITOR_MARGIN = 18;
     private static final int EDITOR_TOP = 44;
+    private static final int EDITOR_TOP_WITH_OPTIONS = 68;
+    private static final int OPTIONS_Y = 40;
     private static final int EDITOR_BOTTOM_MARGIN = 52;
     private static final int STATUS_GOOD = 0xFF32CC64;
     private static final int STATUS_NEUTRAL = 0xFFFFD966;
     private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
+    private static final String BLOCK_STATE_TAG = "BlockStateTag";
     private static final String ENTITY_TAG = "EntityTag";
     private static final String COMMAND_TAG = "Command";
+    private static final String AUTO_TAG = "auto";
+    private static final String CONDITIONAL_TAG = "conditional";
 
     private final ItemEditorScreen lastScreen;
+    private final boolean supportsCommandBlockOptions;
     private ItemStack commandStack;
     private String commandText;
     private String appliedCommandText;
+    private boolean unconditional;
+    private boolean appliedUnconditional;
+    private boolean alwaysActive;
+    private boolean appliedAlwaysActive;
     private ItemJsonEditorScreen.JsonCodeEditBox commandBox;
+    private InfinityEditorButton conditionButton;
+    private InfinityEditorButton activationButton;
     private Component status = Component.empty();
     private int statusColor = STATUS_NEUTRAL;
     private boolean discardArmed;
@@ -37,15 +49,32 @@ final class ItemCommandBlockEditorScreen extends Screen {
         super(Component.translatable(key("commandblock")));
         this.lastScreen = lastScreen;
         this.commandStack = stack.copy();
+        this.supportsCommandBlockOptions = supportsCommandBlockOptions(this.commandStack);
         this.commandText = readCommand(this.commandStack);
         this.appliedCommandText = this.commandText;
+        this.unconditional = readUnconditional(this.commandStack);
+        this.appliedUnconditional = this.unconditional;
+        this.alwaysActive = readAlwaysActive(this.commandStack);
+        this.appliedAlwaysActive = this.alwaysActive;
     }
 
     @Override
     protected void init() {
+        if (this.supportsCommandBlockOptions) {
+            int optionGap = 4;
+            int optionWidth = Mth.clamp((this.width - EDITOR_MARGIN * 2 - optionGap) / 2, 104, 160);
+            int totalWidth = optionWidth * 2 + optionGap;
+            int optionX = (this.width - totalWidth) / 2;
+            this.conditionButton = addRenderableWidget(new InfinityEditorButton(optionX, OPTIONS_Y, optionWidth, BUTTON_HEIGHT,
+                    conditionModeText(), button -> toggleUnconditional()));
+            this.activationButton = addRenderableWidget(new InfinityEditorButton(optionX + optionWidth + optionGap, OPTIONS_Y,
+                    optionWidth, BUTTON_HEIGHT, activationModeText(), button -> toggleAlwaysActive()));
+        }
+
         int editorWidth = Math.max(180, this.width - EDITOR_MARGIN * 2);
-        int editorHeight = Math.max(80, this.height - EDITOR_TOP - EDITOR_BOTTOM_MARGIN);
-        this.commandBox = addRenderableWidget(new ItemJsonEditorScreen.JsonCodeEditBox(this.font, EDITOR_MARGIN, EDITOR_TOP,
+        int editorTop = this.supportsCommandBlockOptions ? EDITOR_TOP_WITH_OPTIONS : EDITOR_TOP;
+        int editorHeight = Math.max(80, this.height - editorTop - EDITOR_BOTTOM_MARGIN);
+        this.commandBox = addRenderableWidget(new ItemJsonEditorScreen.JsonCodeEditBox(this.font, EDITOR_MARGIN, editorTop,
                 editorWidth, editorHeight, Component.translatable(key("commandblock.placeholder"))));
         this.commandBox.useCommandCompletions();
         this.commandBox.setValue(this.commandText);
@@ -141,15 +170,24 @@ final class ItemCommandBlockEditorScreen extends Screen {
     private void applyCommand(boolean returnAfterApply) {
         ItemStack updated = this.commandStack.copy();
         writeCommand(updated, normalizedCommand(currentText()));
+        if (this.supportsCommandBlockOptions) {
+            writeUnconditional(updated, this.unconditional);
+            writeAlwaysActive(updated, this.alwaysActive);
+        }
         this.commandStack = updated;
         this.lastScreen.applyCommandBlockEditedStack(updated);
         this.commandText = readCommand(this.commandStack);
         this.appliedCommandText = this.commandText;
+        this.unconditional = readUnconditional(this.commandStack);
+        this.appliedUnconditional = this.unconditional;
+        this.alwaysActive = readAlwaysActive(this.commandStack);
+        this.appliedAlwaysActive = this.alwaysActive;
         this.discardArmed = false;
         if (this.commandBox != null) {
             this.commandBox.setValue(this.commandText);
             this.commandBox.clearError();
         }
+        syncOptionButtons();
         this.status = Component.translatable(messageKey("editor_command_block_applied"));
         this.statusColor = STATUS_GOOD;
         if (returnAfterApply) {
@@ -161,11 +199,16 @@ final class ItemCommandBlockEditorScreen extends Screen {
         this.commandStack = this.lastScreen.previewStack.copy();
         this.commandText = readCommand(this.commandStack);
         this.appliedCommandText = this.commandText;
+        this.unconditional = readUnconditional(this.commandStack);
+        this.appliedUnconditional = this.unconditional;
+        this.alwaysActive = readAlwaysActive(this.commandStack);
+        this.appliedAlwaysActive = this.alwaysActive;
         this.discardArmed = false;
         if (this.commandBox != null) {
             this.commandBox.setValue(this.commandText);
             this.commandBox.clearError();
         }
+        syncOptionButtons();
         this.status = Component.translatable(messageKey("editor_command_block_reset"));
         this.statusColor = STATUS_NEUTRAL;
     }
@@ -198,7 +241,9 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     private boolean isDirty() {
-        return !currentText().equals(this.appliedCommandText);
+        return !currentText().equals(this.appliedCommandText)
+                || (this.supportsCommandBlockOptions
+                        && (this.unconditional != this.appliedUnconditional || this.alwaysActive != this.appliedAlwaysActive));
     }
 
     private String currentText() {
@@ -223,6 +268,16 @@ final class ItemCommandBlockEditorScreen extends Screen {
         return commandData == null ? "" : commandData.getString(COMMAND_TAG);
     }
 
+    private boolean readUnconditional(ItemStack stack) {
+        CompoundTag blockState = stack.getTagElement(BLOCK_STATE_TAG);
+        return blockState == null || !"true".equalsIgnoreCase(blockState.getString(CONDITIONAL_TAG));
+    }
+
+    private boolean readAlwaysActive(ItemStack stack) {
+        CompoundTag commandData = stack.getTagElement(BLOCK_ENTITY_TAG);
+        return commandData != null && commandData.getBoolean(AUTO_TAG);
+    }
+
     private void writeCommand(ItemStack stack, String command) {
         String tagKey = dataTagKey(stack);
         CompoundTag rootTag = stack.getTag();
@@ -233,7 +288,33 @@ final class ItemCommandBlockEditorScreen extends Screen {
             commandData.putString(COMMAND_TAG, command);
         }
 
-        if (commandData.isEmpty()) {
+        putOrRemoveTag(stack, rootTag, tagKey, commandData);
+    }
+
+    private void writeUnconditional(ItemStack stack, boolean unconditional) {
+        CompoundTag rootTag = stack.getTag();
+        CompoundTag blockState = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_STATE_TAG);
+        if (unconditional) {
+            blockState.remove(CONDITIONAL_TAG);
+        } else {
+            blockState.putString(CONDITIONAL_TAG, "true");
+        }
+        putOrRemoveTag(stack, rootTag, BLOCK_STATE_TAG, blockState);
+    }
+
+    private void writeAlwaysActive(ItemStack stack, boolean alwaysActive) {
+        CompoundTag rootTag = stack.getTag();
+        CompoundTag commandData = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_ENTITY_TAG);
+        if (alwaysActive) {
+            commandData.putBoolean(AUTO_TAG, true);
+        } else {
+            commandData.remove(AUTO_TAG);
+        }
+        putOrRemoveTag(stack, rootTag, BLOCK_ENTITY_TAG, commandData);
+    }
+
+    private void putOrRemoveTag(ItemStack stack, CompoundTag rootTag, String tagKey, CompoundTag data) {
+        if (data.isEmpty()) {
             if (rootTag != null) {
                 rootTag.remove(tagKey);
                 if (rootTag.isEmpty()) {
@@ -243,11 +324,48 @@ final class ItemCommandBlockEditorScreen extends Screen {
             return;
         }
 
-        stack.getOrCreateTag().put(tagKey, commandData);
+        stack.getOrCreateTag().put(tagKey, data);
+    }
+
+    private void toggleUnconditional() {
+        this.unconditional = !this.unconditional;
+        this.discardArmed = false;
+        syncOptionButtons();
+    }
+
+    private void toggleAlwaysActive() {
+        this.alwaysActive = !this.alwaysActive;
+        this.discardArmed = false;
+        syncOptionButtons();
+    }
+
+    private void syncOptionButtons() {
+        if (this.conditionButton != null) {
+            this.conditionButton.setMessage(conditionModeText());
+        }
+        if (this.activationButton != null) {
+            this.activationButton.setMessage(activationModeText());
+        }
+    }
+
+    private Component conditionModeText() {
+        return Component.translatable(key("commandblock.condition_mode"),
+                Component.translatable(key(this.unconditional ? "commandblock.unconditional" : "commandblock.conditional")));
+    }
+
+    private Component activationModeText() {
+        return Component.translatable(key("commandblock.activation_mode"),
+                Component.translatable(key(this.alwaysActive ? "commandblock.always_active" : "commandblock.needs_redstone")));
     }
 
     private String dataTagKey(ItemStack stack) {
         return stack.is(Items.COMMAND_BLOCK_MINECART) ? ENTITY_TAG : BLOCK_ENTITY_TAG;
+    }
+
+    private boolean supportsCommandBlockOptions(ItemStack stack) {
+        return stack.is(Items.COMMAND_BLOCK)
+                || stack.is(Items.CHAIN_COMMAND_BLOCK)
+                || stack.is(Items.REPEATING_COMMAND_BLOCK);
     }
 
     private static String key(String suffix) {
