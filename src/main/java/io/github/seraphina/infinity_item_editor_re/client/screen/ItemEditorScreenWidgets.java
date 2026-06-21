@@ -175,6 +175,14 @@ protected void addItemPanel() {
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("json")), button -> openJsonEditor()));
+        y += 24;
+        if (isCommandBlockEditableItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                    Component.translatable(key("commandblock")), button -> openCommandBlockEditor()));
+            y += 24;
+        }
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
         y += 24;
         if (canShowEnchantingButton(this.previewStack)) {
