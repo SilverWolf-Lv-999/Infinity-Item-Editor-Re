@@ -189,9 +189,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
-            if (isSidebarUi()) {
-                renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
-            }
+            renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
             renderNbtAdvancedPanel(guiGraphics, mouseX, mouseY);
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             return;

@@ -1033,8 +1033,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return stack.getItem() instanceof SpawnEggItem;
     }
 
+    protected static boolean isTrialSpawnerItem(ItemStack stack) {
+        return stack.is(Items.TRIAL_SPAWNER);
+    }
+
     protected static boolean isSpawnerItem(ItemStack stack) {
-        return stack.is(Items.SPAWNER);
+        return stack.is(Items.SPAWNER) || isTrialSpawnerItem(stack);
     }
 
     protected static boolean isSpawnEditorItem(ItemStack stack) {

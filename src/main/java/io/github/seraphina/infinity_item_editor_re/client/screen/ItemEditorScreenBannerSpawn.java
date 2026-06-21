@@ -426,7 +426,7 @@ protected void addSelectedBannerPattern() {
         CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
         cleanupSpawnEggEntityTag(entityTag);
-        if (isSpawnerItem(this.previewStack)) {
+        if (isSpawnerItem(this.previewStack) && !isTrialSpawnerItem(this.previewStack)) {
             clearSpawnerSpawnPotentials();
         }
     }
@@ -449,9 +449,7 @@ protected void addSelectedBannerPattern() {
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey(isSpawnerItem(this.previewStack)
-                ? "editor_spawner_tag_cleared"
-                : "editor_spawn_egg_tag_cleared"));
+        this.status = Component.translatable(messageKey(getSpawnEditorTagClearedMessageKey()));
         readSpawnEggFieldsFromStack(this.previewStack);
         rebuildWidgets();
     }
@@ -604,6 +602,10 @@ protected void addSelectedBannerPattern() {
     }
 
     protected CompoundTag getOrCreateSpawnerEntityTag() {
+        if (isTrialSpawnerItem(this.previewStack)) {
+            return getOrCreateTrialSpawnerEntityTag();
+        }
+
         CompoundTag blockEntity = getOrCreateSpawnerBlockEntityTag();
         CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
         CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
@@ -623,10 +625,26 @@ protected void addSelectedBannerPattern() {
         return entityTag;
     }
 
+    protected CompoundTag getOrCreateTrialSpawnerEntityTag() {
+        CompoundTag blockEntity = getOrCreateSpawnerBlockEntityTag();
+        CompoundTag entityTag = getTrialSpawnerEntityTag(blockEntity);
+        if (entityTag == null) {
+            entityTag = new CompoundTag();
+        }
+        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
+            if (entry != null) {
+                entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
+            }
+        }
+        putTrialSpawnerSpawnData(blockEntity, entityTag);
+        return entityTag;
+    }
+
     protected CompoundTag getOrCreateSpawnerBlockEntityTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
-        blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
+        blockEntity.putString(ENTITY_ID_TAG, getSpawnerBlockEntityId(this.previewStack));
         tag.put(BLOCK_ENTITY_TAG, blockEntity);
         return blockEntity;
     }
@@ -638,6 +656,18 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (isTrialSpawnerItem(this.previewStack)) {
+            if (entityTag.isEmpty()) {
+                clearTrialSpawnerEntityData(blockEntity);
+            } else {
+                putTrialSpawnerSpawnData(blockEntity, entityTag);
+                blockEntity.putString(ENTITY_ID_TAG, TRIAL_SPAWNER_BLOCK_ENTITY_ID);
+            }
+            cleanupSpawnerBlockEntityTag(blockEntity);
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
         if (entityTag.isEmpty()) {
             CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
             spawnData.remove(SPAWNER_ENTITY_TAG);
@@ -662,6 +692,13 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (isTrialSpawnerItem(this.previewStack)) {
+            clearTrialSpawnerEntityData(blockEntity);
+            cleanupSpawnerBlockEntityTag(blockEntity);
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
         blockEntity.remove(SPAWNER_SPAWN_DATA_TAG);
         blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
         cleanupSpawnerBlockEntityTag(blockEntity);
@@ -675,6 +712,13 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (isTrialSpawnerItem(this.previewStack)) {
+            clearTrialSpawnerSpawnPotentials(blockEntity);
+            cleanupSpawnerBlockEntityTag(blockEntity);
+            this.rawNbtValue = getInitialNbt(this.previewStack);
+            return;
+        }
+
         blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
         cleanupSpawnerBlockEntityTag(blockEntity);
         this.rawNbtValue = getInitialNbt(this.previewStack);
@@ -697,7 +741,8 @@ protected void addSelectedBannerPattern() {
     protected boolean isOnlySpawnerBlockEntityId(CompoundTag blockEntity) {
         return blockEntity.size() == 1
                 && blockEntity.contains(ENTITY_ID_TAG, Tag.TAG_STRING)
-                && SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG));
+                && (SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG))
+                || TRIAL_SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG)));
     }
 
     protected Component getSpawnEggBooleanText(SpawnEggTagRow row) {
@@ -1065,6 +1110,9 @@ protected void addSelectedBannerPattern() {
         if (blockEntity == null) {
             return null;
         }
+        if (isTrialSpawnerItem(stack)) {
+            return getTrialSpawnerEntityTag(blockEntity);
+        }
         if (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
             CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
             CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
@@ -1075,9 +1123,48 @@ protected void addSelectedBannerPattern() {
         return getFirstSpawnerPotentialEntity(blockEntity);
     }
 
+    protected CompoundTag getTrialSpawnerEntityTag(CompoundTag blockEntity) {
+        CompoundTag entityTag = getFirstTrialSpawnerConfigEntity(blockEntity, TRIAL_SPAWNER_NORMAL_CONFIG_TAG);
+        if (entityTag != null) {
+            return entityTag;
+        }
+        if (blockEntity.contains(TRIAL_SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
+            entityTag = getSpawnerEntityFromSpawnData(blockEntity.getCompound(TRIAL_SPAWNER_SPAWN_DATA_TAG));
+            if (entityTag != null) {
+                return entityTag;
+            }
+        }
+        return getFirstTrialSpawnerConfigEntity(blockEntity, TRIAL_SPAWNER_OMINOUS_CONFIG_TAG);
+    }
+
+    protected CompoundTag getFirstTrialSpawnerConfigEntity(CompoundTag blockEntity, String configKey) {
+        CompoundTag config = getTrialSpawnerConfig(blockEntity, configKey, false);
+        return config == null ? null : getFirstSpawnerPotentialEntity(config);
+    }
+
+    protected CompoundTag getTrialSpawnerConfig(CompoundTag blockEntity, String configKey, boolean create) {
+        if (!blockEntity.contains(configKey, Tag.TAG_COMPOUND)) {
+            if (!create) {
+                return null;
+            }
+            blockEntity.put(configKey, new CompoundTag());
+        }
+        return blockEntity.getCompound(configKey);
+    }
+
     protected CompoundTag getFirstSpawnerPotentialEntity(CompoundTag blockEntity) {
         if (blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
             ListTag potentials = blockEntity.getList(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
+            if (!potentials.isEmpty()) {
+                CompoundTag potential = potentials.getCompound(0);
+                CompoundTag entityTag = getSpawnerEntityFromPotential(potential);
+                if (entityTag != null) {
+                    return entityTag;
+                }
+            }
+        }
+        if (blockEntity.contains(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
+            ListTag potentials = blockEntity.getList(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
             if (!potentials.isEmpty()) {
                 CompoundTag potential = potentials.getCompound(0);
                 CompoundTag entityTag = getSpawnerEntityFromPotential(potential);
@@ -1092,6 +1179,13 @@ protected void addSelectedBannerPattern() {
     protected CompoundTag getSpawnerEntityFromPotential(CompoundTag potential) {
         if (potential.contains(SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
             CompoundTag entityTag = getSpawnerEntityFromSpawnData(potential.getCompound(SPAWNER_POTENTIAL_DATA_TAG));
+            if (entityTag != null) {
+                return entityTag;
+            }
+        }
+        if (potential.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)
+                || potential.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            CompoundTag entityTag = getSpawnerEntityFromSpawnData(potential);
             if (entityTag != null) {
                 return entityTag;
             }
@@ -1121,9 +1215,54 @@ protected void addSelectedBannerPattern() {
         blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
     }
 
+    protected void putTrialSpawnerSpawnData(CompoundTag blockEntity, CompoundTag entityTag) {
+        CompoundTag config = getTrialSpawnerConfig(blockEntity, TRIAL_SPAWNER_NORMAL_CONFIG_TAG, true);
+        ListTag potentials = new ListTag();
+        CompoundTag potential = new CompoundTag();
+        CompoundTag spawnData = new CompoundTag();
+        spawnData.put(SPAWNER_ENTITY_TAG, entityTag.copy());
+        potential.put(SPAWNER_POTENTIAL_DATA_TAG, spawnData);
+        potential.putInt(SPAWNER_POTENTIAL_WEIGHT_TAG, 1);
+        potentials.add(potential);
+        config.put(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, potentials);
+        blockEntity.put(TRIAL_SPAWNER_NORMAL_CONFIG_TAG, config);
+        blockEntity.remove(TRIAL_SPAWNER_SPAWN_DATA_TAG);
+    }
+
+    protected void clearTrialSpawnerEntityData(CompoundTag blockEntity) {
+        blockEntity.remove(TRIAL_SPAWNER_SPAWN_DATA_TAG);
+        clearTrialSpawnerSpawnPotentials(blockEntity);
+    }
+
+    protected void clearTrialSpawnerSpawnPotentials(CompoundTag blockEntity) {
+        clearTrialSpawnerConfigSpawnPotentials(blockEntity, TRIAL_SPAWNER_NORMAL_CONFIG_TAG);
+        clearTrialSpawnerConfigSpawnPotentials(blockEntity, TRIAL_SPAWNER_OMINOUS_CONFIG_TAG);
+    }
+
+    protected void clearTrialSpawnerConfigSpawnPotentials(CompoundTag blockEntity, String configKey) {
+        CompoundTag config = getTrialSpawnerConfig(blockEntity, configKey, false);
+        if (config == null) {
+            return;
+        }
+
+        config.remove(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG);
+        if (config.isEmpty()) {
+            blockEntity.remove(configKey);
+        } else {
+            blockEntity.put(configKey, config);
+        }
+    }
+
+    protected String getSpawnerBlockEntityId(ItemStack stack) {
+        return isTrialSpawnerItem(stack) ? TRIAL_SPAWNER_BLOCK_ENTITY_ID : SPAWNER_BLOCK_ENTITY_ID;
+    }
+
     protected boolean hasSpawnEditorEntityData(ItemStack stack) {
         if (isSpawnerItem(stack)) {
             CompoundTag blockEntity = ItemStackNbt.getElement(stack, BLOCK_ENTITY_TAG);
+            if (isTrialSpawnerItem(stack)) {
+                return blockEntity != null && getTrialSpawnerEntityTag(blockEntity) != null;
+            }
             return blockEntity != null
                     && (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)
                     || blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST));
@@ -1132,15 +1271,31 @@ protected void addSelectedBannerPattern() {
     }
 
     protected String getSpawnEditorTitleKey() {
+        if (isTrialSpawnerItem(this.previewStack)) {
+            return "trial_spawner";
+        }
         return isSpawnerItem(this.previewStack) ? "spawner" : "spawnegg";
     }
 
     protected String getSpawnEditorClearKey() {
+        if (isTrialSpawnerItem(this.previewStack)) {
+            return "trial_spawner.clear_entity_tag";
+        }
         return isSpawnerItem(this.previewStack) ? "spawner.clear_entity_tag" : "spawnegg.clear_entity_tag";
     }
 
     protected String getSpawnEditorDefaultEntityKey() {
+        if (isTrialSpawnerItem(this.previewStack)) {
+            return "trial_spawner.default_entity";
+        }
         return isSpawnerItem(this.previewStack) ? "spawner.default_entity" : "spawnegg.default_entity";
+    }
+
+    protected String getSpawnEditorTagClearedMessageKey() {
+        if (isTrialSpawnerItem(this.previewStack)) {
+            return "editor_trial_spawner_tag_cleared";
+        }
+        return isSpawnerItem(this.previewStack) ? "editor_spawner_tag_cleared" : "editor_spawn_egg_tag_cleared";
     }
 
     protected List<SpawnEggTagRow> getSpawnEggTagRows() {

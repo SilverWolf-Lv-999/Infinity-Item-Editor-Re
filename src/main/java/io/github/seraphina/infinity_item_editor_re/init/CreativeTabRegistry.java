@@ -157,6 +157,7 @@ public final class CreativeTabRegistry {
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.KNOWLEDGE_BOOK)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.LIGHT)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPAWNER)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.TRIAL_SPAWNER)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.PIG_SPAWN_EGG)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.POTION)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPLASH_POTION)));

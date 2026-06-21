@@ -115,12 +115,18 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final int SIGN_LINES = 4;
     protected static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
     protected static final String SPAWNER_BLOCK_ENTITY_ID = "minecraft:mob_spawner";
+    protected static final String TRIAL_SPAWNER_BLOCK_ENTITY_ID = "minecraft:trial_spawner";
     protected static final String SPAWNER_SPAWN_DATA_TAG = "SpawnData";
     protected static final String SPAWNER_ENTITY_TAG = "entity";
     protected static final String SPAWNER_SPAWN_POTENTIALS_TAG = "SpawnPotentials";
     protected static final String SPAWNER_POTENTIAL_DATA_TAG = "data";
     protected static final String SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG = "Entity";
     protected static final String SPAWNER_CUSTOM_SPAWN_RULES_TAG = "custom_spawn_rules";
+    protected static final String TRIAL_SPAWNER_NORMAL_CONFIG_TAG = "normal_config";
+    protected static final String TRIAL_SPAWNER_OMINOUS_CONFIG_TAG = "ominous_config";
+    protected static final String TRIAL_SPAWNER_SPAWN_DATA_TAG = "spawn_data";
+    protected static final String TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG = "spawn_potentials";
+    protected static final String SPAWNER_POTENTIAL_WEIGHT_TAG = "weight";
     protected static final String SIGN_FRONT_TEXT_TAG = "front_text";
     protected static final String SIGN_MESSAGES_TAG = "messages";
     protected static final String SIGN_FILTERED_MESSAGES_TAG = "filtered_messages";
@@ -367,6 +373,10 @@ abstract class ItemEditorScreenState extends Screen {
         this.parentTradeIndex = parentTradeIndex;
         this.parentTradeSlot = parentTradeSlot;
         this.previewStack = stack.copy();
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
 

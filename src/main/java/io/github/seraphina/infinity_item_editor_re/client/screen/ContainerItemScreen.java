@@ -60,6 +60,16 @@ final class ContainerItemScreen extends ContainerScreen {
     }
 
     @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
             returnToLastScreen();
