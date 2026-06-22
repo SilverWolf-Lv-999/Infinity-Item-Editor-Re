@@ -69,7 +69,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 abstract class ItemEditorScreenState extends CompatScreen {
     protected static final int MAX_COUNT = 64;
-    protected static final int MAX_ENCHANTMENT_LEVEL = 32767;
+    protected static final int MAX_ENCHANTMENT_LEVEL = 255;
     protected static final int MAX_POTION_LEVEL = 127;
     protected static final int MAX_POTION_SECONDS = 99999;
     protected static final int MAX_ATTRIBUTE_INTEGER = 99999999;

@@ -12,6 +12,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.DyeColor;
@@ -421,8 +423,8 @@ public final class ItemStackNbt {
         }
 
         CompoundTag display = NbtCompat.getCompound(customData, "display").copy();
-        moveComponent(display, "Name", components, "minecraft:custom_name");
-        moveComponent(display, "Lore", components, "minecraft:lore");
+        writeTextComponent(display, "Name", components, "minecraft:custom_name");
+        writeLoreComponent(display, components);
         if (NbtCompat.contains(display, "LocName", Tag.TAG_STRING)) {
             CompoundTag itemName = new CompoundTag();
             itemName.putString("translate", NbtCompat.getString(display, "LocName"));
@@ -452,6 +454,68 @@ public final class ItemStackNbt {
         }
     }
 
+    private static void writeTextComponent(CompoundTag source, String sourceKey, CompoundTag components, String componentKey) {
+        Tag value = source.get(sourceKey);
+        if (value == null) {
+            return;
+        }
+
+        Tag component = legacyTextComponentToComponentTag(value);
+        if (component != null) {
+            components.put(componentKey, component);
+        }
+        source.remove(sourceKey);
+    }
+
+    private static void writeLoreComponent(CompoundTag display, CompoundTag components) {
+        if (!NbtCompat.contains(display, "Lore", Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag oldLore = NbtCompat.getList(display, "Lore", Tag.TAG_STRING);
+        ListTag lore = new ListTag();
+        for (int i = 0; i < oldLore.size(); i++) {
+            Tag component = legacyTextComponentToComponentTag(oldLore.get(i));
+            if (component != null) {
+                lore.add(component);
+            }
+        }
+        if (!lore.isEmpty()) {
+            components.put("minecraft:lore", lore);
+        }
+        display.remove("Lore");
+    }
+
+    private static Tag legacyTextComponentToComponentTag(Tag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        if (tag instanceof StringTag stringTag) {
+            String raw = stringTag.value();
+            Component component;
+            try {
+                component = ComponentCompat.fromJson(raw);
+            } catch (RuntimeException exception) {
+                component = Component.literal(raw);
+            }
+            return componentToTag(component, tag);
+        }
+
+        return ComponentSerialization.CODEC
+                .parse(provider().createSerializationContext(NbtOps.INSTANCE), tag)
+                .map(component -> componentToTag(component, tag))
+                .result()
+                .orElse(tag.copy());
+    }
+
+    private static Tag componentToTag(Component component, Tag fallback) {
+        return ComponentSerialization.CODEC
+                .encodeStart(provider().createSerializationContext(NbtOps.INSTANCE), component)
+                .result()
+                .orElseGet(fallback::copy);
+    }
+
     private static void writeEnchantmentsComponent(CompoundTag customData, CompoundTag components, String oldKey, String componentKey, boolean hidden) {
         if (!NbtCompat.contains(customData, oldKey, Tag.TAG_LIST) && !hidden) {
             return;
@@ -462,22 +526,56 @@ public final class ItemStackNbt {
         for (int i = 0; i < oldEnchantments.size(); i++) {
             CompoundTag enchantment = NbtCompat.getCompound(oldEnchantments, i);
             if (NbtCompat.contains(enchantment, "id", Tag.TAG_STRING)) {
-                levels.putInt(NbtCompat.getString(enchantment, "id"), clamp(NbtCompat.getInt(enchantment, "lvl"), 0, 255));
+                int level = NbtCompat.getInt(enchantment, "lvl");
+                if (level > 0) {
+                    levels.putInt(NbtCompat.getString(enchantment, "id"), clamp(level, 1, 255));
+                }
             }
         }
 
         if (!levels.isEmpty() || hidden) {
-            CompoundTag component = new CompoundTag();
-            component.put("levels", levels);
             if (hidden) {
-                component.putBoolean("show_in_tooltip", false);
+                hideTooltipComponent(components, componentKey);
             }
-            components.put(componentKey, component);
+            components.put(componentKey, levels);
             if (oldEnchantments.isEmpty()) {
                 components.putBoolean("minecraft:enchantment_glint_override", true);
             }
         }
         customData.remove(oldKey);
+    }
+
+    private static void hideTooltipComponent(CompoundTag components, String hiddenComponent) {
+        CompoundTag tooltipDisplay = NbtCompat.contains(components, "minecraft:tooltip_display", Tag.TAG_COMPOUND)
+                ? NbtCompat.getCompound(components, "minecraft:tooltip_display").copy()
+                : new CompoundTag();
+        ListTag hiddenComponents = NbtCompat.contains(tooltipDisplay, "hidden_components", Tag.TAG_LIST)
+                ? NbtCompat.getList(tooltipDisplay, "hidden_components", Tag.TAG_STRING).copy()
+                : new ListTag();
+        if (!listContainsString(hiddenComponents, hiddenComponent)) {
+            hiddenComponents.add(StringTag.valueOf(hiddenComponent));
+        }
+        tooltipDisplay.put("hidden_components", hiddenComponents);
+        components.put("minecraft:tooltip_display", tooltipDisplay);
+    }
+
+    private static boolean isTooltipComponentHidden(CompoundTag components, String componentKey) {
+        if (!NbtCompat.contains(components, "minecraft:tooltip_display", Tag.TAG_COMPOUND)) {
+            return false;
+        }
+
+        CompoundTag tooltipDisplay = NbtCompat.getCompound(components, "minecraft:tooltip_display");
+        return NbtCompat.getBoolean(tooltipDisplay, "hide_tooltip")
+                || listContainsString(NbtCompat.getList(tooltipDisplay, "hidden_components", Tag.TAG_STRING), componentKey);
+    }
+
+    private static boolean listContainsString(ListTag list, String value) {
+        for (int i = 0; i < list.size(); i++) {
+            if (value.equals(NbtCompat.getString(list, i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void writeUnbreakableComponent(CompoundTag customData, CompoundTag components, int hideFlags) {
@@ -526,15 +624,130 @@ public final class ItemStackNbt {
             }
             modifiers.add(modifier);
         }
-        if (!modifiers.isEmpty() || (hideFlags & 2) != 0) {
-            CompoundTag component = new CompoundTag();
-            component.put("modifiers", modifiers);
-            if ((hideFlags & 2) != 0) {
-                component.putBoolean("show_in_tooltip", false);
-            }
-            components.put("minecraft:attribute_modifiers", component);
+        if ((hideFlags & 2) != 0) {
+            hideTooltipComponent(components, "minecraft:attribute_modifiers");
+        }
+        if (!modifiers.isEmpty()) {
+            components.put("minecraft:attribute_modifiers", modifiers);
         }
         customData.remove("AttributeModifiers");
+    }
+
+    private static int readComponentDisplay(CompoundTag components, CompoundTag tag, int hideFlags) {
+        CompoundTag display = NbtCompat.contains(tag, "display", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(tag, "display").copy() : new CompoundTag();
+        readTextComponent(components, "minecraft:custom_name", display, "Name");
+        readTextComponent(components, "minecraft:item_name", display, "Name");
+        readLoreComponent(components, display);
+        if (components.contains("minecraft:dyed_color")) {
+            Tag dyed = components.get("minecraft:dyed_color");
+            if (dyed instanceof CompoundTag dyedTag) {
+                display.putInt("color", NbtCompat.getInt(dyedTag, "rgb"));
+                if (dyedTag.contains("show_in_tooltip") && !NbtCompat.getBoolean(dyedTag, "show_in_tooltip")) {
+                    hideFlags |= 64;
+                }
+            } else if (dyed != null) {
+                display.put("color", dyed.copy());
+            }
+        }
+        copyComponent(components, "minecraft:map_color", display, "MapColor");
+        if (display.isEmpty()) {
+            tag.remove("display");
+        } else {
+            tag.put("display", display);
+        }
+        return hideFlags;
+    }
+
+    private static void readTextComponent(CompoundTag components, String componentKey, CompoundTag display, String oldKey) {
+        Tag component = components.get(componentKey);
+        if (component != null) {
+            display.putString(oldKey, componentTagToLegacyJson(component));
+        }
+    }
+
+    private static void readLoreComponent(CompoundTag components, CompoundTag display) {
+        if (!NbtCompat.contains(components, "minecraft:lore", Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag componentLore = NbtCompat.getList(components, "minecraft:lore", Tag.TAG_STRING);
+        ListTag lore = new ListTag();
+        for (int i = 0; i < componentLore.size(); i++) {
+            lore.add(StringTag.valueOf(componentTagToLegacyJson(componentLore.get(i))));
+        }
+        if (!lore.isEmpty()) {
+            display.put("Lore", lore);
+        }
+    }
+
+    private static String componentTagToLegacyJson(Tag componentTag) {
+        return ComponentSerialization.CODEC
+                .parse(provider().createSerializationContext(NbtOps.INSTANCE), componentTag)
+                .map(ComponentCompat::toJson)
+                .result()
+                .orElseGet(componentTag::toString);
+    }
+
+    private static int readComponentAttributes(CompoundTag components, CompoundTag tag, int hideFlags) {
+        if (!components.contains("minecraft:attribute_modifiers")) {
+            return hideFlags;
+        }
+
+        Tag componentTag = components.get("minecraft:attribute_modifiers");
+        CompoundTag component = componentTag instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
+        ListTag modifiers = componentTag instanceof ListTag listTag
+                ? listTag
+                : NbtCompat.getList(component, "modifiers", Tag.TAG_COMPOUND);
+        ListTag oldModifiers = new ListTag();
+        for (int i = 0; i < modifiers.size(); i++) {
+            CompoundTag modifier = NbtCompat.getCompound(modifiers, i);
+            CompoundTag oldModifier = new CompoundTag();
+            oldModifier.putString("AttributeName", NbtCompat.getString(modifier, "type"));
+            oldModifier.putString("id", NbtCompat.getString(modifier, "id"));
+            oldModifier.putDouble("Amount", NbtCompat.getDouble(modifier, "amount"));
+            oldModifier.putString("operation", NbtCompat.getString(modifier, "operation"));
+            oldModifier.putInt("Operation", operationId(NbtCompat.getString(modifier, "operation")));
+            if (NbtCompat.contains(modifier, "slot", Tag.TAG_STRING)) {
+                oldModifier.putString("Slot", NbtCompat.getString(modifier, "slot"));
+            }
+            oldModifiers.add(oldModifier);
+        }
+        if (!oldModifiers.isEmpty()) {
+            tag.put("AttributeModifiers", oldModifiers);
+        }
+        if (isTooltipComponentHidden(components, "minecraft:attribute_modifiers")
+                || component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
+            hideFlags |= 2;
+        }
+        return hideFlags;
+    }
+
+    private static int readComponentAdventure(CompoundTag components, CompoundTag tag, int hideFlags) {
+        hideFlags = readStringPredicateComponent(components, tag, "minecraft:can_break", "CanDestroy", hideFlags, 8);
+        return readStringPredicateComponent(components, tag, "minecraft:can_place_on", "CanPlaceOn", hideFlags, 16);
+    }
+
+    private static int readStringPredicateComponent(CompoundTag components, CompoundTag tag, String componentKey, String oldKey, int hideFlags, int hideMask) {
+        if (!NbtCompat.contains(components, componentKey, Tag.TAG_COMPOUND)) {
+            return hideFlags;
+        }
+
+        CompoundTag component = NbtCompat.getCompound(components, componentKey);
+        ListTag predicates = NbtCompat.getList(component, "predicates", Tag.TAG_COMPOUND);
+        ListTag oldList = new ListTag();
+        for (int i = 0; i < predicates.size(); i++) {
+            CompoundTag predicate = NbtCompat.getCompound(predicates, i);
+            if (NbtCompat.contains(predicate, "blocks", Tag.TAG_STRING)) {
+                oldList.add(StringTag.valueOf(NbtCompat.getString(predicate, "blocks")));
+            }
+        }
+        if (!oldList.isEmpty()) {
+            tag.put(oldKey, oldList);
+        }
+        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
+            hideFlags |= hideMask;
+        }
+        return hideFlags;
     }
 
     private static void writeAdventureComponents(CompoundTag customData, CompoundTag components, int hideFlags) {
@@ -713,31 +926,6 @@ public final class ItemStackNbt {
         customData.remove("BlockEntityTag");
     }
 
-    private static int readComponentDisplay(CompoundTag components, CompoundTag tag, int hideFlags) {
-        CompoundTag display = NbtCompat.contains(tag, "display", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(tag, "display").copy() : new CompoundTag();
-        copyComponent(components, "minecraft:custom_name", display, "Name");
-        copyComponent(components, "minecraft:item_name", display, "Name");
-        copyComponent(components, "minecraft:lore", display, "Lore");
-        if (components.contains("minecraft:dyed_color")) {
-            Tag dyed = components.get("minecraft:dyed_color");
-            if (dyed instanceof CompoundTag dyedTag) {
-                display.putInt("color", NbtCompat.getInt(dyedTag, "rgb"));
-                if (dyedTag.contains("show_in_tooltip") && !NbtCompat.getBoolean(dyedTag, "show_in_tooltip")) {
-                    hideFlags |= 64;
-                }
-            } else if (dyed != null) {
-                display.put("color", dyed.copy());
-            }
-        }
-        copyComponent(components, "minecraft:map_color", display, "MapColor");
-        if (display.isEmpty()) {
-            tag.remove("display");
-        } else {
-            tag.put("display", display);
-        }
-        return hideFlags;
-    }
-
     private static int readComponentEnchantments(CompoundTag components, CompoundTag tag, int hideFlags) {
         hideFlags = readEnchantmentsComponent(components, tag, "minecraft:enchantments", "Enchantments", hideFlags, 1);
         hideFlags = readEnchantmentsComponent(components, tag, "minecraft:stored_enchantments", "StoredEnchantments", hideFlags, 32);
@@ -753,15 +941,20 @@ public final class ItemStackNbt {
         CompoundTag levels = NbtCompat.contains(component, "levels", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(component, "levels") : component;
         ListTag enchantments = new ListTag();
         for (String id : levels.keySet()) {
+            int level = NbtCompat.getInt(levels, id);
+            if (level <= 0) {
+                continue;
+            }
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
-            enchantment.putShort("lvl", (short) NbtCompat.getInt(levels, id));
+            enchantment.putShort("lvl", (short) level);
             enchantments.add(enchantment);
         }
         if (!enchantments.isEmpty()) {
             tag.put(oldKey, enchantments);
         }
-        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
+        if (isTooltipComponentHidden(components, componentKey)
+                || component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
             hideFlags |= hideMask;
         }
         return hideFlags;
@@ -776,64 +969,6 @@ public final class ItemStackNbt {
                     && !NbtCompat.getBoolean(compoundTag, "show_in_tooltip")) {
                 hideFlags |= 4;
             }
-        }
-        return hideFlags;
-    }
-
-    private static int readComponentAttributes(CompoundTag components, CompoundTag tag, int hideFlags) {
-        if (!NbtCompat.contains(components, "minecraft:attribute_modifiers", Tag.TAG_COMPOUND)) {
-            return hideFlags;
-        }
-
-        CompoundTag component = NbtCompat.getCompound(components, "minecraft:attribute_modifiers");
-        ListTag modifiers = NbtCompat.getList(component, "modifiers", Tag.TAG_COMPOUND);
-        ListTag oldModifiers = new ListTag();
-        for (int i = 0; i < modifiers.size(); i++) {
-            CompoundTag modifier = NbtCompat.getCompound(modifiers, i);
-            CompoundTag oldModifier = new CompoundTag();
-            oldModifier.putString("AttributeName", NbtCompat.getString(modifier, "type"));
-            oldModifier.putString("id", NbtCompat.getString(modifier, "id"));
-            oldModifier.putDouble("Amount", NbtCompat.getDouble(modifier, "amount"));
-            oldModifier.putString("operation", NbtCompat.getString(modifier, "operation"));
-            oldModifier.putInt("Operation", operationId(NbtCompat.getString(modifier, "operation")));
-            if (NbtCompat.contains(modifier, "slot", Tag.TAG_STRING)) {
-                oldModifier.putString("Slot", NbtCompat.getString(modifier, "slot"));
-            }
-            oldModifiers.add(oldModifier);
-        }
-        if (!oldModifiers.isEmpty()) {
-            tag.put("AttributeModifiers", oldModifiers);
-        }
-        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
-            hideFlags |= 2;
-        }
-        return hideFlags;
-    }
-
-    private static int readComponentAdventure(CompoundTag components, CompoundTag tag, int hideFlags) {
-        hideFlags = readStringPredicateComponent(components, tag, "minecraft:can_break", "CanDestroy", hideFlags, 8);
-        return readStringPredicateComponent(components, tag, "minecraft:can_place_on", "CanPlaceOn", hideFlags, 16);
-    }
-
-    private static int readStringPredicateComponent(CompoundTag components, CompoundTag tag, String componentKey, String oldKey, int hideFlags, int hideMask) {
-        if (!NbtCompat.contains(components, componentKey, Tag.TAG_COMPOUND)) {
-            return hideFlags;
-        }
-
-        CompoundTag component = NbtCompat.getCompound(components, componentKey);
-        ListTag predicates = NbtCompat.getList(component, "predicates", Tag.TAG_COMPOUND);
-        ListTag oldList = new ListTag();
-        for (int i = 0; i < predicates.size(); i++) {
-            CompoundTag predicate = NbtCompat.getCompound(predicates, i);
-            if (NbtCompat.contains(predicate, "blocks", Tag.TAG_STRING)) {
-                oldList.add(StringTag.valueOf(NbtCompat.getString(predicate, "blocks")));
-            }
-        }
-        if (!oldList.isEmpty()) {
-            tag.put(oldKey, oldList);
-        }
-        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
-            hideFlags |= hideMask;
         }
         return hideFlags;
     }
@@ -1427,7 +1562,7 @@ public final class ItemStackNbt {
 
         @Override
         public Tag put(String key, Tag value) {
-            Tag old = super.put(key, value);
+            Tag old = super.put(key, syncedTag(value, this.onChanged));
             changed();
             return old;
         }
@@ -1462,20 +1597,20 @@ public final class ItemStackNbt {
 
         @Override
         public Tag set(int index, Tag element) {
-            Tag old = super.set(index, element);
+            Tag old = super.set(index, syncedTag(element, this.onChanged));
             changed();
             return old;
         }
 
         @Override
         public void add(int index, Tag element) {
-            super.add(index, element);
+            super.add(index, syncedTag(element, this.onChanged));
             changed();
         }
 
         @Override
         public boolean add(Tag tag) {
-            boolean added = super.add(tag);
+            boolean added = super.add(syncedTag(tag, this.onChanged));
             if (added) {
                 changed();
             }
