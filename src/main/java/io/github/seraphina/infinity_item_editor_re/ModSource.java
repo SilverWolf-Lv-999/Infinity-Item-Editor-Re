@@ -20,7 +20,6 @@ import java.nio.file.Files;
 public class ModSource {
     public static final String MODID = "infinity_item_editor_re";
     public static final String NAME = "Infinity Item Editor Re";
-    public static final String VERSION = "0.1.0-B";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static File dataDir;
