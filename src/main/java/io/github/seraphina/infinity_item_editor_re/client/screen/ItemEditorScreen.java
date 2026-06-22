@@ -1,71 +1,13 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.math.Axis;
-import io.github.seraphina.infinity_item_editor_re.ModSource;
-import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
-import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
-import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
-import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.nbt.TagParser;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.BannerItem;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.FireworkRocketItem;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.PlayerHeadItem;
-import net.minecraft.world.item.SignItem;
-import net.minecraft.world.item.SpawnEggItem;
-import net.minecraft.world.item.WrittenBookItem;
-import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.block.BarrelBlock;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.ChestBlock;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 @OnlyIn(Dist.CLIENT)
 public class ItemEditorScreen extends ItemEditorScreenRendering {
@@ -276,19 +218,19 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         if (this.activePanel == Panel.ENCHANTMENTS && this.enchantFilterBox != null && this.enchantFilterBox.isFocused()) {
-            return this.enchantFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+            return this.enchantFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         if (this.activePanel == Panel.POTION && this.potionFilterBox != null && this.potionFilterBox.isFocused()) {
-            return this.potionFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+            return this.potionFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
-            return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+            return this.bannerPatternFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         if (this.activePanel == Panel.DECORATED_POT && this.potterySherdFilterBox != null && this.potterySherdFilterBox.isFocused()) {
-            return this.potterySherdFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+            return this.potterySherdFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         if (this.activePanel == Panel.SPAWN_EGG && this.spawnEggEntityFilterBox != null && this.spawnEggEntityFilterBox.isFocused()) {
-            return this.spawnEggEntityFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+            return this.spawnEggEntityFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         return super.charTyped(codePoint, modifiers);
     }

@@ -58,7 +58,7 @@ final class NbtFormatter {
         }
 
         if (tag instanceof CompoundTag compoundTag) {
-            for (String key : compoundTag.getAllKeys()) {
+            for (String key : compoundTag.keySet()) {
                 addRows(rows, expandedPaths, path + "." + key, key, compoundTag.get(key), depth + 1);
             }
         } else if (tag instanceof ListTag listTag) {
@@ -70,7 +70,7 @@ final class NbtFormatter {
 
     private static String summarizeTag(Tag tag) {
         if (tag instanceof CompoundTag compoundTag) {
-            return "{" + compoundTag.getAllKeys().size() + "}";
+            return "{" + compoundTag.keySet().size() + "}";
         }
         if (tag instanceof ListTag listTag) {
             return "[" + listTag.size() + "]";
@@ -98,7 +98,7 @@ final class NbtFormatter {
         }
         if (tag instanceof CompoundTag compoundTag) {
             JsonObject object = new JsonObject();
-            for (String key : compoundTag.getAllKeys()) {
+            for (String key : compoundTag.keySet()) {
                 object.add(key, toJsonElement(compoundTag.get(key)));
             }
             return object;
@@ -132,10 +132,10 @@ final class NbtFormatter {
             return array;
         }
         if (tag instanceof StringTag stringTag) {
-            return new JsonPrimitive(stringTag.getAsString());
+            return new JsonPrimitive(stringTag.value());
         }
         if (tag instanceof NumericTag numericTag) {
-            return new JsonPrimitive(numericTag.getAsNumber());
+            return new JsonPrimitive(numericTag.box());
         }
         return new JsonPrimitive(tag.toString());
     }

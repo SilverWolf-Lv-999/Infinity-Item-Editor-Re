@@ -2,10 +2,13 @@ package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 public final class ClientKeyMappings {
-    private static final String CATEGORY = "key.categories." + ModSource.MODID;
+    public static final KeyMapping.Category CATEGORY = new KeyMapping.Category(
+            ResourceLocation.fromNamespaceAndPath(ModSource.MODID, "main")
+    );
 
     public static final KeyMapping OPEN_EDITOR = new KeyMapping(
             "key." + ModSource.MODID + ".open_editor",

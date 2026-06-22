@@ -30,7 +30,7 @@ public class ModSource {
     public ModSource(IEventBus modEventBus, ModContainer modContainer) {
         CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             ConfigScreenRegistration.register(modContainer);
         }
     }

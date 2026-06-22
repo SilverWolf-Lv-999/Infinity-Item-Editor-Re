@@ -31,6 +31,10 @@ public final class NbtCompat {
         return type == TAG_ANY_NUMERIC ? value instanceof NumericTag : value.getId() == type;
     }
 
+    public static boolean contains(CompoundTag tag, String key) {
+        return tag != null && tag.contains(key);
+    }
+
     public static CompoundTag getCompound(CompoundTag tag, String key) {
         return tag == null ? new CompoundTag() : tag.getCompoundOrEmpty(key);
     }

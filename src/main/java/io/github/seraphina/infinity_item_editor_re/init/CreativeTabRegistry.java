@@ -195,7 +195,7 @@ public final class CreativeTabRegistry {
         for (DyeColor color : DyeColor.values()) {
             addUnique(banners, normalizedTabStack(shield(color)));
         }
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addBannerVariants(banners);
         }
         output.acceptAll(banners);
@@ -207,7 +207,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> heads = new ArrayList<>();
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addPlayerHeads(heads);
         }
         for (String owner : MHF_HEADS) {
@@ -222,7 +222,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> stacks = new ArrayList<>();
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addThiefItems(stacks);
         }
         if (stacks.isEmpty()) {
@@ -248,7 +248,7 @@ public final class CreativeTabRegistry {
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 1)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 2)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 3)));
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addFireworkVariants(fireworks);
         }
         output.acceptAll(fireworks);

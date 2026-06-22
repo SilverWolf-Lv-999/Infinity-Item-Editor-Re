@@ -27,6 +27,7 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
+        event.registerCategory(ClientKeyMappings.CATEGORY);
         event.register(ClientKeyMappings.OPEN_EDITOR);
         event.register(ClientKeyMappings.COPY_TARGET);
         event.register(ClientKeyMappings.SAVE_REALM);

@@ -10,6 +10,7 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
+import io.github.seraphina.infinity_item_editor_re.client.screen.CompatScreen;
 import io.github.seraphina.infinity_item_editor_re.client.screen.ItemEditorScreen;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
@@ -20,6 +21,9 @@ import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
@@ -44,6 +48,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.neoforged.api.distmarker.Dist;
@@ -162,16 +168,16 @@ public final class ClientForgeEvents {
             return false;
         }
 
-        if (Screen.isCopy(keyCode)) {
+        if (CompatScreen.isCopy(keyCode)) {
             return copyHoveredStack(minecraft, slot);
         }
-        if (Screen.isPaste(keyCode)) {
+        if (CompatScreen.isPaste(keyCode)) {
             return pasteHoveredStack(minecraft, slot);
         }
-        if (ClientKeyMappings.OPEN_EDITOR.matches(keyCode, scanCode)) {
+        if (ClientKeyMappings.OPEN_EDITOR.matches(new KeyEvent(keyCode, scanCode, 0))) {
             return openHoveredSlotEditor(minecraft, containerScreen, slot);
         }
-        if (ClientKeyMappings.SAVE_REALM.matches(keyCode, scanCode)) {
+        if (ClientKeyMappings.SAVE_REALM.matches(new KeyEvent(keyCode, scanCode, 0))) {
             return saveHoveredStack(minecraft, screen, slot);
         }
         return false;
@@ -192,10 +198,11 @@ public final class ClientForgeEvents {
             return false;
         }
 
-        if (ClientKeyMappings.OPEN_EDITOR.matchesMouse(button)) {
+        MouseButtonEvent mouseEvent = new MouseButtonEvent(0.0, 0.0, new MouseButtonInfo(button, 0));
+        if (ClientKeyMappings.OPEN_EDITOR.matchesMouse(mouseEvent)) {
             return openHoveredSlotEditor(minecraft, containerScreen, slot);
         }
-        if (ClientKeyMappings.SAVE_REALM.matchesMouse(button)) {
+        if (ClientKeyMappings.SAVE_REALM.matchesMouse(mouseEvent)) {
             return saveHoveredStack(minecraft, screen, slot);
         }
         return false;
@@ -257,12 +264,11 @@ public final class ClientForgeEvents {
             return;
         }
 
-        HoverEvent.ItemStackInfo itemStackInfo = hoverEvent.getValue(HoverEvent.Action.SHOW_ITEM);
-        if (itemStackInfo == null) {
+        if (!(hoverEvent instanceof HoverEvent.ShowItem showItem)) {
             return;
         }
 
-        ItemStack stack = itemStackInfo.getItemStack();
+        ItemStack stack = showItem.item();
         if (stack.isEmpty()) {
             return;
         }
@@ -342,7 +348,7 @@ public final class ClientForgeEvents {
             return;
         }
 
-        copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.MAINHAND, 36 + minecraft.player.getInventory().selected);
+        copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.MAINHAND, 36 + minecraft.player.getInventory().getSelectedSlot());
         copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.OFFHAND, PlayerInventorySlots.OFFHAND_CONTAINER_SLOT);
         copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.HEAD, PlayerInventorySlots.HEAD_CONTAINER_SLOT);
         copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.CHEST, PlayerInventorySlots.CHEST_CONTAINER_SLOT);
@@ -364,7 +370,7 @@ public final class ClientForgeEvents {
             return;
         }
 
-        boolean controlDown = Screen.hasControlDown();
+        boolean controlDown = CompatScreen.hasControlDown();
         ItemStack stack = blockState.getCloneItemStack(blockPos, minecraft.level, controlDown, minecraft.player);
         if (stack.isEmpty()) {
             minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_empty_block"), true);
@@ -397,14 +403,16 @@ public final class ClientForgeEvents {
         }
 
         setPickedItem(minecraft, stack);
-        minecraft.gameMode.handleCreativeModeItemAdd(minecraft.player.getInventory().getSelected(), 36 + minecraft.player.getInventory().selected);
+        minecraft.gameMode.handleCreativeModeItemAdd(minecraft.player.getInventory().getSelectedItem(), 36 + minecraft.player.getInventory().getSelectedSlot());
         minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copying", stack.getHoverName()), true);
     }
 
     private static void addCustomNbtData(ItemStack stack, BlockEntity blockEntity) {
-        CompoundTag blockEntityTag = blockEntity.saveCustomOnly(ItemStackNbt.provider());
-        blockEntity.removeComponentsFromTag(blockEntityTag);
-        BlockItem.setBlockEntityData(stack, blockEntity.getType(), blockEntityTag);
+        TagValueOutput blockEntityOutput = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, ItemStackNbt.provider());
+        blockEntityOutput.store(blockEntity.saveCustomOnly(ItemStackNbt.provider()));
+        blockEntity.removeComponentsFromTag(blockEntityOutput);
+        BlockItem.setBlockEntityData(stack, blockEntity.getType(), blockEntityOutput);
+        CompoundTag blockEntityTag = blockEntityOutput.buildResult();
         stack.applyComponents(blockEntity.collectComponents());
         if (stack.getItem() instanceof PlayerHeadItem) {
             CompoundTag stackTag = ItemStackNbt.get(stack);
@@ -429,7 +437,7 @@ public final class ClientForgeEvents {
         int slot = inventory.findSlotMatchingItem(stack);
         if (slot != -1) {
             if (Inventory.isHotbarSlot(slot)) {
-                inventory.selected = slot;
+                inventory.setSelectedSlot(slot);
             } else {
                 inventory.pickSlot(slot);
             }
@@ -473,11 +481,6 @@ public final class ClientForgeEvents {
             stack.setCount(1);
         }
         minecraft.gameMode.handleCreativeModeItemAdd(stack, containerSlot);
-
-        switch (slot) {
-            case MAINHAND -> minecraft.player.getInventory().items.set(minecraft.player.getInventory().selected, stack);
-            case OFFHAND -> minecraft.player.getInventory().offhand.set(0, stack);
-            case HEAD, CHEST, LEGS, FEET -> minecraft.player.getInventory().armor.set(slot.getIndex(), stack);
-        }
+        PlayerInventorySlots.setStack(minecraft.player, containerSlot, stack);
     }
 }

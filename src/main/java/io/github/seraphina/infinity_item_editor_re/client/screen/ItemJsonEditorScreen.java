@@ -10,6 +10,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractTextAreaWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -461,6 +465,10 @@ final class ItemJsonEditorScreen extends CompatScreen {
         }
 
         @Override
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            return mouseClicked(event.x(), event.y(), event.button());
+        }
+
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (!this.visible || !this.active) {
                 return false;
@@ -468,7 +476,7 @@ final class ItemJsonEditorScreen extends CompatScreen {
             if (button == 0 && clickCompletion(mouseX, mouseY)) {
                 return true;
             }
-            boolean handledByScroll = super.mouseClicked(mouseX, mouseY, button);
+            boolean handledByScroll = super.mouseClicked(mouseEvent(mouseX, mouseY, button), false);
             if (withinContentAreaPoint(mouseX, mouseY) && button == 0) {
                 setFocused(true);
                 seekCursor(mouseX, mouseY, CompatScreen.hasShiftDown());
@@ -481,8 +489,12 @@ final class ItemJsonEditorScreen extends CompatScreen {
         }
 
         @Override
+        public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+            return mouseDragged(event.x(), event.y(), event.button(), dragX, dragY);
+        }
+
         public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-            if (super.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            if (super.mouseDragged(mouseEvent(mouseX, mouseY, button), dragX, dragY)) {
                 return true;
             }
             if (this.draggingSelection && button == 0 && isFocused()) {
@@ -494,12 +506,20 @@ final class ItemJsonEditorScreen extends CompatScreen {
         }
 
         @Override
+        public boolean mouseReleased(MouseButtonEvent event) {
+            return mouseReleased(event.x(), event.y(), event.button());
+        }
+
         public boolean mouseReleased(double mouseX, double mouseY, int button) {
             this.draggingSelection = false;
-            return super.mouseReleased(mouseX, mouseY, button);
+            return super.mouseReleased(mouseEvent(mouseX, mouseY, button));
         }
 
         @Override
+        public boolean keyPressed(KeyEvent event) {
+            return keyPressed(event.key(), event.scancode(), event.modifiers());
+        }
+
         public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
             if (!isFocused()) {
                 return false;
@@ -540,6 +560,10 @@ final class ItemJsonEditorScreen extends CompatScreen {
         }
 
         @Override
+        public boolean charTyped(CharacterEvent event) {
+            return charTyped((char) event.codepoint(), event.modifiers());
+        }
+
         public boolean charTyped(char codePoint, int modifiers) {
             if (!isFocused() || !StringUtil.isAllowedChatCharacter(codePoint)) {
                 return false;
@@ -575,6 +599,10 @@ final class ItemJsonEditorScreen extends CompatScreen {
             }
             insertText(Character.toString(codePoint));
             return true;
+        }
+
+        private static MouseButtonEvent mouseEvent(double mouseX, double mouseY, int button) {
+            return new MouseButtonEvent(mouseX, mouseY, new MouseButtonInfo(button, 0));
         }
 
         @Override

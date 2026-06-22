@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.api.distmarker.Dist;
@@ -170,7 +171,7 @@ public class InfinityConfigScreen extends CompatScreen {
         }
 
         @Override
-        protected void renderSelection(GuiGraphics guiGraphics, int top, int width, int height, int outerColor, int innerColor) {
+        protected void renderSelection(GuiGraphics guiGraphics, ConfigEntry entry, int color) {
         }
     }
 
@@ -193,8 +194,11 @@ public class InfinityConfigScreen extends CompatScreen {
         }
 
         @Override
-        public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height,
-                           int mouseX, int mouseY, boolean hovered, float partialTick) {
+        public void renderContent(GuiGraphics guiGraphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+            int left = getContentX();
+            int top = getContentY();
+            int width = getContentWidth();
+            int height = getContentHeight();
             if (hovered) {
                 guiGraphics.fill(left - 4, top - 1, left + width + 4, top + height - 3, HOVER_FILL);
             }
@@ -237,8 +241,8 @@ public class InfinityConfigScreen extends CompatScreen {
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (button != 0) {
+        public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() != 0) {
                 return false;
             }
             if (this.entry == null) {

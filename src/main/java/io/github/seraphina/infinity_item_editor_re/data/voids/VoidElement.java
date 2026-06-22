@@ -53,7 +53,7 @@ public class VoidElement {
         }
 
         for (Tag tag : uuids) {
-            if (id.equals(tag.getAsString())) {
+            if (id.equals(NbtCompat.asString(tag))) {
                 return true;
             }
         }

@@ -49,20 +49,20 @@ public final class PlayerInventorySlots {
         Inventory inventory = player.getInventory();
         ItemStack localStack = stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
         if (containerSlot >= HOTBAR_CONTAINER_SLOT_START && containerSlot <= HOTBAR_CONTAINER_SLOT_END) {
-            inventory.items.set(containerSlot - HOTBAR_CONTAINER_SLOT_START, localStack);
+            inventory.setItem(containerSlot - HOTBAR_CONTAINER_SLOT_START, localStack);
             return true;
         }
         if (containerSlot >= 9 && containerSlot <= 35) {
-            inventory.items.set(containerSlot, localStack);
+            inventory.setItem(containerSlot, localStack);
             return true;
         }
 
         switch (containerSlot) {
-            case HEAD_CONTAINER_SLOT -> inventory.armor.set(3, localStack);
-            case CHEST_CONTAINER_SLOT -> inventory.armor.set(2, localStack);
-            case LEGS_CONTAINER_SLOT -> inventory.armor.set(1, localStack);
-            case FEET_CONTAINER_SLOT -> inventory.armor.set(0, localStack);
-            case OFFHAND_CONTAINER_SLOT -> inventory.offhand.set(0, localStack);
+            case HEAD_CONTAINER_SLOT -> inventory.setItem(39, localStack);
+            case CHEST_CONTAINER_SLOT -> inventory.setItem(38, localStack);
+            case LEGS_CONTAINER_SLOT -> inventory.setItem(37, localStack);
+            case FEET_CONTAINER_SLOT -> inventory.setItem(36, localStack);
+            case OFFHAND_CONTAINER_SLOT -> inventory.setItem(Inventory.SLOT_OFFHAND, localStack);
             default -> {
                 return false;
             }

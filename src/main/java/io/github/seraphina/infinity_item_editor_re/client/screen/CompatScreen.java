@@ -10,7 +10,7 @@ import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-abstract class CompatScreen extends Screen {
+public abstract class CompatScreen extends Screen {
     protected CompatScreen(Component title) {
         super(title);
     }

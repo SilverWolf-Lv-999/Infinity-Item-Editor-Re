@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +19,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.TooltipDisplay;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -141,12 +143,14 @@ public final class ItemStackNbt {
     }
 
     public static CompoundTag save(ItemStack stack) {
-        Tag saved = stack.saveOptional(provider());
+        Tag saved = ItemStack.OPTIONAL_CODEC
+                .encodeStart(provider().createSerializationContext(NbtOps.INSTANCE), stack)
+                .getOrThrow();
         return saved instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
     }
 
     public static ItemStack parse(CompoundTag tag) {
-        ItemStack parsed = ItemStack.parseOptional(provider(), normalizeStackTag(tag));
+        ItemStack parsed = parseStackTag(normalizeStackTag(tag));
         if (!parsed.isEmpty() || !isLegacyStackTag(tag)) {
             return parsed;
         }
@@ -233,7 +237,7 @@ public final class ItemStackNbt {
         readComponentBlockEntity(stack, components, tag);
 
         if (NbtCompat.contains(components, "minecraft:trim", Tag.TAG_COMPOUND)
-                && !NbtCompat.getCompound(components, "minecraft:trim").getBoolean("show_in_tooltip")) {
+                && !NbtCompat.getBoolean(NbtCompat.getCompound(components, "minecraft:trim"), "show_in_tooltip")) {
             hideFlags |= 128;
         }
         if (components.contains("minecraft:hide_additional_tooltip")) {
@@ -257,7 +261,7 @@ public final class ItemStackNbt {
         }
 
         CompoundTag stackTag = stackTagFromLegacy(stack, tag);
-        ItemStack parsed = ItemStack.parseOptional(provider(), stackTag);
+        ItemStack parsed = parseStackTag(stackTag);
         if (parsed.isEmpty() && !stack.is(Items.AIR)) {
             ItemStack fallback = new ItemStack(stack.getItem(), stack.getCount());
             fallback.set(DataComponents.CUSTOM_DATA, CustomData.of(tag.copy()));
@@ -288,8 +292,7 @@ public final class ItemStackNbt {
         copyDataComponent(source, stack, DataComponents.CAN_PLACE_ON);
         copyDataComponent(source, stack, DataComponents.ATTRIBUTE_MODIFIERS);
         copyDataComponent(source, stack, DataComponents.TRIM);
-        copyDataComponent(source, stack, DataComponents.HIDE_ADDITIONAL_TOOLTIP);
-        copyDataComponent(source, stack, DataComponents.HIDE_TOOLTIP);
+        copyDataComponent(source, stack, DataComponents.TOOLTIP_DISPLAY);
         copyDataComponent(source, stack, DataComponents.CHARGED_PROJECTILES);
         copyDataComponent(source, stack, DataComponents.BUNDLE_CONTENTS);
         copyDataComponent(source, stack, DataComponents.MAP_ID);
@@ -318,6 +321,13 @@ public final class ItemStackNbt {
 
     private static <T> void copyDataComponent(ItemStack source, ItemStack target, DataComponentType<T> component) {
         target.set(component, source.get(component));
+    }
+
+    private static ItemStack parseStackTag(CompoundTag tag) {
+        return ItemStack.OPTIONAL_CODEC
+                .parse(provider().createSerializationContext(NbtOps.INSTANCE), tag)
+                .result()
+                .orElse(ItemStack.EMPTY);
     }
 
     private static CompoundTag stackTagFromLegacy(ItemStack stack, CompoundTag legacyTag) {
@@ -393,7 +403,7 @@ public final class ItemStackNbt {
     }
 
     private static boolean isFullStackTag(CompoundTag tag) {
-        for (String key : tag.getAllKeys()) {
+        for (String key : tag.keySet()) {
             if (FULL_STACK_KEYS.contains(key)) {
                 return NbtCompat.contains(tag, "id", Tag.TAG_STRING) || NbtCompat.contains(tag, "item", Tag.TAG_STRING) || NbtCompat.contains(tag, "Item", Tag.TAG_STRING);
             }
@@ -580,7 +590,7 @@ public final class ItemStackNbt {
             return;
         }
 
-        if (NbtCompat.contains(customData, "title") || customData.contains("author") || customData.contains("pages", Tag.TAG_LIST)) {
+        if (NbtCompat.contains(customData, "title") || customData.contains("author") || NbtCompat.contains(customData, "pages", Tag.TAG_LIST)) {
             CompoundTag book = new CompoundTag();
             book.put("title", filterableText(NbtCompat.getString(customData, "title"),
                     NbtCompat.contains(customData, "filtered_title", Tag.TAG_STRING) ? NbtCompat.getString(customData, "filtered_title") : null));
@@ -635,7 +645,7 @@ public final class ItemStackNbt {
 
         Tag skullOwner = customData.get("SkullOwner");
         if (skullOwner instanceof StringTag stringTag) {
-            components.putString("minecraft:profile", stringTag.getAsString());
+            components.putString("minecraft:profile", stringTag.value());
         } else if (skullOwner instanceof CompoundTag skullOwnerTag) {
             CompoundTag profile = new CompoundTag();
             if (NbtCompat.contains(skullOwnerTag, "Name", Tag.TAG_STRING)) {
@@ -742,7 +752,7 @@ public final class ItemStackNbt {
         CompoundTag component = components.get(componentKey) instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
         CompoundTag levels = NbtCompat.contains(component, "levels", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(component, "levels") : component;
         ListTag enchantments = new ListTag();
-        for (String id : levels.getAllKeys()) {
+        for (String id : levels.keySet()) {
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
             enchantment.putShort("lvl", (short) NbtCompat.getInt(levels, id));
@@ -885,7 +895,7 @@ public final class ItemStackNbt {
 
         Tag profile = components.get("minecraft:profile");
         if (profile instanceof StringTag stringTag) {
-            tag.putString("SkullOwner", stringTag.getAsString());
+            tag.putString("SkullOwner", stringTag.value());
         } else if (profile instanceof CompoundTag profileTag) {
             CompoundTag skullOwner = new CompoundTag();
             copyTag(profileTag, "name", skullOwner, "Name");
@@ -1112,7 +1122,7 @@ public final class ItemStackNbt {
         ListTag pages = new ListTag();
         for (int i = 0; i < strings.size(); i++) {
             String filtered = filteredPages != null && NbtCompat.contains(filteredPages, Integer.toString(i), Tag.TAG_STRING)
-                    ? filteredPages.getString(Integer.toString(i))
+                    ? NbtCompat.getString(filteredPages, Integer.toString(i))
                     : null;
             pages.add(filterableText(NbtCompat.getString(strings, i), filtered));
         }
@@ -1129,7 +1139,7 @@ public final class ItemStackNbt {
 
     private static String readFilterableString(Tag tag) {
         if (tag instanceof StringTag stringTag) {
-            return stringTag.getAsString();
+            return stringTag.value();
         }
         if (tag instanceof CompoundTag compoundTag) {
             if (NbtCompat.contains(compoundTag, "raw", Tag.TAG_STRING)) {
@@ -1144,7 +1154,7 @@ public final class ItemStackNbt {
 
     private static ListTag profilePropertiesToComponent(CompoundTag properties) {
         ListTag converted = new ListTag();
-        for (String name : properties.getAllKeys()) {
+        for (String name : properties.keySet()) {
             ListTag values = NbtCompat.getList(properties, name, Tag.TAG_COMPOUND);
             for (int i = 0; i < values.size(); i++) {
                 CompoundTag value = NbtCompat.getCompound(values, i);
@@ -1349,7 +1359,7 @@ public final class ItemStackNbt {
     private static CompoundTag syncedCompound(CompoundTag source, Runnable onChanged) {
         ListeningMap map = new ListeningMap(onChanged);
         map.muted = true;
-        for (String key : source.getAllKeys()) {
+        for (String key : source.keySet()) {
             Tag value = source.get(key);
             if (value != null) {
                 map.put(key, syncedTag(value, onChanged));

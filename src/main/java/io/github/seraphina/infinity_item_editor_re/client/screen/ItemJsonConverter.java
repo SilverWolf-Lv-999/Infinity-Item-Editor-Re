@@ -88,7 +88,7 @@ final class ItemJsonConverter {
 
     private static void moveLooseRootTags(CompoundTag saved) {
         CompoundTag itemTag = saved.get("tag") instanceof CompoundTag existing ? existing.copy() : new CompoundTag();
-        for (String key : new ArrayList<>(saved.getAllKeys())) {
+        for (String key : new ArrayList<>(saved.keySet())) {
             if (STACK_ROOT_KEYS.contains(key) || itemTag.contains(key)) {
                 continue;
             }
@@ -152,9 +152,9 @@ final class ItemJsonConverter {
             return new ByteArrayTag(values);
         }
         if (isIntArrayKey(key) && allIntegralNumbers(array)) {
-            List<Integer> values = new ArrayList<>(array.size());
-            for (JsonElement element : array) {
-                values.add(element.getAsInt());
+            int[] values = new int[array.size()];
+            for (int i = 0; i < array.size(); i++) {
+                values[i] = array.get(i).getAsInt();
             }
             return new IntArrayTag(values);
         }
@@ -235,7 +235,7 @@ final class ItemJsonConverter {
         }
         if (tag instanceof CompoundTag compoundTag) {
             JsonObject object = new JsonObject();
-            for (String key : compoundTag.getAllKeys()) {
+            for (String key : compoundTag.keySet()) {
                 object.add(key, toJsonElement(compoundTag.get(key)));
             }
             return object;
@@ -269,10 +269,10 @@ final class ItemJsonConverter {
             return array;
         }
         if (tag instanceof StringTag stringTag) {
-            return new JsonPrimitive(stringTag.getAsString());
+            return new JsonPrimitive(stringTag.value());
         }
         if (tag instanceof NumericTag numericTag) {
-            return new JsonPrimitive(numericTag.getAsNumber());
+            return new JsonPrimitive(numericTag.box());
         }
         return new JsonPrimitive(tag.toString());
     }
