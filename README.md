@@ -8,12 +8,12 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 
 | 项目 | 内容 |
 | --- | --- |
-| 支持版本 | Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
-| 当前工作区 | NeoForge 1.21.1 |
-| 当前工作区 NeoForge | 21.1.234 |
+| 多分支支持版本 | Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
+| 当前工作区 | NeoForge 1.21.4 |
+| 当前工作区 NeoForge | 21.4.157 |
 | Java | Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
 | Mod ID | `infinity_item_editor_re` |
-| 当前工作区版本 | `1.21.1-1.1.0-B` |
+| 当前工作区版本 | `1.21.4-1.0.0-B` |
 | 许可证 | GNU GPL 3.0 |
 
 ## 功能
@@ -118,7 +118,7 @@ Mod 会在客户端游戏目录下创建数据目录：
 
 ## 从源码构建
 
-不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。当前工作区是 NeoForge 1.21.1 版本。
+不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。本工作区对应 NeoForge 1.21.4，使用 NeoForge `21.4.157` 和 Java 21。
 
 Windows:
 
