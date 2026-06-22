@@ -288,9 +288,10 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
 
         UUID playerId = this.minecraft.player.getUUID();
-        ItemStack serverStack = stack.copy();
+        CompoundTag serverStackTag = ItemStackNbt.save(stack);
         server.execute(() -> {
             ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
+            ItemStack serverStack = ItemStack.parseOptional(server.registryAccess(), serverStackTag.copy());
             if (serverPlayer == null || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
                 return;
             }
