@@ -5,6 +5,7 @@ import net.minecraft.util.StringUtil;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.network.chat.Component;
 
 public class ModernTextEditBox extends EditBox {
@@ -25,6 +26,10 @@ public class ModernTextEditBox extends EditBox {
     }
 
     @Override
+    public boolean charTyped(CharacterEvent event) {
+        return charTyped((char) event.codepoint(), event.modifiers());
+    }
+
     public boolean charTyped(char codePoint, int modifiers) {
         if (!this.active || !canConsumeInput()) {
             return false;

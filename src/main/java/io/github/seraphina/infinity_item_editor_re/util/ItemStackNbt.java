@@ -19,6 +19,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,18 +122,18 @@ public final class ItemStackNbt {
 
     public static CompoundTag getElement(ItemStack stack, String key) {
         CompoundTag tag = get(stack);
-        if (tag == null || !tag.contains(key, Tag.TAG_COMPOUND)) {
+        if (tag == null || !NbtCompat.contains(tag, key, Tag.TAG_COMPOUND)) {
             return null;
         }
-        return tag.getCompound(key);
+        return NbtCompat.getCompound(tag, key);
     }
 
     public static CompoundTag getOrCreateElement(ItemStack stack, String key) {
         CompoundTag tag = getOrCreate(stack);
-        if (!tag.contains(key, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(tag, key, Tag.TAG_COMPOUND)) {
             tag.put(key, new CompoundTag());
         }
-        return tag.getCompound(key);
+        return NbtCompat.getCompound(tag, key);
     }
 
     public static void set(ItemStack stack, CompoundTag tag) {
@@ -148,16 +151,16 @@ public final class ItemStackNbt {
             return parsed;
         }
 
-        ResourceLocation id = ResourceLocation.tryParse(tag.getString("id"));
+        ResourceLocation id = ResourceLocation.tryParse(NbtCompat.getString(tag, "id"));
         Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.getValue(id);
         if (item == Items.AIR) {
             return ItemStack.EMPTY;
         }
 
-        int count = tag.contains("Count") ? tag.getByte("Count") : 1;
+        int count = tag.contains("Count") ? NbtCompat.getByte(tag, "Count") : 1;
         ItemStack stack = new ItemStack(item, Math.max(1, count));
-        if (tag.contains("tag", Tag.TAG_COMPOUND)) {
-            set(stack, tag.getCompound("tag").copy());
+        if (NbtCompat.contains(tag, "tag", Tag.TAG_COMPOUND)) {
+            set(stack, NbtCompat.getCompound(tag, "tag").copy());
         }
         return stack;
     }
@@ -165,7 +168,7 @@ public final class ItemStackNbt {
     public static ItemStack parseEditorNbt(ItemStack current, CompoundTag tag) {
         if (isFullStackTag(tag)) {
             ItemStack parsed = parse(tag);
-            if (!parsed.isEmpty() || "minecraft:air".equals(tag.getString("id"))) {
+            if (!parsed.isEmpty() || "minecraft:air".equals(NbtCompat.getString(tag, "id"))) {
                 return parsed;
             }
         }
@@ -192,9 +195,9 @@ public final class ItemStackNbt {
         return provider instanceof RegistryAccess registryAccess ? registryAccess : RegistryAccess.EMPTY;
     }
 
-    private static SyncedCompoundTag syncedRoot(ItemStack stack, CompoundTag tag) {
-        final SyncedCompoundTag[] holder = new SyncedCompoundTag[1];
-        holder[0] = new SyncedCompoundTag(tag, () -> applyLegacyTag(stack, holder[0]));
+    private static CompoundTag syncedRoot(ItemStack stack, CompoundTag tag) {
+        final CompoundTag[] holder = new CompoundTag[1];
+        holder[0] = syncedCompound(tag, () -> applyLegacyTag(stack, holder[0]));
         return holder[0];
     }
 
@@ -204,12 +207,12 @@ public final class ItemStackNbt {
         }
 
         CompoundTag saved = save(stack);
-        CompoundTag components = saved.getCompound("components");
+        CompoundTag components = NbtCompat.getCompound(saved, "components");
         CompoundTag tag = new CompoundTag();
         int hideFlags = 0;
 
-        if (components.contains("minecraft:custom_data", Tag.TAG_COMPOUND)) {
-            tag.merge(components.getCompound("minecraft:custom_data").copy());
+        if (NbtCompat.contains(components, "minecraft:custom_data", Tag.TAG_COMPOUND)) {
+            tag.merge(NbtCompat.getCompound(components, "minecraft:custom_data").copy());
         }
 
         copyComponent(components, "minecraft:damage", tag, "Damage");
@@ -229,8 +232,8 @@ public final class ItemStackNbt {
         readComponentProfile(components, tag);
         readComponentBlockEntity(stack, components, tag);
 
-        if (components.contains("minecraft:trim", Tag.TAG_COMPOUND)
-                && !components.getCompound("minecraft:trim").getBoolean("show_in_tooltip")) {
+        if (NbtCompat.contains(components, "minecraft:trim", Tag.TAG_COMPOUND)
+                && !NbtCompat.getCompound(components, "minecraft:trim").getBoolean("show_in_tooltip")) {
             hideFlags |= 128;
         }
         if (components.contains("minecraft:hide_additional_tooltip")) {
@@ -367,24 +370,24 @@ public final class ItemStackNbt {
         }
 
         CompoundTag normalized = tag.copy();
-        if (!normalized.contains("id", Tag.TAG_STRING)) {
-            if (normalized.contains("item", Tag.TAG_STRING)) {
-                normalized.putString("id", normalized.getString("item"));
-            } else if (normalized.contains("Item", Tag.TAG_STRING)) {
-                normalized.putString("id", normalized.getString("Item"));
+        if (!NbtCompat.contains(normalized, "id", Tag.TAG_STRING)) {
+            if (NbtCompat.contains(normalized, "item", Tag.TAG_STRING)) {
+                normalized.putString("id", NbtCompat.getString(normalized, "item"));
+            } else if (NbtCompat.contains(normalized, "Item", Tag.TAG_STRING)) {
+                normalized.putString("id", NbtCompat.getString(normalized, "Item"));
             }
         }
         if (!normalized.contains("count") && normalized.contains("Count")) {
-            normalized.putInt("count", normalized.getByte("Count") & 255);
+            normalized.putInt("count", NbtCompat.getByte(normalized, "Count") & 255);
         }
         if (!normalized.contains("count")) {
             normalized.putInt("count", 1);
         }
-        if (!normalized.contains("components", Tag.TAG_COMPOUND)) {
-            CompoundTag legacy = normalized.contains("tag", Tag.TAG_COMPOUND)
-                    ? normalized.getCompound("tag")
-                    : normalized.contains("nbt", Tag.TAG_COMPOUND) ? normalized.getCompound("nbt") : new CompoundTag();
-            normalized = stackTagFromLegacy(normalized.getString("id"), normalized.getInt("count"), legacy);
+        if (!NbtCompat.contains(normalized, "components", Tag.TAG_COMPOUND)) {
+            CompoundTag legacy = NbtCompat.contains(normalized, "tag", Tag.TAG_COMPOUND)
+                    ? NbtCompat.getCompound(normalized, "tag")
+                    : NbtCompat.contains(normalized, "nbt", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(normalized, "nbt") : new CompoundTag();
+            normalized = stackTagFromLegacy(NbtCompat.getString(normalized, "id"), NbtCompat.getInt(normalized, "count"), legacy);
         }
         return normalized;
     }
@@ -392,7 +395,7 @@ public final class ItemStackNbt {
     private static boolean isFullStackTag(CompoundTag tag) {
         for (String key : tag.getAllKeys()) {
             if (FULL_STACK_KEYS.contains(key)) {
-                return tag.contains("id", Tag.TAG_STRING) || tag.contains("item", Tag.TAG_STRING) || tag.contains("Item", Tag.TAG_STRING);
+                return NbtCompat.contains(tag, "id", Tag.TAG_STRING) || NbtCompat.contains(tag, "item", Tag.TAG_STRING) || NbtCompat.contains(tag, "Item", Tag.TAG_STRING);
             }
         }
         return false;
@@ -403,22 +406,22 @@ public final class ItemStackNbt {
     }
 
     private static void writeDisplayComponents(CompoundTag customData, CompoundTag components, int hideFlags) {
-        if (!customData.contains("display", Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(customData, "display", Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag display = customData.getCompound("display").copy();
+        CompoundTag display = NbtCompat.getCompound(customData, "display").copy();
         moveComponent(display, "Name", components, "minecraft:custom_name");
         moveComponent(display, "Lore", components, "minecraft:lore");
-        if (display.contains("LocName", Tag.TAG_STRING)) {
+        if (NbtCompat.contains(display, "LocName", Tag.TAG_STRING)) {
             CompoundTag itemName = new CompoundTag();
-            itemName.putString("translate", display.getString("LocName"));
+            itemName.putString("translate", NbtCompat.getString(display, "LocName"));
             components.put("minecraft:item_name", itemName);
             display.remove("LocName");
         }
         if (display.contains("color")) {
             CompoundTag color = new CompoundTag();
-            color.putInt("rgb", display.getInt("color"));
+            color.putInt("rgb", NbtCompat.getInt(display, "color"));
             if ((hideFlags & 64) != 0) {
                 color.putBoolean("show_in_tooltip", false);
             }
@@ -440,16 +443,16 @@ public final class ItemStackNbt {
     }
 
     private static void writeEnchantmentsComponent(CompoundTag customData, CompoundTag components, String oldKey, String componentKey, boolean hidden) {
-        if (!customData.contains(oldKey, Tag.TAG_LIST) && !hidden) {
+        if (!NbtCompat.contains(customData, oldKey, Tag.TAG_LIST) && !hidden) {
             return;
         }
 
-        ListTag oldEnchantments = customData.getList(oldKey, Tag.TAG_COMPOUND);
+        ListTag oldEnchantments = NbtCompat.getList(customData, oldKey, Tag.TAG_COMPOUND);
         CompoundTag levels = new CompoundTag();
         for (int i = 0; i < oldEnchantments.size(); i++) {
-            CompoundTag enchantment = oldEnchantments.getCompound(i);
-            if (enchantment.contains("id", Tag.TAG_STRING)) {
-                levels.putInt(enchantment.getString("id"), clamp(enchantment.getInt("lvl"), 0, 255));
+            CompoundTag enchantment = NbtCompat.getCompound(oldEnchantments, i);
+            if (NbtCompat.contains(enchantment, "id", Tag.TAG_STRING)) {
+                levels.putInt(NbtCompat.getString(enchantment, "id"), clamp(NbtCompat.getInt(enchantment, "lvl"), 0, 255));
             }
         }
 
@@ -468,7 +471,7 @@ public final class ItemStackNbt {
     }
 
     private static void writeUnbreakableComponent(CompoundTag customData, CompoundTag components, int hideFlags) {
-        if (!customData.getBoolean("Unbreakable")) {
+        if (!NbtCompat.getBoolean(customData, "Unbreakable")) {
             customData.remove("Unbreakable");
             return;
         }
@@ -482,34 +485,34 @@ public final class ItemStackNbt {
     }
 
     private static void writeAttributeComponents(CompoundTag customData, CompoundTag components, int hideFlags) {
-        if (!customData.contains("AttributeModifiers", Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(customData, "AttributeModifiers", Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag oldModifiers = customData.getList("AttributeModifiers", Tag.TAG_COMPOUND);
+        ListTag oldModifiers = NbtCompat.getList(customData, "AttributeModifiers", Tag.TAG_COMPOUND);
         ListTag modifiers = new ListTag();
         for (int i = 0; i < oldModifiers.size(); i++) {
-            CompoundTag oldModifier = oldModifiers.getCompound(i);
+            CompoundTag oldModifier = NbtCompat.getCompound(oldModifiers, i);
             CompoundTag modifier = new CompoundTag();
-            String type = oldModifier.contains("AttributeName", Tag.TAG_STRING)
-                    ? oldModifier.getString("AttributeName")
-                    : oldModifier.getString("type");
+            String type = NbtCompat.contains(oldModifier, "AttributeName", Tag.TAG_STRING)
+                    ? NbtCompat.getString(oldModifier, "AttributeName")
+                    : NbtCompat.getString(oldModifier, "type");
             if (type.isBlank()) {
                 continue;
             }
             modifier.putString("type", type);
-            modifier.putString("id", oldModifier.contains("id", Tag.TAG_STRING)
-                    ? oldModifier.getString("id")
+            modifier.putString("id", NbtCompat.contains(oldModifier, "id", Tag.TAG_STRING)
+                    ? NbtCompat.getString(oldModifier, "id")
                     : type + "/" + UUID.randomUUID());
-            modifier.putDouble("amount", oldModifier.contains("Amount") ? oldModifier.getDouble("Amount") : oldModifier.getDouble("amount"));
-            modifier.putString("operation", operationName(oldModifier.contains("Operation") ? oldModifier.getInt("Operation") : 0));
-            if (oldModifier.contains("operation", Tag.TAG_STRING)) {
-                modifier.putString("operation", oldModifier.getString("operation"));
+            modifier.putDouble("amount", oldModifier.contains("Amount") ? NbtCompat.getDouble(oldModifier, "Amount") : NbtCompat.getDouble(oldModifier, "amount"));
+            modifier.putString("operation", operationName(oldModifier.contains("Operation") ? NbtCompat.getInt(oldModifier, "Operation") : 0));
+            if (NbtCompat.contains(oldModifier, "operation", Tag.TAG_STRING)) {
+                modifier.putString("operation", NbtCompat.getString(oldModifier, "operation"));
             }
-            if (oldModifier.contains("Slot", Tag.TAG_STRING)) {
-                modifier.putString("slot", oldModifier.getString("Slot"));
-            } else if (oldModifier.contains("slot", Tag.TAG_STRING)) {
-                modifier.putString("slot", oldModifier.getString("slot"));
+            if (NbtCompat.contains(oldModifier, "Slot", Tag.TAG_STRING)) {
+                modifier.putString("slot", NbtCompat.getString(oldModifier, "Slot"));
+            } else if (NbtCompat.contains(oldModifier, "slot", Tag.TAG_STRING)) {
+                modifier.putString("slot", NbtCompat.getString(oldModifier, "slot"));
             }
             modifiers.add(modifier);
         }
@@ -530,15 +533,15 @@ public final class ItemStackNbt {
     }
 
     private static void writeStringPredicateComponent(CompoundTag customData, CompoundTag components, String oldKey, String componentKey, boolean hidden) {
-        if (!customData.contains(oldKey, Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(customData, oldKey, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag oldList = customData.getList(oldKey, Tag.TAG_STRING);
+        ListTag oldList = NbtCompat.getList(customData, oldKey, Tag.TAG_STRING);
         ListTag predicates = new ListTag();
         for (int i = 0; i < oldList.size(); i++) {
             CompoundTag predicate = new CompoundTag();
-            predicate.putString("blocks", oldList.getString(i));
+            predicate.putString("blocks", NbtCompat.getString(oldList, i));
             predicates.add(predicate);
         }
         CompoundTag component = new CompoundTag();
@@ -552,12 +555,12 @@ public final class ItemStackNbt {
 
     private static void writePotionComponents(CompoundTag customData, CompoundTag components) {
         CompoundTag potion = new CompoundTag();
-        if (customData.contains("Potion", Tag.TAG_STRING) && !"minecraft:empty".equals(customData.getString("Potion"))) {
-            potion.putString("potion", customData.getString("Potion"));
+        if (NbtCompat.contains(customData, "Potion", Tag.TAG_STRING) && !"minecraft:empty".equals(NbtCompat.getString(customData, "Potion"))) {
+            potion.putString("potion", NbtCompat.getString(customData, "Potion"));
         }
         moveInto(customData, potion, "CustomPotionColor", "custom_color");
-        if (customData.contains("CustomPotionEffects", Tag.TAG_LIST)) {
-            potion.put("custom_effects", convertPotionEffects(customData.getList("CustomPotionEffects", Tag.TAG_COMPOUND)));
+        if (NbtCompat.contains(customData, "CustomPotionEffects", Tag.TAG_LIST)) {
+            potion.put("custom_effects", convertPotionEffects(NbtCompat.getList(customData, "CustomPotionEffects", Tag.TAG_COMPOUND)));
             customData.remove("CustomPotionEffects");
         } else {
             moveInto(customData, potion, "custom_potion_effects", "custom_effects");
@@ -569,28 +572,28 @@ public final class ItemStackNbt {
     }
 
     private static void writeBookComponents(CompoundTag customData, CompoundTag components) {
-        if (customData.contains("pages", Tag.TAG_LIST) && !customData.contains("title")) {
+        if (NbtCompat.contains(customData, "pages", Tag.TAG_LIST) && !customData.contains("title")) {
             CompoundTag book = new CompoundTag();
-            book.put("pages", filterableStringList(customData.getList("pages", Tag.TAG_STRING), null));
+            book.put("pages", filterableStringList(NbtCompat.getList(customData, "pages", Tag.TAG_STRING), null));
             components.put("minecraft:writable_book_content", book);
             customData.remove("pages");
             return;
         }
 
-        if (customData.contains("title") || customData.contains("author") || customData.contains("pages", Tag.TAG_LIST)) {
+        if (NbtCompat.contains(customData, "title") || customData.contains("author") || customData.contains("pages", Tag.TAG_LIST)) {
             CompoundTag book = new CompoundTag();
-            book.put("title", filterableText(customData.getString("title"),
-                    customData.contains("filtered_title", Tag.TAG_STRING) ? customData.getString("filtered_title") : null));
-            book.putString("author", customData.getString("author"));
+            book.put("title", filterableText(NbtCompat.getString(customData, "title"),
+                    NbtCompat.contains(customData, "filtered_title", Tag.TAG_STRING) ? NbtCompat.getString(customData, "filtered_title") : null));
+            book.putString("author", NbtCompat.getString(customData, "author"));
             if (customData.contains("generation")) {
-                book.putInt("generation", clamp(customData.getInt("generation"), 0, 3));
+                book.putInt("generation", clamp(NbtCompat.getInt(customData, "generation"), 0, 3));
             }
             if (customData.contains("resolved")) {
-                book.putBoolean("resolved", customData.getBoolean("resolved"));
+                book.putBoolean("resolved", NbtCompat.getBoolean(customData, "resolved"));
             }
-            if (customData.contains("pages", Tag.TAG_LIST)) {
-                book.put("pages", filterableStringList(customData.getList("pages", Tag.TAG_STRING),
-                        customData.contains("filtered_pages", Tag.TAG_COMPOUND) ? customData.getCompound("filtered_pages") : null));
+            if (NbtCompat.contains(customData, "pages", Tag.TAG_LIST)) {
+                book.put("pages", filterableStringList(NbtCompat.getList(customData, "pages", Tag.TAG_STRING),
+                        NbtCompat.contains(customData, "filtered_pages", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(customData, "filtered_pages") : null));
             }
             components.put("minecraft:written_book_content", book);
             customData.remove("title");
@@ -604,19 +607,19 @@ public final class ItemStackNbt {
     }
 
     private static void writeFireworkComponents(CompoundTag customData, CompoundTag components) {
-        if (customData.contains("Explosion", Tag.TAG_COMPOUND)) {
-            components.put("minecraft:firework_explosion", fireworkExplosionToComponent(customData.getCompound("Explosion")));
+        if (NbtCompat.contains(customData, "Explosion", Tag.TAG_COMPOUND)) {
+            components.put("minecraft:firework_explosion", fireworkExplosionToComponent(NbtCompat.getCompound(customData, "Explosion")));
             customData.remove("Explosion");
         }
-        if (customData.contains("Fireworks", Tag.TAG_COMPOUND)) {
-            CompoundTag oldFireworks = customData.getCompound("Fireworks");
+        if (NbtCompat.contains(customData, "Fireworks", Tag.TAG_COMPOUND)) {
+            CompoundTag oldFireworks = NbtCompat.getCompound(customData, "Fireworks");
             CompoundTag fireworks = new CompoundTag();
-            fireworks.putInt("flight_duration", oldFireworks.getByte("Flight") & 255);
-            if (oldFireworks.contains("Explosions", Tag.TAG_LIST)) {
+            fireworks.putInt("flight_duration", NbtCompat.getByte(oldFireworks, "Flight") & 255);
+            if (NbtCompat.contains(oldFireworks, "Explosions", Tag.TAG_LIST)) {
                 ListTag explosions = new ListTag();
-                ListTag oldExplosions = oldFireworks.getList("Explosions", Tag.TAG_COMPOUND);
+                ListTag oldExplosions = NbtCompat.getList(oldFireworks, "Explosions", Tag.TAG_COMPOUND);
                 for (int i = 0; i < oldExplosions.size(); i++) {
-                    explosions.add(fireworkExplosionToComponent(oldExplosions.getCompound(i)));
+                    explosions.add(fireworkExplosionToComponent(NbtCompat.getCompound(oldExplosions, i)));
                 }
                 fireworks.put("explosions", explosions);
             }
@@ -635,14 +638,14 @@ public final class ItemStackNbt {
             components.putString("minecraft:profile", stringTag.getAsString());
         } else if (skullOwner instanceof CompoundTag skullOwnerTag) {
             CompoundTag profile = new CompoundTag();
-            if (skullOwnerTag.contains("Name", Tag.TAG_STRING)) {
-                profile.putString("name", skullOwnerTag.getString("Name"));
+            if (NbtCompat.contains(skullOwnerTag, "Name", Tag.TAG_STRING)) {
+                profile.putString("name", NbtCompat.getString(skullOwnerTag, "Name"));
             }
-            if (skullOwnerTag.hasUUID("Id")) {
-                profile.putUUID("id", skullOwnerTag.getUUID("Id"));
+            if (NbtCompat.hasUUID(skullOwnerTag, "Id")) {
+                NbtCompat.putUUID(profile, "id", NbtCompat.getUUID(skullOwnerTag, "Id"));
             }
-            if (skullOwnerTag.contains("Properties", Tag.TAG_COMPOUND)) {
-                profile.put("properties", profilePropertiesToComponent(skullOwnerTag.getCompound("Properties")));
+            if (NbtCompat.contains(skullOwnerTag, "Properties", Tag.TAG_COMPOUND)) {
+                profile.put("properties", profilePropertiesToComponent(NbtCompat.getCompound(skullOwnerTag, "Properties")));
             }
             components.put("minecraft:profile", profile);
         }
@@ -650,45 +653,45 @@ public final class ItemStackNbt {
     }
 
     private static void writeEntityDataComponent(String itemId, CompoundTag customData, CompoundTag components) {
-        if (!customData.contains("EntityTag", Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(customData, "EntityTag", Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag entity = customData.getCompound("EntityTag").copy();
+        CompoundTag entity = NbtCompat.getCompound(customData, "EntityTag").copy();
         ensureId(entity, inferEntityId(itemId));
         components.put("minecraft:entity_data", entity);
         customData.remove("EntityTag");
     }
 
     private static void writeBlockEntityComponents(String itemId, CompoundTag customData, CompoundTag components) {
-        if (!customData.contains("BlockEntityTag", Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(customData, "BlockEntityTag", Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag blockEntity = customData.getCompound("BlockEntityTag").copy();
+        CompoundTag blockEntity = NbtCompat.getCompound(customData, "BlockEntityTag").copy();
         ensureId(blockEntity, inferBlockEntityId(itemId));
-        if (blockEntity.contains("Items", Tag.TAG_LIST)) {
-            components.put("minecraft:container", containerItemsToComponent(blockEntity.getList("Items", Tag.TAG_COMPOUND)));
+        if (NbtCompat.contains(blockEntity, "Items", Tag.TAG_LIST)) {
+            components.put("minecraft:container", containerItemsToComponent(NbtCompat.getList(blockEntity, "Items", Tag.TAG_COMPOUND)));
             blockEntity.remove("Items");
         }
-        if (blockEntity.contains("Patterns", Tag.TAG_LIST)) {
-            components.put("minecraft:banner_patterns", bannerPatternsToComponent(blockEntity.getList("Patterns", Tag.TAG_COMPOUND)));
+        if (NbtCompat.contains(blockEntity, "Patterns", Tag.TAG_LIST)) {
+            components.put("minecraft:banner_patterns", bannerPatternsToComponent(NbtCompat.getList(blockEntity, "Patterns", Tag.TAG_COMPOUND)));
             blockEntity.remove("Patterns");
         }
         if (blockEntity.contains("Base")) {
-            components.putString("minecraft:base_color", dyeNameById(blockEntity.getInt("Base")));
+            components.putString("minecraft:base_color", dyeNameById(NbtCompat.getInt(blockEntity, "Base")));
             blockEntity.remove("Base");
         }
-        if ("minecraft:decorated_pot".equals(itemId) && blockEntity.contains("sherds", Tag.TAG_LIST)) {
-            components.put("minecraft:pot_decorations", potDecorationsToComponent(blockEntity.getList("sherds", Tag.TAG_STRING)));
+        if ("minecraft:decorated_pot".equals(itemId) && NbtCompat.contains(blockEntity, "sherds", Tag.TAG_LIST)) {
+            components.put("minecraft:pot_decorations", potDecorationsToComponent(NbtCompat.getList(blockEntity, "sherds", Tag.TAG_STRING)));
             blockEntity.remove("sherds");
         }
         moveInto(blockEntity, components, "Lock", "minecraft:lock");
-        if (blockEntity.contains("LootTable", Tag.TAG_STRING)) {
+        if (NbtCompat.contains(blockEntity, "LootTable", Tag.TAG_STRING)) {
             CompoundTag loot = new CompoundTag();
-            loot.putString("loot_table", blockEntity.getString("LootTable"));
+            loot.putString("loot_table", NbtCompat.getString(blockEntity, "LootTable"));
             if (blockEntity.contains("LootTableSeed")) {
-                loot.putLong("seed", blockEntity.getLong("LootTableSeed"));
+                loot.putLong("seed", NbtCompat.getLong(blockEntity, "LootTableSeed"));
             }
             components.put("minecraft:container_loot", loot);
             blockEntity.remove("LootTable");
@@ -701,15 +704,15 @@ public final class ItemStackNbt {
     }
 
     private static int readComponentDisplay(CompoundTag components, CompoundTag tag, int hideFlags) {
-        CompoundTag display = tag.contains("display", Tag.TAG_COMPOUND) ? tag.getCompound("display").copy() : new CompoundTag();
+        CompoundTag display = NbtCompat.contains(tag, "display", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(tag, "display").copy() : new CompoundTag();
         copyComponent(components, "minecraft:custom_name", display, "Name");
         copyComponent(components, "minecraft:item_name", display, "Name");
         copyComponent(components, "minecraft:lore", display, "Lore");
         if (components.contains("minecraft:dyed_color")) {
             Tag dyed = components.get("minecraft:dyed_color");
             if (dyed instanceof CompoundTag dyedTag) {
-                display.putInt("color", dyedTag.getInt("rgb"));
-                if (dyedTag.contains("show_in_tooltip") && !dyedTag.getBoolean("show_in_tooltip")) {
+                display.putInt("color", NbtCompat.getInt(dyedTag, "rgb"));
+                if (dyedTag.contains("show_in_tooltip") && !NbtCompat.getBoolean(dyedTag, "show_in_tooltip")) {
                     hideFlags |= 64;
                 }
             } else if (dyed != null) {
@@ -737,18 +740,18 @@ public final class ItemStackNbt {
         }
 
         CompoundTag component = components.get(componentKey) instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
-        CompoundTag levels = component.contains("levels", Tag.TAG_COMPOUND) ? component.getCompound("levels") : component;
+        CompoundTag levels = NbtCompat.contains(component, "levels", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(component, "levels") : component;
         ListTag enchantments = new ListTag();
         for (String id : levels.getAllKeys()) {
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
-            enchantment.putShort("lvl", (short) levels.getInt(id));
+            enchantment.putShort("lvl", (short) NbtCompat.getInt(levels, id));
             enchantments.add(enchantment);
         }
         if (!enchantments.isEmpty()) {
             tag.put(oldKey, enchantments);
         }
-        if (component.contains("show_in_tooltip") && !component.getBoolean("show_in_tooltip")) {
+        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
             hideFlags |= hideMask;
         }
         return hideFlags;
@@ -760,7 +763,7 @@ public final class ItemStackNbt {
             Tag unbreakable = components.get("minecraft:unbreakable");
             if (unbreakable instanceof CompoundTag compoundTag
                     && compoundTag.contains("show_in_tooltip")
-                    && !compoundTag.getBoolean("show_in_tooltip")) {
+                    && !NbtCompat.getBoolean(compoundTag, "show_in_tooltip")) {
                 hideFlags |= 4;
             }
         }
@@ -768,30 +771,30 @@ public final class ItemStackNbt {
     }
 
     private static int readComponentAttributes(CompoundTag components, CompoundTag tag, int hideFlags) {
-        if (!components.contains("minecraft:attribute_modifiers", Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(components, "minecraft:attribute_modifiers", Tag.TAG_COMPOUND)) {
             return hideFlags;
         }
 
-        CompoundTag component = components.getCompound("minecraft:attribute_modifiers");
-        ListTag modifiers = component.getList("modifiers", Tag.TAG_COMPOUND);
+        CompoundTag component = NbtCompat.getCompound(components, "minecraft:attribute_modifiers");
+        ListTag modifiers = NbtCompat.getList(component, "modifiers", Tag.TAG_COMPOUND);
         ListTag oldModifiers = new ListTag();
         for (int i = 0; i < modifiers.size(); i++) {
-            CompoundTag modifier = modifiers.getCompound(i);
+            CompoundTag modifier = NbtCompat.getCompound(modifiers, i);
             CompoundTag oldModifier = new CompoundTag();
-            oldModifier.putString("AttributeName", modifier.getString("type"));
-            oldModifier.putString("id", modifier.getString("id"));
-            oldModifier.putDouble("Amount", modifier.getDouble("amount"));
-            oldModifier.putString("operation", modifier.getString("operation"));
-            oldModifier.putInt("Operation", operationId(modifier.getString("operation")));
-            if (modifier.contains("slot", Tag.TAG_STRING)) {
-                oldModifier.putString("Slot", modifier.getString("slot"));
+            oldModifier.putString("AttributeName", NbtCompat.getString(modifier, "type"));
+            oldModifier.putString("id", NbtCompat.getString(modifier, "id"));
+            oldModifier.putDouble("Amount", NbtCompat.getDouble(modifier, "amount"));
+            oldModifier.putString("operation", NbtCompat.getString(modifier, "operation"));
+            oldModifier.putInt("Operation", operationId(NbtCompat.getString(modifier, "operation")));
+            if (NbtCompat.contains(modifier, "slot", Tag.TAG_STRING)) {
+                oldModifier.putString("Slot", NbtCompat.getString(modifier, "slot"));
             }
             oldModifiers.add(oldModifier);
         }
         if (!oldModifiers.isEmpty()) {
             tag.put("AttributeModifiers", oldModifiers);
         }
-        if (component.contains("show_in_tooltip") && !component.getBoolean("show_in_tooltip")) {
+        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
             hideFlags |= 2;
         }
         return hideFlags;
@@ -803,70 +806,70 @@ public final class ItemStackNbt {
     }
 
     private static int readStringPredicateComponent(CompoundTag components, CompoundTag tag, String componentKey, String oldKey, int hideFlags, int hideMask) {
-        if (!components.contains(componentKey, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(components, componentKey, Tag.TAG_COMPOUND)) {
             return hideFlags;
         }
 
-        CompoundTag component = components.getCompound(componentKey);
-        ListTag predicates = component.getList("predicates", Tag.TAG_COMPOUND);
+        CompoundTag component = NbtCompat.getCompound(components, componentKey);
+        ListTag predicates = NbtCompat.getList(component, "predicates", Tag.TAG_COMPOUND);
         ListTag oldList = new ListTag();
         for (int i = 0; i < predicates.size(); i++) {
-            CompoundTag predicate = predicates.getCompound(i);
-            if (predicate.contains("blocks", Tag.TAG_STRING)) {
-                oldList.add(StringTag.valueOf(predicate.getString("blocks")));
+            CompoundTag predicate = NbtCompat.getCompound(predicates, i);
+            if (NbtCompat.contains(predicate, "blocks", Tag.TAG_STRING)) {
+                oldList.add(StringTag.valueOf(NbtCompat.getString(predicate, "blocks")));
             }
         }
         if (!oldList.isEmpty()) {
             tag.put(oldKey, oldList);
         }
-        if (component.contains("show_in_tooltip") && !component.getBoolean("show_in_tooltip")) {
+        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
             hideFlags |= hideMask;
         }
         return hideFlags;
     }
 
     private static void readComponentPotion(CompoundTag components, CompoundTag tag) {
-        if (!components.contains("minecraft:potion_contents", Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(components, "minecraft:potion_contents", Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag potion = components.getCompound("minecraft:potion_contents");
+        CompoundTag potion = NbtCompat.getCompound(components, "minecraft:potion_contents");
         copyTag(potion, "potion", tag, "Potion");
         copyTag(potion, "custom_color", tag, "CustomPotionColor");
         copyTag(potion, "custom_effects", tag, "CustomPotionEffects");
     }
 
     private static void readComponentBooks(CompoundTag components, CompoundTag tag) {
-        if (components.contains("minecraft:writable_book_content", Tag.TAG_COMPOUND)) {
-            CompoundTag book = components.getCompound("minecraft:writable_book_content");
-            tag.put("pages", readFilterableList(book.getList("pages", Tag.TAG_COMPOUND)));
+        if (NbtCompat.contains(components, "minecraft:writable_book_content", Tag.TAG_COMPOUND)) {
+            CompoundTag book = NbtCompat.getCompound(components, "minecraft:writable_book_content");
+            tag.put("pages", readFilterableList(NbtCompat.getList(book, "pages", Tag.TAG_COMPOUND)));
         }
-        if (components.contains("minecraft:written_book_content", Tag.TAG_COMPOUND)) {
-            CompoundTag book = components.getCompound("minecraft:written_book_content");
+        if (NbtCompat.contains(components, "minecraft:written_book_content", Tag.TAG_COMPOUND)) {
+            CompoundTag book = NbtCompat.getCompound(components, "minecraft:written_book_content");
             tag.putString("title", readFilterableString(book.get("title")));
-            tag.putString("author", book.getString("author"));
+            tag.putString("author", NbtCompat.getString(book, "author"));
             if (book.contains("generation")) {
-                tag.putInt("generation", book.getInt("generation"));
+                tag.putInt("generation", NbtCompat.getInt(book, "generation"));
             }
             if (book.contains("resolved")) {
-                tag.putBoolean("resolved", book.getBoolean("resolved"));
+                tag.putBoolean("resolved", NbtCompat.getBoolean(book, "resolved"));
             }
-            tag.put("pages", readFilterableList(book.getList("pages", Tag.TAG_COMPOUND)));
+            tag.put("pages", readFilterableList(NbtCompat.getList(book, "pages", Tag.TAG_COMPOUND)));
         }
     }
 
     private static void readComponentFireworks(CompoundTag components, CompoundTag tag) {
-        if (components.contains("minecraft:firework_explosion", Tag.TAG_COMPOUND)) {
-            tag.put("Explosion", fireworkExplosionFromComponent(components.getCompound("minecraft:firework_explosion")));
+        if (NbtCompat.contains(components, "minecraft:firework_explosion", Tag.TAG_COMPOUND)) {
+            tag.put("Explosion", fireworkExplosionFromComponent(NbtCompat.getCompound(components, "minecraft:firework_explosion")));
         }
-        if (components.contains("minecraft:fireworks", Tag.TAG_COMPOUND)) {
-            CompoundTag component = components.getCompound("minecraft:fireworks");
+        if (NbtCompat.contains(components, "minecraft:fireworks", Tag.TAG_COMPOUND)) {
+            CompoundTag component = NbtCompat.getCompound(components, "minecraft:fireworks");
             CompoundTag fireworks = new CompoundTag();
-            fireworks.putByte("Flight", (byte) component.getInt("flight_duration"));
+            fireworks.putByte("Flight", (byte) NbtCompat.getInt(component, "flight_duration"));
             ListTag oldExplosions = new ListTag();
-            ListTag explosions = component.getList("explosions", Tag.TAG_COMPOUND);
+            ListTag explosions = NbtCompat.getList(component, "explosions", Tag.TAG_COMPOUND);
             for (int i = 0; i < explosions.size(); i++) {
-                oldExplosions.add(fireworkExplosionFromComponent(explosions.getCompound(i)));
+                oldExplosions.add(fireworkExplosionFromComponent(NbtCompat.getCompound(explosions, i)));
             }
             if (!oldExplosions.isEmpty()) {
                 fireworks.put("Explosions", oldExplosions);
@@ -886,36 +889,36 @@ public final class ItemStackNbt {
         } else if (profile instanceof CompoundTag profileTag) {
             CompoundTag skullOwner = new CompoundTag();
             copyTag(profileTag, "name", skullOwner, "Name");
-            if (profileTag.hasUUID("id")) {
-                skullOwner.putUUID("Id", profileTag.getUUID("id"));
+            if (NbtCompat.hasUUID(profileTag, "id")) {
+                NbtCompat.putUUID(skullOwner, "Id", NbtCompat.getUUID(profileTag, "id"));
             }
-            if (profileTag.contains("properties", Tag.TAG_LIST)) {
-                skullOwner.put("Properties", profilePropertiesFromComponent(profileTag.getList("properties", Tag.TAG_COMPOUND)));
+            if (NbtCompat.contains(profileTag, "properties", Tag.TAG_LIST)) {
+                skullOwner.put("Properties", profilePropertiesFromComponent(NbtCompat.getList(profileTag, "properties", Tag.TAG_COMPOUND)));
             }
             tag.put("SkullOwner", skullOwner);
         }
     }
 
     private static void readComponentBlockEntity(ItemStack stack, CompoundTag components, CompoundTag tag) {
-        CompoundTag blockEntity = tag.contains("BlockEntityTag", Tag.TAG_COMPOUND) ? tag.getCompound("BlockEntityTag").copy() : new CompoundTag();
-        if (components.contains("minecraft:block_entity_data", Tag.TAG_COMPOUND)) {
-            blockEntity.merge(components.getCompound("minecraft:block_entity_data").copy());
+        CompoundTag blockEntity = NbtCompat.contains(tag, "BlockEntityTag", Tag.TAG_COMPOUND) ? NbtCompat.getCompound(tag, "BlockEntityTag").copy() : new CompoundTag();
+        if (NbtCompat.contains(components, "minecraft:block_entity_data", Tag.TAG_COMPOUND)) {
+            blockEntity.merge(NbtCompat.getCompound(components, "minecraft:block_entity_data").copy());
         }
         if (components.contains("minecraft:container")) {
-            blockEntity.put("Items", containerItemsFromComponent(components.getList("minecraft:container", Tag.TAG_COMPOUND)));
+            blockEntity.put("Items", containerItemsFromComponent(NbtCompat.getList(components, "minecraft:container", Tag.TAG_COMPOUND)));
         }
         if (components.contains("minecraft:banner_patterns")) {
-            blockEntity.put("Patterns", bannerPatternsFromComponent(components.getList("minecraft:banner_patterns", Tag.TAG_COMPOUND)));
+            blockEntity.put("Patterns", bannerPatternsFromComponent(NbtCompat.getList(components, "minecraft:banner_patterns", Tag.TAG_COMPOUND)));
         }
-        if (components.contains("minecraft:base_color", Tag.TAG_STRING)) {
-            blockEntity.putInt("Base", dyeIdByName(components.getString("minecraft:base_color")));
+        if (NbtCompat.contains(components, "minecraft:base_color", Tag.TAG_STRING)) {
+            blockEntity.putInt("Base", dyeIdByName(NbtCompat.getString(components, "minecraft:base_color")));
         }
-        if (stack.is(Items.DECORATED_POT) && components.contains("minecraft:pot_decorations", Tag.TAG_LIST)) {
-            blockEntity.put("sherds", potDecorationsFromComponent(components.getList("minecraft:pot_decorations", Tag.TAG_STRING)));
+        if (stack.is(Items.DECORATED_POT) && NbtCompat.contains(components, "minecraft:pot_decorations", Tag.TAG_LIST)) {
+            blockEntity.put("sherds", potDecorationsFromComponent(NbtCompat.getList(components, "minecraft:pot_decorations", Tag.TAG_STRING)));
         }
         copyTag(components, "minecraft:lock", blockEntity, "Lock");
-        if (components.contains("minecraft:container_loot", Tag.TAG_COMPOUND)) {
-            CompoundTag loot = components.getCompound("minecraft:container_loot");
+        if (NbtCompat.contains(components, "minecraft:container_loot", Tag.TAG_COMPOUND)) {
+            CompoundTag loot = NbtCompat.getCompound(components, "minecraft:container_loot");
             copyTag(loot, "loot_table", blockEntity, "LootTable");
             copyTag(loot, "seed", blockEntity, "LootTableSeed");
         }
@@ -927,9 +930,9 @@ public final class ItemStackNbt {
     private static ListTag containerItemsToComponent(ListTag oldItems) {
         ListTag items = new ListTag();
         for (int i = 0; i < oldItems.size(); i++) {
-            CompoundTag oldItem = oldItems.getCompound(i);
+            CompoundTag oldItem = NbtCompat.getCompound(oldItems, i);
             CompoundTag item = new CompoundTag();
-            item.putInt("slot", oldItem.getByte("Slot") & 255);
+            item.putInt("slot", NbtCompat.getByte(oldItem, "Slot") & 255);
             CompoundTag stackTag = oldItem.copy();
             stackTag.remove("Slot");
             item.put("item", normalizeStackTag(stackTag));
@@ -941,12 +944,12 @@ public final class ItemStackNbt {
     private static ListTag containerItemsFromComponent(ListTag componentItems) {
         ListTag items = new ListTag();
         for (int i = 0; i < componentItems.size(); i++) {
-            CompoundTag componentItem = componentItems.getCompound(i);
-            if (!componentItem.contains("item", Tag.TAG_COMPOUND)) {
+            CompoundTag componentItem = NbtCompat.getCompound(componentItems, i);
+            if (!NbtCompat.contains(componentItem, "item", Tag.TAG_COMPOUND)) {
                 continue;
             }
-            CompoundTag item = componentItem.getCompound("item").copy();
-            item.putByte("Slot", (byte) componentItem.getInt("slot"));
+            CompoundTag item = NbtCompat.getCompound(componentItem, "item").copy();
+            item.putByte("Slot", (byte) NbtCompat.getInt(componentItem, "slot"));
             items.add(item);
         }
         return items;
@@ -955,10 +958,10 @@ public final class ItemStackNbt {
     private static ListTag bannerPatternsToComponent(ListTag oldPatterns) {
         ListTag patterns = new ListTag();
         for (int i = 0; i < oldPatterns.size(); i++) {
-            CompoundTag oldPattern = oldPatterns.getCompound(i);
+            CompoundTag oldPattern = NbtCompat.getCompound(oldPatterns, i);
             CompoundTag pattern = new CompoundTag();
-            pattern.putString("pattern", bannerPatternId(oldPattern.getString("Pattern")));
-            pattern.putString("color", dyeNameById(oldPattern.getInt("Color")));
+            pattern.putString("pattern", bannerPatternId(NbtCompat.getString(oldPattern, "Pattern")));
+            pattern.putString("color", dyeNameById(NbtCompat.getInt(oldPattern, "Color")));
             patterns.add(pattern);
         }
         return patterns;
@@ -967,10 +970,10 @@ public final class ItemStackNbt {
     private static ListTag bannerPatternsFromComponent(ListTag componentPatterns) {
         ListTag patterns = new ListTag();
         for (int i = 0; i < componentPatterns.size(); i++) {
-            CompoundTag componentPattern = componentPatterns.getCompound(i);
+            CompoundTag componentPattern = NbtCompat.getCompound(componentPatterns, i);
             CompoundTag pattern = new CompoundTag();
-            pattern.putString("Pattern", bannerPatternHash(componentPattern.getString("pattern")));
-            pattern.putInt("Color", dyeIdByName(componentPattern.getString("color")));
+            pattern.putString("Pattern", bannerPatternHash(NbtCompat.getString(componentPattern, "pattern")));
+            pattern.putInt("Color", dyeIdByName(NbtCompat.getString(componentPattern, "color")));
             patterns.add(pattern);
         }
         return patterns;
@@ -979,7 +982,7 @@ public final class ItemStackNbt {
     private static ListTag potDecorationsToComponent(ListTag oldSherds) {
         ListTag sherds = new ListTag();
         for (int i = 0; i < 4; i++) {
-            String itemId = i < oldSherds.size() ? oldSherds.getString(i) : "minecraft:brick";
+            String itemId = i < oldSherds.size() ? NbtCompat.getString(oldSherds, i) : "minecraft:brick";
             sherds.add(StringTag.valueOf(normalizeItemId(itemId)));
         }
         return sherds;
@@ -988,7 +991,7 @@ public final class ItemStackNbt {
     private static ListTag potDecorationsFromComponent(ListTag componentSherds) {
         ListTag sherds = new ListTag();
         for (int i = 0; i < Math.min(4, componentSherds.size()); i++) {
-            sherds.add(StringTag.valueOf(normalizeItemId(componentSherds.getString(i))));
+            sherds.add(StringTag.valueOf(normalizeItemId(NbtCompat.getString(componentSherds, i))));
         }
         return sherds;
     }
@@ -1003,7 +1006,7 @@ public final class ItemStackNbt {
 
     private static CompoundTag fireworkExplosionToComponent(CompoundTag oldExplosion) {
         CompoundTag explosion = new CompoundTag();
-        explosion.putString("shape", switch (oldExplosion.getByte("Type")) {
+        explosion.putString("shape", switch (NbtCompat.getByte(oldExplosion, "Type")) {
             case 1 -> "large_ball";
             case 2 -> "star";
             case 3 -> "creeper";
@@ -1011,40 +1014,40 @@ public final class ItemStackNbt {
             default -> "small_ball";
         });
         if (oldExplosion.contains("Colors")) {
-            explosion.put("colors", intArrayToList(oldExplosion.getIntArray("Colors")));
+            explosion.put("colors", intArrayToList(NbtCompat.getIntArray(oldExplosion, "Colors")));
         }
         if (oldExplosion.contains("FadeColors")) {
-            explosion.put("fade_colors", intArrayToList(oldExplosion.getIntArray("FadeColors")));
+            explosion.put("fade_colors", intArrayToList(NbtCompat.getIntArray(oldExplosion, "FadeColors")));
         }
         if (oldExplosion.contains("Trail")) {
-            explosion.putBoolean("has_trail", oldExplosion.getBoolean("Trail"));
+            explosion.putBoolean("has_trail", NbtCompat.getBoolean(oldExplosion, "Trail"));
         }
         if (oldExplosion.contains("Flicker")) {
-            explosion.putBoolean("has_twinkle", oldExplosion.getBoolean("Flicker"));
+            explosion.putBoolean("has_twinkle", NbtCompat.getBoolean(oldExplosion, "Flicker"));
         }
         return explosion;
     }
 
     private static CompoundTag fireworkExplosionFromComponent(CompoundTag explosion) {
         CompoundTag oldExplosion = new CompoundTag();
-        oldExplosion.putByte("Type", (byte) switch (explosion.getString("shape")) {
+        oldExplosion.putByte("Type", (byte) switch (NbtCompat.getString(explosion, "shape")) {
             case "large_ball" -> 1;
             case "star" -> 2;
             case "creeper" -> 3;
             case "burst" -> 4;
             default -> 0;
         });
-        if (explosion.contains("colors", Tag.TAG_LIST)) {
-            oldExplosion.putIntArray("Colors", listToIntArray(explosion.getList("colors", Tag.TAG_INT)));
+        if (NbtCompat.contains(explosion, "colors", Tag.TAG_LIST)) {
+            oldExplosion.putIntArray("Colors", listToIntArray(NbtCompat.getList(explosion, "colors", Tag.TAG_INT)));
         }
-        if (explosion.contains("fade_colors", Tag.TAG_LIST)) {
-            oldExplosion.putIntArray("FadeColors", listToIntArray(explosion.getList("fade_colors", Tag.TAG_INT)));
+        if (NbtCompat.contains(explosion, "fade_colors", Tag.TAG_LIST)) {
+            oldExplosion.putIntArray("FadeColors", listToIntArray(NbtCompat.getList(explosion, "fade_colors", Tag.TAG_INT)));
         }
         if (explosion.contains("has_trail")) {
-            oldExplosion.putBoolean("Trail", explosion.getBoolean("has_trail"));
+            oldExplosion.putBoolean("Trail", NbtCompat.getBoolean(explosion, "has_trail"));
         }
         if (explosion.contains("has_twinkle")) {
-            oldExplosion.putBoolean("Flicker", explosion.getBoolean("has_twinkle"));
+            oldExplosion.putBoolean("Flicker", NbtCompat.getBoolean(explosion, "has_twinkle"));
         }
         return oldExplosion;
     }
@@ -1052,26 +1055,26 @@ public final class ItemStackNbt {
     private static ListTag convertPotionEffects(ListTag oldEffects) {
         ListTag effects = new ListTag();
         for (int i = 0; i < oldEffects.size(); i++) {
-            CompoundTag oldEffect = oldEffects.getCompound(i);
+            CompoundTag oldEffect = NbtCompat.getCompound(oldEffects, i);
             CompoundTag effect = oldEffect.copy();
             String id = potionEffectId(oldEffect);
             if (!id.isBlank()) {
                 effect.putString("id", id);
             }
             if (oldEffect.contains("Amplifier")) {
-                effect.putInt("amplifier", oldEffect.getByte("Amplifier") & 255);
+                effect.putInt("amplifier", NbtCompat.getByte(oldEffect, "Amplifier") & 255);
             }
             if (oldEffect.contains("Duration")) {
-                effect.putInt("duration", oldEffect.getInt("Duration"));
+                effect.putInt("duration", NbtCompat.getInt(oldEffect, "Duration"));
             }
             if (oldEffect.contains("Ambient")) {
-                effect.putBoolean("ambient", oldEffect.getBoolean("Ambient"));
+                effect.putBoolean("ambient", NbtCompat.getBoolean(oldEffect, "Ambient"));
             }
             if (oldEffect.contains("ShowParticles")) {
-                effect.putBoolean("show_particles", oldEffect.getBoolean("ShowParticles"));
+                effect.putBoolean("show_particles", NbtCompat.getBoolean(oldEffect, "ShowParticles"));
             }
             if (oldEffect.contains("ShowIcon")) {
-                effect.putBoolean("show_icon", oldEffect.getBoolean("ShowIcon"));
+                effect.putBoolean("show_icon", NbtCompat.getBoolean(oldEffect, "ShowIcon"));
             }
             effect.remove("Id");
             effect.remove("Amplifier");
@@ -1085,15 +1088,15 @@ public final class ItemStackNbt {
     }
 
     private static String potionEffectId(CompoundTag effect) {
-        if (effect.contains("Id", Tag.TAG_STRING)) {
-            return effect.getString("Id");
+        if (NbtCompat.contains(effect, "Id", Tag.TAG_STRING)) {
+            return NbtCompat.getString(effect, "Id");
         }
-        if (effect.contains("Id", Tag.TAG_ANY_NUMERIC)) {
-            MobEffect mobEffect = BuiltInRegistries.MOB_EFFECT.byId(effect.getInt("Id"));
+        if (NbtCompat.contains(effect, "Id", NbtCompat.TAG_ANY_NUMERIC)) {
+            MobEffect mobEffect = BuiltInRegistries.MOB_EFFECT.byId(NbtCompat.getInt(effect, "Id"));
             ResourceLocation id = mobEffect == null ? null : BuiltInRegistries.MOB_EFFECT.getKey(mobEffect);
             return id == null ? "" : id.toString();
         }
-        return effect.contains("id", Tag.TAG_STRING) ? effect.getString("id") : "";
+        return NbtCompat.contains(effect, "id", Tag.TAG_STRING) ? NbtCompat.getString(effect, "id") : "";
     }
 
     private static CompoundTag filterableText(String raw, String filtered) {
@@ -1108,10 +1111,10 @@ public final class ItemStackNbt {
     private static ListTag filterableStringList(ListTag strings, CompoundTag filteredPages) {
         ListTag pages = new ListTag();
         for (int i = 0; i < strings.size(); i++) {
-            String filtered = filteredPages != null && filteredPages.contains(Integer.toString(i), Tag.TAG_STRING)
+            String filtered = filteredPages != null && NbtCompat.contains(filteredPages, Integer.toString(i), Tag.TAG_STRING)
                     ? filteredPages.getString(Integer.toString(i))
                     : null;
-            pages.add(filterableText(strings.getString(i), filtered));
+            pages.add(filterableText(NbtCompat.getString(strings, i), filtered));
         }
         return pages;
     }
@@ -1129,11 +1132,11 @@ public final class ItemStackNbt {
             return stringTag.getAsString();
         }
         if (tag instanceof CompoundTag compoundTag) {
-            if (compoundTag.contains("raw", Tag.TAG_STRING)) {
-                return compoundTag.getString("raw");
+            if (NbtCompat.contains(compoundTag, "raw", Tag.TAG_STRING)) {
+                return NbtCompat.getString(compoundTag, "raw");
             }
-            if (compoundTag.contains("filtered", Tag.TAG_STRING)) {
-                return compoundTag.getString("filtered");
+            if (NbtCompat.contains(compoundTag, "filtered", Tag.TAG_STRING)) {
+                return NbtCompat.getString(compoundTag, "filtered");
             }
         }
         return "";
@@ -1142,14 +1145,14 @@ public final class ItemStackNbt {
     private static ListTag profilePropertiesToComponent(CompoundTag properties) {
         ListTag converted = new ListTag();
         for (String name : properties.getAllKeys()) {
-            ListTag values = properties.getList(name, Tag.TAG_COMPOUND);
+            ListTag values = NbtCompat.getList(properties, name, Tag.TAG_COMPOUND);
             for (int i = 0; i < values.size(); i++) {
-                CompoundTag value = values.getCompound(i);
+                CompoundTag value = NbtCompat.getCompound(values, i);
                 CompoundTag property = new CompoundTag();
                 property.putString("name", name);
-                property.putString("value", value.getString("Value"));
-                if (value.contains("Signature", Tag.TAG_STRING)) {
-                    property.putString("signature", value.getString("Signature"));
+                property.putString("value", NbtCompat.getString(value, "Value"));
+                if (NbtCompat.contains(value, "Signature", Tag.TAG_STRING)) {
+                    property.putString("signature", NbtCompat.getString(value, "Signature"));
                 }
                 converted.add(property);
             }
@@ -1160,13 +1163,13 @@ public final class ItemStackNbt {
     private static CompoundTag profilePropertiesFromComponent(ListTag properties) {
         CompoundTag converted = new CompoundTag();
         for (int i = 0; i < properties.size(); i++) {
-            CompoundTag property = properties.getCompound(i);
-            String name = property.getString("name");
-            ListTag values = converted.contains(name, Tag.TAG_LIST) ? converted.getList(name, Tag.TAG_COMPOUND) : new ListTag();
+            CompoundTag property = NbtCompat.getCompound(properties, i);
+            String name = NbtCompat.getString(property, "name");
+            ListTag values = NbtCompat.contains(converted, name, Tag.TAG_LIST) ? NbtCompat.getList(converted, name, Tag.TAG_COMPOUND) : new ListTag();
             CompoundTag value = new CompoundTag();
-            value.putString("Value", property.getString("value"));
-            if (property.contains("signature", Tag.TAG_STRING)) {
-                value.putString("Signature", property.getString("signature"));
+            value.putString("Value", NbtCompat.getString(property, "value"));
+            if (NbtCompat.contains(property, "signature", Tag.TAG_STRING)) {
+                value.putString("Signature", NbtCompat.getString(property, "signature"));
             }
             values.add(value);
             converted.put(name, values);
@@ -1185,7 +1188,7 @@ public final class ItemStackNbt {
     private static int[] listToIntArray(ListTag list) {
         int[] values = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
-            values[i] = list.getInt(i);
+            values[i] = NbtCompat.getInt(list, i);
         }
         return values;
     }
@@ -1218,7 +1221,7 @@ public final class ItemStackNbt {
     }
 
     private static int removeInt(CompoundTag tag, String key) {
-        int value = tag.getInt(key);
+        int value = NbtCompat.getInt(tag, key);
         tag.remove(key);
         return value;
     }
@@ -1240,13 +1243,13 @@ public final class ItemStackNbt {
     }
 
     private static void ensureId(CompoundTag tag, String inferredId) {
-        if (!tag.contains("id", Tag.TAG_STRING) && inferredId != null && !inferredId.isBlank()) {
+        if (!NbtCompat.contains(tag, "id", Tag.TAG_STRING) && inferredId != null && !inferredId.isBlank()) {
             tag.putString("id", inferredId);
         }
     }
 
     private static boolean isOnlyId(CompoundTag tag) {
-        return tag.size() == 1 && tag.contains("id", Tag.TAG_STRING);
+        return tag.size() == 1 && NbtCompat.contains(tag, "id", Tag.TAG_STRING);
     }
 
     private static String inferEntityId(String itemId) {
@@ -1340,156 +1343,77 @@ public final class ItemStackNbt {
         return inverted;
     }
 
-    private static final class SyncedCompoundTag extends CompoundTag {
-        private final ListeningMap map;
-        private Runnable onChanged = () -> {
-        };
-        private boolean muted;
+    private static final Constructor<CompoundTag> COMPOUND_TAG_CONSTRUCTOR = compoundTagConstructor();
+    private static final Constructor<ListTag> LIST_TAG_CONSTRUCTOR = listTagConstructor();
 
-        private SyncedCompoundTag(CompoundTag source, Runnable onChanged) {
-            this(new ListeningMap());
-            this.onChanged = onChanged;
-            this.muted = true;
-            for (String key : source.getAllKeys()) {
-                Tag value = source.get(key);
-                if (value != null) {
-                    this.map.put(key, value.copy());
-                }
+    private static CompoundTag syncedCompound(CompoundTag source, Runnable onChanged) {
+        ListeningMap map = new ListeningMap(onChanged);
+        map.muted = true;
+        for (String key : source.getAllKeys()) {
+            Tag value = source.get(key);
+            if (value != null) {
+                map.put(key, syncedTag(value, onChanged));
             }
-            this.muted = false;
         }
-
-        private SyncedCompoundTag(ListeningMap map) {
-            super(map);
-            this.map = map;
-            this.map.owner = this;
-        }
-
-        @Override
-        public CompoundTag getCompound(String key) {
-            CompoundTag source = contains(key, Tag.TAG_COMPOUND) ? super.getCompound(key) : new CompoundTag();
-            final SyncedCompoundTag[] child = new SyncedCompoundTag[1];
-            child[0] = new SyncedCompoundTag(source, () -> {
-                if (child[0].isEmpty()) {
-                    remove(key);
-                } else {
-                    put(key, child[0]);
-                }
-            });
-            return child[0];
-        }
-
-        @Override
-        public ListTag getList(String key, int type) {
-            ListTag source = contains(key, Tag.TAG_LIST) ? super.getList(key, type) : new ListTag();
-            final SyncedListTag[] child = new SyncedListTag[1];
-            child[0] = new SyncedListTag(source, () -> {
-                if (child[0].isEmpty()) {
-                    remove(key);
-                } else {
-                    put(key, child[0]);
-                }
-            });
-            return child[0];
-        }
-
-        private void changed() {
-            if (!this.muted) {
-                this.onChanged.run();
-            }
+        map.muted = false;
+        try {
+            return COMPOUND_TAG_CONSTRUCTOR.newInstance(map);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException exception) {
+            throw new IllegalStateException("Unable to create synced CompoundTag", exception);
         }
     }
 
-    private static final class SyncedListTag extends ListTag {
-        private Runnable onChanged;
-        private boolean muted;
-
-        private SyncedListTag(ListTag source, Runnable onChanged) {
-            this.onChanged = onChanged;
-            this.muted = true;
-            for (int i = 0; i < source.size(); i++) {
-                super.add(i, source.get(i).copy());
-            }
-            this.muted = false;
+    private static ListTag syncedList(ListTag source, Runnable onChanged) {
+        ListeningList list = new ListeningList(onChanged);
+        list.muted = true;
+        for (int i = 0; i < source.size(); i++) {
+            list.add(syncedTag(source.get(i), onChanged));
         }
-
-        @Override
-        public CompoundTag getCompound(int index) {
-            CompoundTag source = index >= 0 && index < size() && get(index) instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
-            final SyncedCompoundTag[] child = new SyncedCompoundTag[1];
-            child[0] = new SyncedCompoundTag(source, () -> {
-                if (index >= 0 && index < size()) {
-                    set(index, child[0]);
-                }
-            });
-            return child[0];
+        list.muted = false;
+        try {
+            return LIST_TAG_CONSTRUCTOR.newInstance(list);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException exception) {
+            throw new IllegalStateException("Unable to create synced ListTag", exception);
         }
+    }
 
-        @Override
-        public ListTag getList(int index) {
-            ListTag source = index >= 0 && index < size() && get(index) instanceof ListTag listTag ? listTag : new ListTag();
-            final SyncedListTag[] child = new SyncedListTag[1];
-            child[0] = new SyncedListTag(source, () -> {
-                if (index >= 0 && index < size()) {
-                    set(index, child[0]);
-                }
-            });
-            return child[0];
+    private static Tag syncedTag(Tag tag, Runnable onChanged) {
+        if (tag instanceof CompoundTag compoundTag) {
+            return syncedCompound(compoundTag, onChanged);
         }
-
-        @Override
-        public Tag set(int index, Tag tag) {
-            Tag old = super.set(index, tag);
-            changed();
-            return old;
+        if (tag instanceof ListTag listTag) {
+            return syncedList(listTag, onChanged);
         }
+        return tag.copy();
+    }
 
-        @Override
-        public void add(int index, Tag tag) {
-            super.add(index, tag);
-            changed();
+    private static Constructor<CompoundTag> compoundTagConstructor() {
+        try {
+            Constructor<CompoundTag> constructor = CompoundTag.class.getDeclaredConstructor(Map.class);
+            constructor.setAccessible(true);
+            return constructor;
+        } catch (NoSuchMethodException exception) {
+            throw new IllegalStateException("CompoundTag map constructor is unavailable", exception);
         }
+    }
 
-        @Override
-        public Tag remove(int index) {
-            Tag old = super.remove(index);
-            changed();
-            return old;
-        }
-
-        @Override
-        public boolean setTag(int index, Tag tag) {
-            boolean changed = super.setTag(index, tag);
-            if (changed) {
-                changed();
-            }
-            return changed;
-        }
-
-        @Override
-        public boolean addTag(int index, Tag tag) {
-            boolean changed = super.addTag(index, tag);
-            if (changed) {
-                changed();
-            }
-            return changed;
-        }
-
-        @Override
-        public void clear() {
-            super.clear();
-            changed();
-        }
-
-        private void changed() {
-            if (!this.muted) {
-                this.onChanged.run();
-            }
+    private static Constructor<ListTag> listTagConstructor() {
+        try {
+            Constructor<ListTag> constructor = ListTag.class.getDeclaredConstructor(List.class);
+            constructor.setAccessible(true);
+            return constructor;
+        } catch (NoSuchMethodException exception) {
+            throw new IllegalStateException("ListTag list constructor is unavailable", exception);
         }
     }
 
     private static final class ListeningMap extends HashMap<String, Tag> {
-        private SyncedCompoundTag owner;
+        private final Runnable onChanged;
+        private boolean muted;
+
+        private ListeningMap(Runnable onChanged) {
+            this.onChanged = onChanged;
+        }
 
         @Override
         public Tag put(String key, Tag value) {
@@ -1512,8 +1436,70 @@ public final class ItemStackNbt {
         }
 
         private void changed() {
-            if (this.owner != null) {
-                this.owner.changed();
+            if (!this.muted) {
+                this.onChanged.run();
+            }
+        }
+    }
+
+    private static final class ListeningList extends ArrayList<Tag> {
+        private final Runnable onChanged;
+        private boolean muted;
+
+        private ListeningList(Runnable onChanged) {
+            this.onChanged = onChanged;
+        }
+
+        @Override
+        public Tag set(int index, Tag element) {
+            Tag old = super.set(index, element);
+            changed();
+            return old;
+        }
+
+        @Override
+        public void add(int index, Tag element) {
+            super.add(index, element);
+            changed();
+        }
+
+        @Override
+        public boolean add(Tag tag) {
+            boolean added = super.add(tag);
+            if (added) {
+                changed();
+            }
+            return added;
+        }
+
+        @Override
+        public Tag remove(int index) {
+            Tag old = super.remove(index);
+            changed();
+            return old;
+        }
+
+        @Override
+        public boolean remove(Object value) {
+            boolean removed = super.remove(value);
+            if (removed) {
+                changed();
+            }
+            return removed;
+        }
+
+        @Override
+        public void clear() {
+            if (isEmpty()) {
+                return;
+            }
+            super.clear();
+            changed();
+        }
+
+        private void changed() {
+            if (!this.muted) {
+                this.onChanged.run();
             }
         }
     }

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -11,7 +13,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import net.minecraft.client.gui.screens.inventory.PageButton;
@@ -34,7 +36,7 @@ import java.util.List;
 import java.util.Objects;
 
 @OnlyIn(Dist.CLIENT)
-final class BookItemScreen extends Screen {
+final class BookItemScreen extends CompatScreen {
     private static final int TEXT_WIDTH = 114;
     private static final int TEXT_HEIGHT = 128;
     private static final int IMAGE_WIDTH = 192;
@@ -167,7 +169,7 @@ final class BookItemScreen extends Screen {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         EditorBackgrounds.render(guiGraphics, this.width, this.height);
         int left = getBookLeft();
-        guiGraphics.blit(RenderType::guiTextured, BookViewScreen.BOOK_LOCATION, left, 2,
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, BookViewScreen.BOOK_LOCATION, left, 2,
                 0.0F, 0.0F, IMAGE_WIDTH, IMAGE_WIDTH, 256, 256);
         Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
         guiGraphics.drawString(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18, 0, false);
@@ -190,7 +192,7 @@ final class BookItemScreen extends Screen {
 
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
-                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(new net.minecraft.client.input.KeyEvent(keyCode, scanCode, 0)));
     }
 
     private boolean isLineBoxFocused() {
@@ -409,10 +411,10 @@ final class BookItemScreen extends Screen {
     private void readPagesFromStack() {
         this.pages.clear();
         CompoundTag tag = ItemStackNbt.get(this.bookStack);
-        if (tag != null && tag.contains(ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_LIST)) {
-            ListTag pageTags = tag.getList(ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_STRING);
+        if (tag != null && NbtCompat.contains(tag, ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_LIST)) {
+            ListTag pageTags = NbtCompat.getList(tag, ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_STRING);
             for (int i = 0; i < pageTags.size(); i++) {
-                this.pages.add(readPageForEditing(pageTags.getString(i)));
+                this.pages.add(readPageForEditing(NbtCompat.getString(pageTags, i)));
             }
         }
 

@@ -33,7 +33,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -835,7 +834,7 @@ protected void addItemPanel() {
 
         addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 Component.translatable(key("firework.type"), getFireworkTypeName(this.fireworkExplosionType)),
-                button -> cycleFireworkExplosionType(Screen.hasShiftDown() ? -1 : 1)));
+                button -> cycleFireworkExplosionType(CompatScreen.hasShiftDown() ? -1 : 1)));
         y += 26;
         addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 Component.translatable(key("firework.flicker." + (this.fireworkFlicker ? 1 : 0))),
@@ -847,11 +846,11 @@ protected void addItemPanel() {
         y += 26;
         addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 Component.translatable(key("firework.color"), getDyeColorName(getFireworkDyeColor(this.fireworkColor))),
-                button -> cycleFireworkColor(false, Screen.hasShiftDown() ? -1 : 1)));
+                button -> cycleFireworkColor(false, CompatScreen.hasShiftDown() ? -1 : 1)));
         y += 26;
         addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 Component.translatable(key("firework.fade_color"), getFireworkFadeColorText()),
-                button -> cycleFireworkColor(true, Screen.hasShiftDown() ? -1 : 1)));
+                button -> cycleFireworkColor(true, CompatScreen.hasShiftDown() ? -1 : 1)));
         y += 26;
         addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT,
                 Component.translatable(key("firework.random_colors")), button -> randomizeFireworkColors()));
@@ -925,10 +924,10 @@ protected void addItemPanel() {
         int controlsX = rightControlsX(width, listX, listWidth);
         addRenderableWidget(new InfinityEditorButton(controlsX, 52, width, FIELD_HEIGHT,
                 Component.translatable(key("banner.base"), getDyeColorName(getBannerBaseColor())),
-                button -> cycleBannerBaseColor(Screen.hasShiftDown() ? -1 : 1)));
+                button -> cycleBannerBaseColor(CompatScreen.hasShiftDown() ? -1 : 1)));
         addRenderableWidget(new InfinityEditorButton(controlsX, 78, width, FIELD_HEIGHT,
                 Component.translatable(key("banner.pattern_color"), getDyeColorName(getBannerPatternColor())),
-                button -> cycleBannerPatternColor(Screen.hasShiftDown() ? -1 : 1)));
+                button -> cycleBannerPatternColor(CompatScreen.hasShiftDown() ? -1 : 1)));
         addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
                 Component.translatable(key("banner.swap")), button -> swapBannerAndShield()));
         addRenderableWidget(new InfinityEditorButton(controlsX, 130, width, FIELD_HEIGHT,

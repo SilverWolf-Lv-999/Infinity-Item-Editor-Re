@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import com.mojang.blaze3d.platform.InputConstants;
@@ -15,7 +17,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-final class ItemCommandBlockEditorScreen extends Screen {
+final class ItemCommandBlockEditorScreen extends CompatScreen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int EDITOR_MARGIN = 18;
     private static final int EDITOR_TOP = 44;
@@ -121,11 +123,11 @@ final class ItemCommandBlockEditorScreen extends Screen {
             returnToLastScreen();
             return true;
         }
-        if (Screen.hasControlDown() && keyCode == 83) {
+        if (CompatScreen.hasControlDown() && keyCode == 83) {
             applyCommand(false);
             return true;
         }
-        if ((keyCode == 257 || keyCode == 335) && Screen.hasControlDown()) {
+        if ((keyCode == 257 || keyCode == 335) && CompatScreen.hasControlDown()) {
             applyCommand(false);
             return true;
         }
@@ -165,7 +167,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
-                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(new net.minecraft.client.input.KeyEvent(keyCode, scanCode, 0)));
     }
 
     private boolean isCommandBoxFocused() {
@@ -270,23 +272,23 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     private String readCommand(ItemStack stack) {
         CompoundTag commandData = ItemStackNbt.getElement(stack, dataTagKey(stack));
-        return commandData == null ? "" : commandData.getString(COMMAND_TAG);
+        return commandData == null ? "" : NbtCompat.getString(commandData, COMMAND_TAG);
     }
 
     private boolean readUnconditional(ItemStack stack) {
         CompoundTag blockState = ItemStackNbt.getElement(stack, BLOCK_STATE_TAG);
-        return blockState == null || !"true".equalsIgnoreCase(blockState.getString(CONDITIONAL_TAG));
+        return blockState == null || !"true".equalsIgnoreCase(NbtCompat.getString(blockState, CONDITIONAL_TAG));
     }
 
     private boolean readAlwaysActive(ItemStack stack) {
         CompoundTag commandData = ItemStackNbt.getElement(stack, BLOCK_ENTITY_TAG);
-        return commandData != null && commandData.getBoolean(AUTO_TAG);
+        return commandData != null && NbtCompat.getBoolean(commandData, AUTO_TAG);
     }
 
     private void writeCommand(ItemStack stack, String command) {
         String tagKey = dataTagKey(stack);
         CompoundTag rootTag = ItemStackNbt.get(stack);
-        CompoundTag commandData = rootTag == null ? new CompoundTag() : rootTag.getCompound(tagKey);
+        CompoundTag commandData = rootTag == null ? new CompoundTag() : NbtCompat.getCompound(rootTag, tagKey);
         if (command.isEmpty()) {
             commandData.remove(COMMAND_TAG);
         } else {
@@ -298,7 +300,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     private void writeUnconditional(ItemStack stack, boolean unconditional) {
         CompoundTag rootTag = ItemStackNbt.get(stack);
-        CompoundTag blockState = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_STATE_TAG);
+        CompoundTag blockState = rootTag == null ? new CompoundTag() : NbtCompat.getCompound(rootTag, BLOCK_STATE_TAG);
         if (unconditional) {
             blockState.remove(CONDITIONAL_TAG);
         } else {
@@ -309,7 +311,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     private void writeAlwaysActive(ItemStack stack, boolean alwaysActive) {
         CompoundTag rootTag = ItemStackNbt.get(stack);
-        CompoundTag commandData = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag commandData = rootTag == null ? new CompoundTag() : NbtCompat.getCompound(rootTag, BLOCK_ENTITY_TAG);
         if (alwaysActive) {
             commandData.putBoolean(AUTO_TAG, true);
         } else {

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.data.voids;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
@@ -53,10 +55,10 @@ public class VoidController {
             }
 
             ListTag elements;
-            if (root.contains("elements", Tag.TAG_LIST)) {
-                elements = root.getList("elements", Tag.TAG_COMPOUND);
-            } else if (root.contains("stacks", Tag.TAG_LIST)) {
-                elements = root.getList("stacks", Tag.TAG_COMPOUND);
+            if (NbtCompat.contains(root, "elements", Tag.TAG_LIST)) {
+                elements = NbtCompat.getList(root, "elements", Tag.TAG_COMPOUND);
+            } else if (NbtCompat.contains(root, "stacks", Tag.TAG_LIST)) {
+                elements = NbtCompat.getList(root, "stacks", Tag.TAG_COMPOUND);
             } else {
                 return;
             }
@@ -185,7 +187,7 @@ public class VoidController {
             return false;
         }
 
-        return !(stack.getItem() instanceof SpawnEggItem && tag.size() == 1 && tag.contains("EntityTag", Tag.TAG_COMPOUND));
+        return !(stack.getItem() instanceof SpawnEggItem && tag.size() == 1 && NbtCompat.contains(tag, "EntityTag", Tag.TAG_COMPOUND));
     }
 
     private static boolean isSameStack(ItemStack first, ItemStack second) {

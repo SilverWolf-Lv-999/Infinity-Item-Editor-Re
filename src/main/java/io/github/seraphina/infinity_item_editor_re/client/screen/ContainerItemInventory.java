@@ -1,9 +1,12 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
@@ -20,7 +23,7 @@ final class ContainerItemInventory implements Container {
 
     ContainerItemInventory(ItemStack containerStack) {
         this.containerStack = containerStack;
-        ContainerHelper.loadAllItems(ItemStackNbt.getOrCreateElement(containerStack, BLOCK_ENTITY_TAG), this.items, ItemStackNbt.provider());
+        loadFromStack();
     }
 
     Component getDisplayName() {
@@ -100,11 +103,37 @@ final class ContainerItemInventory implements Container {
 
     private void saveToStack() {
         CompoundTag blockEntity = ItemStackNbt.getOrCreateElement(this.containerStack, BLOCK_ENTITY_TAG);
-        ContainerHelper.saveAllItems(blockEntity, this.items, ItemStackNbt.provider());
-        if (isEmpty()) {
+        ListTag savedItems = new ListTag();
+        for (int slot = 0; slot < this.items.size(); slot++) {
+            ItemStack stack = this.items.get(slot);
+            if (!stack.isEmpty()) {
+                CompoundTag itemTag = ItemStackNbt.save(stack);
+                itemTag.putByte("Slot", (byte) slot);
+                savedItems.add(itemTag);
+            }
+        }
+        if (savedItems.isEmpty()) {
             blockEntity.remove(CONTAINER_ITEMS_TAG);
+        } else {
+            blockEntity.put(CONTAINER_ITEMS_TAG, savedItems);
         }
         cleanupBlockEntityTag(blockEntity);
+    }
+
+    private void loadFromStack() {
+        CompoundTag blockEntity = ItemStackNbt.getElement(this.containerStack, BLOCK_ENTITY_TAG);
+        if (blockEntity == null) {
+            return;
+        }
+        ListTag savedItems = NbtCompat.getList(blockEntity, CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND);
+        for (int i = 0; i < savedItems.size(); i++) {
+            CompoundTag itemTag = NbtCompat.getCompound(savedItems, i).copy();
+            int slot = NbtCompat.getByte(itemTag, "Slot") & 255;
+            if (isValidSlot(slot)) {
+                itemTag.remove("Slot");
+                this.items.set(slot, ItemStackNbt.parse(itemTag));
+            }
+        }
     }
 
     private boolean isValidSlot(int slot) {

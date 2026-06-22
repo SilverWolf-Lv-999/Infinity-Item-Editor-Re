@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @OnlyIn(Dist.CLIENT)
-public class InfinityConfigScreen extends Screen {
+public class InfinityConfigScreen extends CompatScreen {
     private static final int LIST_TOP = 32;
     private static final int LIST_BOTTOM_PADDING = 40;
     private static final int ROW_HEIGHT = 48;

@@ -6,6 +6,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -42,19 +45,23 @@ class FixedDigitEditBox extends EditBox {
     }
 
     @Override
+    public boolean keyPressed(KeyEvent event) {
+        return keyPressed(event.key(), event.scancode(), event.modifiers());
+    }
+
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (!this.active || !canConsumeInput()) {
             return false;
         }
 
-        if (Screen.isCopy(keyCode)) {
+        if (CompatScreen.isCopy(keyCode)) {
             Minecraft.getInstance().keyboardHandler.setClipboard(getValue());
             return true;
         }
-        if (Screen.isPaste(keyCode)) {
+        if (CompatScreen.isPaste(keyCode)) {
             return true;
         }
-        if (Screen.isCut(keyCode)) {
+        if (CompatScreen.isCut(keyCode)) {
             Minecraft.getInstance().keyboardHandler.setClipboard(getValue());
             setFixedValue(0);
             return true;
@@ -86,6 +93,10 @@ class FixedDigitEditBox extends EditBox {
     }
 
     @Override
+    public boolean charTyped(CharacterEvent event) {
+        return charTyped((char) event.codepoint(), event.modifiers());
+    }
+
     public boolean charTyped(char codePoint, int modifiers) {
         if (!this.active || !canConsumeInput()) {
             return false;
@@ -108,6 +119,10 @@ class FixedDigitEditBox extends EditBox {
     }
 
     @Override
+    public void onClick(MouseButtonEvent event, boolean doubleClick) {
+        onClick(event.x(), event.y());
+    }
+
     public void onClick(double mouseX, double mouseY) {
         int localX = Mth.floor(mouseX) - getX() - 4;
         String value = getValue();
@@ -143,7 +158,8 @@ class FixedDigitEditBox extends EditBox {
         if (!value.isEmpty()) {
             String beforeCursor = value.substring(0, Math.min(cursorStringPosition, value.length()));
             if (!beforeCursor.isEmpty()) {
-                cursorX = guiGraphics.drawString(this.font, beforeCursor, textX, textY, color, !sidebarUi) - 1;
+                guiGraphics.drawString(this.font, beforeCursor, textX, textY, color, !sidebarUi);
+                cursorX = textX + this.font.width(beforeCursor) - 1;
             }
 
             if (cursorStringPosition < value.length()) {

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
@@ -38,7 +40,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -248,7 +249,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        int selected = this.minecraft.player.getInventory().selected;
+        int selected = this.minecraft.player.getInventory().getSelectedSlot();
         int containerSlot = this.targetContainerSlot >= 0
                 ? this.targetContainerSlot
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
@@ -304,7 +305,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
     }
 
     protected void dropEditedStack() {
-        if (Screen.hasShiftDown()) {
+        if (CompatScreen.hasShiftDown()) {
             copyGiveCommand();
             return;
         }
@@ -505,7 +506,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     protected void applyLoreToStack() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag display = tag.getCompound(DISPLAY_TAG);
+        CompoundTag display = NbtCompat.getCompound(tag, DISPLAY_TAG);
         if (this.loreValues.isEmpty()) {
             display.remove(LORE_TAG);
         } else {

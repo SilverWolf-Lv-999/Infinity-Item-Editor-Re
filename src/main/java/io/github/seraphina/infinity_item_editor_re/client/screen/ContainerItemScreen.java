@@ -5,7 +5,9 @@ import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
@@ -70,12 +72,16 @@ final class ContainerItemScreen extends ContainerScreen {
     }
 
     @Override
+    public boolean keyPressed(KeyEvent event) {
+        return keyPressed(event.key(), event.scancode(), event.modifiers());
+    }
+
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 256 || isInventoryKey(keyCode, scanCode)) {
             returnToLastScreen();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(new KeyEvent(keyCode, scanCode, modifiers));
     }
 
     @Override
@@ -93,7 +99,7 @@ final class ContainerItemScreen extends ContainerScreen {
 
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
-                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(new net.minecraft.client.input.KeyEvent(keyCode, scanCode, 0)));
     }
 
     private void returnToLastScreen() {
@@ -175,11 +181,11 @@ final class ContainerItemScreen extends ContainerScreen {
     }
 
     private static Inventory copyInventory(Inventory source) {
-        Inventory copied = new Inventory(source.player);
+        Inventory copied = new Inventory(source.player, new EntityEquipment());
         for (int slot = 0; slot < source.getContainerSize(); slot++) {
             copied.setItem(slot, source.getItem(slot).copy());
         }
-        copied.selected = source.selected;
+        copied.setSelectedSlot(source.getSelectedSlot());
         return copied;
     }
 }

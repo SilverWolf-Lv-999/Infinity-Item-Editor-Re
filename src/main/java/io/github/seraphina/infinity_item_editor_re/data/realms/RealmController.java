@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.data.realms;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -38,11 +40,11 @@ public class RealmController {
 
         try {
             CompoundTag root = readRootTag();
-            if (root == null || !root.contains("realm", Tag.TAG_LIST)) {
+            if (root == null || !NbtCompat.contains(root, "realm", Tag.TAG_LIST)) {
                 return;
             }
 
-            ListTag realm = root.getList("realm", Tag.TAG_COMPOUND);
+            ListTag realm = NbtCompat.getList(root, "realm", Tag.TAG_COMPOUND);
             for (Tag tag : realm) {
                 if (tag instanceof CompoundTag stackTag) {
                     ItemStack stack = ItemStackNbt.parse(stackTag);

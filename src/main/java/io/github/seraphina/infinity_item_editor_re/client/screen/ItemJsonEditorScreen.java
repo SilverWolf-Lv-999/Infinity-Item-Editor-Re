@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @OnlyIn(Dist.CLIENT)
-final class ItemJsonEditorScreen extends Screen {
+final class ItemJsonEditorScreen extends CompatScreen {
     private static final int BUTTON_WIDTH = 78;
     private static final int BUTTON_HEIGHT = 20;
     private static final int EDITOR_MARGIN = 18;
@@ -106,19 +106,19 @@ final class ItemJsonEditorScreen extends Screen {
             returnToLastScreen();
             return true;
         }
-        if (Screen.hasControlDown() && Screen.hasAltDown() && keyCode == 76) {
+        if (CompatScreen.hasControlDown() && CompatScreen.hasAltDown() && keyCode == 76) {
             formatJson();
             return true;
         }
-        if (Screen.hasControlDown() && keyCode == 83) {
+        if (CompatScreen.hasControlDown() && keyCode == 83) {
             applyJson(false);
             return true;
         }
-        if (Screen.hasControlDown() && keyCode == 70) {
+        if (CompatScreen.hasControlDown() && keyCode == 70) {
             formatJson();
             return true;
         }
-        if ((keyCode == 257 || keyCode == 335) && Screen.hasControlDown()) {
+        if ((keyCode == 257 || keyCode == 335) && CompatScreen.hasControlDown()) {
             applyJson(false);
             return true;
         }
@@ -154,7 +154,7 @@ final class ItemJsonEditorScreen extends Screen {
 
     private boolean isInventoryKey(int keyCode, int scanCode) {
         return this.minecraft != null
-                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode));
+                && this.minecraft.options.keyInventory.isActiveAndMatches(InputConstants.getKey(new net.minecraft.client.input.KeyEvent(keyCode, scanCode, 0)));
     }
 
     private boolean isJsonBoxFocused() {
@@ -471,7 +471,7 @@ final class ItemJsonEditorScreen extends Screen {
             boolean handledByScroll = super.mouseClicked(mouseX, mouseY, button);
             if (withinContentAreaPoint(mouseX, mouseY) && button == 0) {
                 setFocused(true);
-                seekCursor(mouseX, mouseY, Screen.hasShiftDown());
+                seekCursor(mouseX, mouseY, CompatScreen.hasShiftDown());
                 this.draggingSelection = true;
                 rebuildCompletions();
                 return true;
@@ -508,17 +508,17 @@ final class ItemJsonEditorScreen extends Screen {
                 return true;
             }
             if (keyCode == 258) {
-                if (!Screen.hasShiftDown() && this.completionSelectionArmed && applySelectedCompletion()) {
+                if (!CompatScreen.hasShiftDown() && this.completionSelectionArmed && applySelectedCompletion()) {
                     return true;
                 }
-                if (Screen.hasShiftDown()) {
+                if (CompatScreen.hasShiftDown()) {
                     outdentSelectedLines();
                 } else {
                     indentSelectedLines();
                 }
                 return true;
             }
-            if (Screen.hasControlDown() && keyCode == 32) {
+            if (CompatScreen.hasControlDown() && keyCode == 32) {
                 rebuildCompletions(true);
                 this.completionSelectionArmed = !this.completions.isEmpty();
                 return true;
@@ -1805,27 +1805,27 @@ final class ItemJsonEditorScreen extends Screen {
 
         private boolean handleEditKey(int keyCode) {
             normalizeCursorAndSelection();
-            if (Screen.isSelectAll(keyCode)) {
+            if (CompatScreen.isSelectAll(keyCode)) {
                 this.selectionAnchor = 0;
                 this.cursor = this.text.length();
                 rebuildCompletions();
                 return true;
             }
-            if (Screen.isCopy(keyCode)) {
+            if (CompatScreen.isCopy(keyCode)) {
                 copySelection();
                 return true;
             }
-            if (Screen.isCut(keyCode)) {
+            if (CompatScreen.isCut(keyCode)) {
                 copySelection();
                 deleteSelection();
                 return true;
             }
-            if (Screen.isPaste(keyCode)) {
+            if (CompatScreen.isPaste(keyCode)) {
                 insertText(Minecraft.getInstance().keyboardHandler.getClipboard());
                 return true;
             }
 
-            boolean selecting = Screen.hasShiftDown();
+            boolean selecting = CompatScreen.hasShiftDown();
             return switch (keyCode) {
                 case 257, 335 -> {
                     if (this.commandMode) {
@@ -1844,11 +1844,11 @@ final class ItemJsonEditorScreen extends Screen {
                     yield true;
                 }
                 case 262 -> {
-                    moveCursorTo(Screen.hasControlDown() ? nextWord(this.cursor) : this.cursor + 1, selecting);
+                    moveCursorTo(CompatScreen.hasControlDown() ? nextWord(this.cursor) : this.cursor + 1, selecting);
                     yield true;
                 }
                 case 263 -> {
-                    moveCursorTo(Screen.hasControlDown() ? previousWord(this.cursor) : this.cursor - 1, selecting);
+                    moveCursorTo(CompatScreen.hasControlDown() ? previousWord(this.cursor) : this.cursor - 1, selecting);
                     yield true;
                 }
                 case 264 -> {
@@ -1869,12 +1869,12 @@ final class ItemJsonEditorScreen extends Screen {
                 }
                 case 268 -> {
                     TextLine line = lineView(cursorLineIndex());
-                    moveCursorTo(Screen.hasControlDown() ? 0 : line.beginIndex(), selecting);
+                    moveCursorTo(CompatScreen.hasControlDown() ? 0 : line.beginIndex(), selecting);
                     yield true;
                 }
                 case 269 -> {
                     TextLine line = lineView(cursorLineIndex());
-                    moveCursorTo(Screen.hasControlDown() ? this.text.length() : line.endIndex(), selecting);
+                    moveCursorTo(CompatScreen.hasControlDown() ? this.text.length() : line.endIndex(), selecting);
                     yield true;
                 }
                 default -> false;

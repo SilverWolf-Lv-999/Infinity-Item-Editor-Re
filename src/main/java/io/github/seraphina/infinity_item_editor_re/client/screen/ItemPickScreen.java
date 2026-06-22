@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @OnlyIn(Dist.CLIENT)
-final class ItemPickScreen extends Screen {
+final class ItemPickScreen extends CompatScreen {
     private static final int MAX_IN_ROW = 8;
     private static final int ROWS = 10;
     private static final int ITEM_SIZE = 16;
@@ -275,14 +275,14 @@ final class ItemPickScreen extends Screen {
         ItemStack hovered = renderPickItems(guiGraphics, mouseX, mouseY, space, currentPage);
         int searchWidth = this.font.width(this.searchString);
         if (!hovered.isEmpty()) {
-            guiGraphics.renderTooltip(this.font, hovered, mouseX, mouseY);
+            guiGraphics.setTooltipForNextFrame(this.font, hovered, mouseX, mouseY);
         } else if (!this.searchString.equals(this.filteredString)
                 && isMouseIn(mouseX, mouseY, this.midX - searchWidth / 2, 56, searchWidth, 8)) {
-            guiGraphics.renderTooltip(this.font, Component.translatable(key("pick.click_search")), mouseX, mouseY);
+            guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key("pick.click_search")), mouseX, mouseY);
         } else if (isMouseIn(mouseX, mouseY, this.midX - 8, 27, ITEM_SIZE, ITEM_SIZE)) {
             ItemStack stack = getSelectedStack();
             if (!stack.isEmpty()) {
-                guiGraphics.renderTooltip(this.font, stack, mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, stack, mouseX, mouseY);
             }
         }
     }
@@ -295,8 +295,7 @@ final class ItemPickScreen extends Screen {
         ItemStack hovered = ItemStack.EMPTY;
         int start = Math.min(this.filteredList.size() - 1, currentPage * getAmountInPage());
         int end = Math.min(this.filteredList.size(), (currentPage + 1) * getAmountInPage());
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 100.0F);
+        guiGraphics.pose().pushMatrix();
         for (int i = start; i < end; i++) {
             int x = space + ITEM_SIZE * (i % MAX_IN_ROW);
             int y = 70 + TOP_BAR + ITEM_SIZE * ((i % getAmountInPage()) / MAX_IN_ROW);
@@ -308,7 +307,7 @@ final class ItemPickScreen extends Screen {
                 hovered = stack;
             }
         }
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
         return hovered;
     }
 
@@ -317,11 +316,10 @@ final class ItemPickScreen extends Screen {
         if (stack.isEmpty()) {
             return;
         }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, 0.0F, 100.0F);
+        guiGraphics.pose().pushMatrix();
         guiGraphics.renderItem(stack, this.midX - 8, 27);
         guiGraphics.renderItemDecorations(this.font, stack, this.midX - 8, 27);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
     private void renderPickListName(GuiGraphics guiGraphics, PickList list, int space, int y) {
@@ -372,7 +370,7 @@ final class ItemPickScreen extends Screen {
             return;
         }
 
-        if (Screen.hasShiftDown()) {
+        if (CompatScreen.hasShiftDown()) {
             this.minecraft.keyboardHandler.setClipboard(GiveHelper.getStringFromItemStack(stack));
             return;
         }

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -35,7 +37,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -137,7 +138,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         }
         if (isMapItem(this.previewStack)) {
             CompoundTag display = ItemStackNbt.getElement(this.previewStack, DISPLAY_TAG);
-            return display == null ? 0 : display.getInt(MAP_COLOR_TAG) & 0xFFFFFF;
+            return display == null ? 0 : NbtCompat.getInt(display, MAP_COLOR_TAG) & 0xFFFFFF;
         }
         if (this.previewStack.is(ItemTags.DYEABLE)) {
             return DyedItemColor.getOrDefault(this.previewStack, DyedItemColor.LEATHER_COLOR) & 0xFFFFFF;
@@ -151,11 +152,11 @@ protected void applyColorFromHex(boolean updateStatus) {
             PotionCompat.setCustomColor(this.previewStack, color);
         } else if (isMapItem(this.previewStack)) {
             CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-            CompoundTag display = tag.getCompound(DISPLAY_TAG);
+            CompoundTag display = NbtCompat.getCompound(tag, DISPLAY_TAG);
             display.putInt(MAP_COLOR_TAG, color);
             tag.put(DISPLAY_TAG, display);
         } else if (this.previewStack.is(ItemTags.DYEABLE)) {
-            this.previewStack.set(DataComponents.DYED_COLOR, new DyedItemColor(color, true));
+            this.previewStack.set(DataComponents.DYED_COLOR, new DyedItemColor(color));
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
     }
@@ -169,7 +170,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         int totalBrightness = 0;
         int colors = 0;
         if (this.previewStack.has(DataComponents.DYED_COLOR)) {
-            int current = this.previewStack.getOrDefault(DataComponents.DYED_COLOR, new DyedItemColor(DyedItemColor.LEATHER_COLOR, true)).rgb();
+            int current = this.previewStack.getOrDefault(DataComponents.DYED_COLOR, new DyedItemColor(DyedItemColor.LEATHER_COLOR)).rgb();
             int red = getRed(current);
             int green = getGreen(current);
             int blue = getBlue(current);

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -33,7 +35,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -96,7 +97,7 @@ protected void updateRawNbt() {
 
     protected void toggleUnbreakable() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        boolean current = tag.getBoolean("Unbreakable");
+        boolean current = NbtCompat.getBoolean(tag, "Unbreakable");
         if (current) {
             tag.remove("Unbreakable");
         } else {
@@ -108,13 +109,14 @@ protected void updateRawNbt() {
     }
 
     protected Component getUnbreakableText() {
-        boolean unbreakable = ItemStackNbt.get(this.previewStack) != null && ItemStackNbt.get(this.previewStack).getBoolean("Unbreakable");
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
+        boolean unbreakable = tag != null && NbtCompat.getBoolean(tag, "Unbreakable");
         return Component.translatable(key("tag.unbreakable." + (unbreakable ? 1 : 0)));
     }
 
     protected void toggleHideFlag(HideFlag flag) {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        int value = tag.getInt(HIDE_FLAGS_TAG);
+        int value = NbtCompat.getInt(tag, HIDE_FLAGS_TAG);
         if ((value & flag.mask()) != 0) {
             value &= ~flag.mask();
         } else {
@@ -131,7 +133,7 @@ protected void updateRawNbt() {
 
     protected Component getHideFlagText(HideFlag flag) {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        boolean hidden = tag != null && (tag.getInt(HIDE_FLAGS_TAG) & flag.mask()) != 0;
+        boolean hidden = tag != null && (NbtCompat.getInt(tag, HIDE_FLAGS_TAG) & flag.mask()) != 0;
         return Component.translatable(key(flag.translationKey() + "." + (hidden ? 1 : 0)));
     }
 
@@ -289,7 +291,7 @@ protected void updateRawNbt() {
         }
 
         String key = getEnchantmentTagKey(this.previewStack);
-        ListTag enchantments = tag.getList(key, Tag.TAG_COMPOUND);
+        ListTag enchantments = NbtCompat.getList(tag, key, Tag.TAG_COMPOUND);
         if (index < 0 || index >= enchantments.size()) {
             return false;
         }
@@ -306,10 +308,10 @@ protected void updateRawNbt() {
     protected ListTag getOrCreateEnchantmentsTag() {
         String key = getEnchantmentTagKey(this.previewStack);
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        if (!tag.contains(key, Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(tag, key, Tag.TAG_LIST)) {
             tag.put(key, new ListTag());
         }
-        return tag.getList(key, Tag.TAG_COMPOUND);
+        return NbtCompat.getList(tag, key, Tag.TAG_COMPOUND);
     }
 
     protected List<Enchantment> getFilteredEnchantments(ItemStack stack) {
@@ -352,12 +354,12 @@ protected void updateRawNbt() {
             return entries;
         }
 
-        ListTag enchantments = tag.getList(getEnchantmentTagKey(stack), Tag.TAG_COMPOUND);
+        ListTag enchantments = NbtCompat.getList(tag, getEnchantmentTagKey(stack), Tag.TAG_COMPOUND);
         for (int i = 0; i < enchantments.size(); i++) {
-            CompoundTag enchantmentTag = enchantments.getCompound(i);
-            ResourceLocation id = ResourceLocation.tryParse(enchantmentTag.getString("id"));
+            CompoundTag enchantmentTag = NbtCompat.getCompound(enchantments, i);
+            ResourceLocation id = ResourceLocation.tryParse(NbtCompat.getString(enchantmentTag, "id"));
             Enchantment enchantment = id == null ? null : CompatRegistries.ENCHANTMENTS.getValue(id);
-            entries.add(new EnchantmentEntry(id, enchantment, enchantmentTag.getInt("lvl")));
+            entries.add(new EnchantmentEntry(id, enchantment, NbtCompat.getInt(enchantmentTag, "lvl")));
         }
         return entries;
     }
@@ -624,8 +626,12 @@ protected void updateRawNbt() {
         }
 
         AttributeModifier.Operation operation = getAttributeOperation();
-        AttributeModifier modifier = new AttributeModifier(id.withSuffix("/" + UUID.randomUUID()), amount, operation);
-        CompoundTag modifierTag = modifier.save();
+        UUID uuid = UUID.randomUUID();
+        AttributeModifier modifier = new AttributeModifier(id.withSuffix("/" + uuid), amount, operation);
+        CompoundTag modifierTag = new CompoundTag();
+        modifierTag.putString("id", modifier.id().toString());
+        modifierTag.putString("Name", id.toString());
+        NbtCompat.putUUID(modifierTag, "UUID", uuid);
         modifierTag.putString("AttributeName", id.toString());
         modifierTag.putDouble("Amount", amount);
         modifierTag.putInt("Operation", operation.id());
@@ -681,27 +687,27 @@ protected void updateRawNbt() {
 
     protected ListTag getOrCreateAttributeModifiersTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        if (!tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             tag.put(ATTRIBUTE_MODIFIERS_TAG, new ListTag());
         }
-        return tag.getList(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
+        return NbtCompat.getList(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
     }
 
     protected List<AttributeEntry> getAttributeModifierEntries() {
         List<AttributeEntry> entries = new ArrayList<>();
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
+        if (tag == null || !NbtCompat.contains(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             return entries;
         }
 
-        ListTag modifiers = tag.getList(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
+        ListTag modifiers = NbtCompat.getList(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < modifiers.size(); i++) {
-            CompoundTag modifierTag = modifiers.getCompound(i);
-            String attributeName = modifierTag.getString("AttributeName");
+            CompoundTag modifierTag = NbtCompat.getCompound(modifiers, i);
+            String attributeName = NbtCompat.getString(modifierTag, "AttributeName");
             Attribute attribute = getAttributeByName(attributeName);
-            double amount = modifierTag.contains("Amount", Tag.TAG_DOUBLE) ? modifierTag.getDouble("Amount") : 0.0D;
-            int operation = Mth.positiveModulo(modifierTag.getInt("Operation"), 3);
-            String slotName = modifierTag.contains("Slot", Tag.TAG_STRING) ? modifierTag.getString("Slot") : "any";
+            double amount = NbtCompat.contains(modifierTag, "Amount", Tag.TAG_DOUBLE) ? NbtCompat.getDouble(modifierTag, "Amount") : 0.0D;
+            int operation = Mth.positiveModulo(NbtCompat.getInt(modifierTag, "Operation"), 3);
+            String slotName = NbtCompat.contains(modifierTag, "Slot", Tag.TAG_STRING) ? NbtCompat.getString(modifierTag, "Slot") : "any";
             entries.add(new AttributeEntry(i, attributeName, attribute, amount, operation, slotName));
         }
         return entries;
@@ -709,11 +715,11 @@ protected void updateRawNbt() {
 
     protected void removeAttributeModifierAt(int tagIndex) {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
+        if (tag == null || !NbtCompat.contains(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag modifiers = tag.getList(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
+        ListTag modifiers = NbtCompat.getList(tag, ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_COMPOUND);
         if (tagIndex < 0 || tagIndex >= modifiers.size()) {
             return;
         }

@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
@@ -13,6 +15,8 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BannerBlockEntity;
@@ -107,9 +111,8 @@ public final class ClientCreativeTabData {
 
         ItemStack currentStar = ItemStack.EMPTY;
         ItemStack currentRocket = ItemStack.EMPTY;
-        int size = Math.min(HOTBAR_SIZE, minecraft.player.getInventory().items.size());
-        for (int slot = 0; slot < size; slot++) {
-            ItemStack stack = minecraft.player.getInventory().items.get(slot);
+        for (int slot = 0; slot < HOTBAR_SIZE; slot++) {
+            ItemStack stack = minecraft.player.getInventory().getItem(slot);
             if (stack.isEmpty()) {
                 continue;
             }
@@ -138,9 +141,8 @@ public final class ClientCreativeTabData {
         }
 
         ItemStack currentBanner = ItemStack.EMPTY;
-        int size = Math.min(HOTBAR_SIZE, minecraft.player.getInventory().items.size());
-        for (int slot = 0; slot < size; slot++) {
-            ItemStack stack = minecraft.player.getInventory().items.get(slot);
+        for (int slot = 0; slot < HOTBAR_SIZE; slot++) {
+            ItemStack stack = minecraft.player.getInventory().getItem(slot);
             if (isBannerEditable(stack)) {
                 currentBanner = stack;
                 break;
@@ -161,7 +163,7 @@ public final class ClientCreativeTabData {
             return;
         }
 
-        String owner = player.getGameProfile().getName();
+        String owner = player.getGameProfile().name();
         if (owner == null || owner.isBlank()) {
             return;
         }
@@ -172,10 +174,10 @@ public final class ClientCreativeTabData {
     private static void addPlayerEquipment(List<ItemStack> stacks, Player player) {
         boolean addedNote = false;
         ItemStack note = createNote("Stolen from " + player.getName().getString());
-        for (ItemStack stack : player.getHandSlots()) {
-            addedNote = addStackWithNote(stacks, stack, note, addedNote);
-        }
-        for (ItemStack stack : player.getArmorSlots()) {
+        addedNote = addStackWithNote(stacks, player.getItemInHand(InteractionHand.MAIN_HAND), note, addedNote);
+        addedNote = addStackWithNote(stacks, player.getItemInHand(InteractionHand.OFF_HAND), note, addedNote);
+        for (EquipmentSlot slot : List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)) {
+            ItemStack stack = player.getItemBySlot(slot);
             addedNote = addStackWithNote(stacks, stack, note, addedNote);
         }
     }
@@ -256,16 +258,16 @@ public final class ClientCreativeTabData {
         ItemStack rocket = currentRocket.isEmpty() ? new ItemStack(Items.FIREWORK_ROCKET) : currentRocket.copy();
         rocket.setCount(1);
         CompoundTag fireworks = ItemStackNbt.getOrCreateElement(rocket, "Fireworks");
-        ListTag explosions = fireworks.contains("Explosions", Tag.TAG_LIST)
-                ? fireworks.getList("Explosions", Tag.TAG_COMPOUND).copy()
+        ListTag explosions = NbtCompat.contains(fireworks, "Explosions", Tag.TAG_LIST)
+                ? NbtCompat.getList(fireworks, "Explosions", Tag.TAG_COMPOUND).copy()
                 : new ListTag();
 
         if (explosions.isEmpty()) {
             explosions.add(starExplosion.copy());
-        } else if (starExplosion.contains("Colors", Tag.TAG_INT_ARRAY)) {
-            int[] fadeColors = starExplosion.getIntArray("Colors");
+        } else if (NbtCompat.contains(starExplosion, "Colors", Tag.TAG_INT_ARRAY)) {
+            int[] fadeColors = NbtCompat.getIntArray(starExplosion, "Colors");
             for (int index = 0; index < explosions.size(); index++) {
-                explosions.getCompound(index).putIntArray("FadeColors", fadeColors);
+                NbtCompat.getCompound(explosions, index).putIntArray("FadeColors", fadeColors);
             }
         } else {
             explosions.add(starExplosion.copy());
@@ -321,12 +323,12 @@ public final class ClientCreativeTabData {
                 ItemStack variant = currentBanner.copy();
                 variant.setCount(1);
                 CompoundTag blockEntity = ItemStackNbt.getOrCreateElement(variant, "BlockEntityTag");
-                if (variant.is(Items.SHIELD) && !blockEntity.contains("Base", Tag.TAG_INT)) {
+                if (variant.is(Items.SHIELD) && !NbtCompat.contains(blockEntity, "Base", Tag.TAG_INT)) {
                     blockEntity.putInt("Base", baseColor.getId());
                 }
 
-                ListTag patterns = blockEntity.contains("Patterns", Tag.TAG_LIST)
-                        ? blockEntity.getList("Patterns", Tag.TAG_COMPOUND).copy()
+                ListTag patterns = NbtCompat.contains(blockEntity, "Patterns", Tag.TAG_LIST)
+                        ? NbtCompat.getList(blockEntity, "Patterns", Tag.TAG_COMPOUND).copy()
                         : new ListTag();
                 CompoundTag pattern = new CompoundTag();
                 pattern.putString("Pattern", patternHash);
@@ -348,8 +350,8 @@ public final class ClientCreativeTabData {
         }
 
         CompoundTag blockEntity = ItemStackNbt.getElement(stack, "BlockEntityTag");
-        if (blockEntity != null && blockEntity.contains("Base", Tag.TAG_INT)) {
-            return DyeColor.byId(blockEntity.getInt("Base"));
+        if (blockEntity != null && NbtCompat.contains(blockEntity, "Base", Tag.TAG_INT)) {
+            return DyeColor.byId(NbtCompat.getInt(blockEntity, "Base"));
         }
 
         return DyeColor.WHITE;
@@ -368,7 +370,7 @@ public final class ClientCreativeTabData {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound("BlockEntityTag");
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, "BlockEntityTag");
         blockEntity.remove("Base");
         if (blockEntity.isEmpty()) {
             tag.remove("BlockEntityTag");

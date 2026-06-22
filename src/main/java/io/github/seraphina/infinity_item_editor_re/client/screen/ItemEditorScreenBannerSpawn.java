@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -36,7 +38,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -96,12 +97,12 @@ protected void addSelectedBannerPattern() {
         DyeColor color = getBannerPatternColor();
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag blockEntity = getOrCreateBannerBlockEntityTag();
-        if (this.previewStack.is(Items.SHIELD) && !blockEntity.contains(BANNER_BASE_TAG, Tag.TAG_INT)) {
+        if (this.previewStack.is(Items.SHIELD) && !NbtCompat.contains(blockEntity, BANNER_BASE_TAG, Tag.TAG_INT)) {
             blockEntity.putInt(BANNER_BASE_TAG, getBannerBaseColor().getId());
         }
 
-        ListTag bannerPatterns = blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)
-                ? blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND).copy()
+        ListTag bannerPatterns = NbtCompat.contains(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_LIST)
+                ? NbtCompat.getList(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND).copy()
                 : new ListTag();
         CompoundTag patternTag = new CompoundTag();
         patternTag.putString(BANNER_PATTERN_TAG, entry.hash());
@@ -120,12 +121,12 @@ protected void addSelectedBannerPattern() {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
-        if (!blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
+        if (!NbtCompat.contains(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag patterns = blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
+        ListTag patterns = NbtCompat.getList(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
         if (patterns.isEmpty()) {
             return;
         }
@@ -148,8 +149,8 @@ protected void addSelectedBannerPattern() {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
-        if (!blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
+        if (!NbtCompat.contains(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
             return;
         }
 
@@ -263,11 +264,11 @@ protected void addSelectedBannerPattern() {
 
         int first = Math.max(0, patterns.size() - 7);
         for (int i = first; i < patterns.size(); i++) {
-            CompoundTag patternTag = patterns.getCompound(i);
-            DyeColor color = DyeColor.byId(patternTag.getInt(BANNER_COLOR_TAG));
-            BannerPatternEntry entry = getBannerPatternEntry(patternTag.getString(BANNER_PATTERN_TAG));
+            CompoundTag patternTag = NbtCompat.getCompound(patterns, i);
+            DyeColor color = DyeColor.byId(NbtCompat.getInt(patternTag, BANNER_COLOR_TAG));
+            BannerPatternEntry entry = getBannerPatternEntry(NbtCompat.getString(patternTag, BANNER_PATTERN_TAG));
             Component name = entry == null
-                    ? Component.literal(patternTag.getString(BANNER_PATTERN_TAG))
+                    ? Component.literal(NbtCompat.getString(patternTag, BANNER_PATTERN_TAG))
                     : getBannerPatternName(entry, color);
             String text = (i + 1) + ". " + name.getString();
             guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text, 150), x, y + 12 + (i - first) * 10,
@@ -331,7 +332,7 @@ protected void addSelectedBannerPattern() {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         blockEntity.remove(BANNER_BASE_TAG);
         cleanupBlockEntityTag(tag, blockEntity);
     }
@@ -342,8 +343,8 @@ protected void addSelectedBannerPattern() {
         }
         if (this.previewStack.is(Items.SHIELD)) {
             CompoundTag blockEntity = ItemStackNbt.getElement(this.previewStack, BLOCK_ENTITY_TAG);
-            if (blockEntity != null && blockEntity.contains(BANNER_BASE_TAG, Tag.TAG_INT)) {
-                return DyeColor.byId(blockEntity.getInt(BANNER_BASE_TAG));
+            if (blockEntity != null && NbtCompat.contains(blockEntity, BANNER_BASE_TAG, Tag.TAG_INT)) {
+                return DyeColor.byId(NbtCompat.getInt(blockEntity, BANNER_BASE_TAG));
             }
         }
         return DyeColor.WHITE;
@@ -364,15 +365,15 @@ protected void addSelectedBannerPattern() {
 
     protected ListTag getBannerPatterns() {
         CompoundTag blockEntity = ItemStackNbt.getElement(this.previewStack, BLOCK_ENTITY_TAG);
-        if (blockEntity == null || !blockEntity.contains(BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
+        if (blockEntity == null || !NbtCompat.contains(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_LIST)) {
             return new ListTag();
         }
-        return blockEntity.getList(BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
+        return NbtCompat.getList(blockEntity, BANNER_PATTERNS_TAG, Tag.TAG_COMPOUND);
     }
 
     protected CompoundTag getOrCreateBannerBlockEntityTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         tag.put(BLOCK_ENTITY_TAG, blockEntity);
         return blockEntity;
     }
@@ -754,7 +755,7 @@ protected void addSelectedBannerPattern() {
             if (uuid == null) {
                 entityTag.putString(ENTITY_OWNER_TAG, normalized);
             } else {
-                entityTag.putUUID(ENTITY_OWNER_TAG, uuid);
+                NbtCompat.putUUID(entityTag, ENTITY_OWNER_TAG, uuid);
             }
         }
         cleanupSpawnEggEntityTag(entityTag);
@@ -830,7 +831,7 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        CompoundTag entityTag = NbtCompat.getCompound(tag, ENTITY_TAG);
         tag.put(ENTITY_TAG, entityTag);
         return entityTag;
     }
@@ -861,7 +862,7 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag blockEntity = getOrCreateSpawnerBlockEntityTag();
-        CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+        CompoundTag spawnData = NbtCompat.getCompound(blockEntity, SPAWNER_SPAWN_DATA_TAG);
         CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
         if (entityTag == null) {
             entityTag = getFirstSpawnerPotentialEntity(blockEntity);
@@ -869,7 +870,7 @@ protected void addSelectedBannerPattern() {
         if (entityTag == null) {
             entityTag = new CompoundTag();
         }
-        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        if (!NbtCompat.contains(entityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
             if (entry != null) {
                 entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
@@ -885,7 +886,7 @@ protected void addSelectedBannerPattern() {
         if (entityTag == null) {
             entityTag = new CompoundTag();
         }
-        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        if (!NbtCompat.contains(entityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
             if (entry != null) {
                 entityTag.putString(ENTITY_ID_TAG, entry.id().toString());
@@ -897,7 +898,7 @@ protected void addSelectedBannerPattern() {
 
     protected CompoundTag getOrCreateSpawnerBlockEntityTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         blockEntity.putString(ENTITY_ID_TAG, getSpawnerBlockEntityId(this.previewStack));
         tag.put(BLOCK_ENTITY_TAG, blockEntity);
         return blockEntity;
@@ -909,7 +910,7 @@ protected void addSelectedBannerPattern() {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         if (isTrialSpawnerItem(this.previewStack)) {
             if (entityTag.isEmpty()) {
                 clearTrialSpawnerEntityData(blockEntity);
@@ -923,7 +924,7 @@ protected void addSelectedBannerPattern() {
         }
 
         if (entityTag.isEmpty()) {
-            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+            CompoundTag spawnData = NbtCompat.getCompound(blockEntity, SPAWNER_SPAWN_DATA_TAG);
             spawnData.remove(SPAWNER_ENTITY_TAG);
             if (spawnData.isEmpty()) {
                 blockEntity.remove(SPAWNER_SPAWN_DATA_TAG);
@@ -931,7 +932,7 @@ protected void addSelectedBannerPattern() {
                 blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
             }
         } else {
-            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+            CompoundTag spawnData = NbtCompat.getCompound(blockEntity, SPAWNER_SPAWN_DATA_TAG);
             putSpawnerSpawnData(blockEntity, spawnData, entityTag);
             blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
         }
@@ -941,11 +942,11 @@ protected void addSelectedBannerPattern() {
 
     protected void clearSpawnerSpawnData() {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+        if (tag == null || !NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         if (isTrialSpawnerItem(this.previewStack)) {
             clearTrialSpawnerEntityData(blockEntity);
             cleanupSpawnerBlockEntityTag(blockEntity);
@@ -961,11 +962,11 @@ protected void addSelectedBannerPattern() {
 
     protected void clearSpawnerSpawnPotentials() {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+        if (tag == null || !NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         if (isTrialSpawnerItem(this.previewStack)) {
             clearTrialSpawnerSpawnPotentials(blockEntity);
             cleanupSpawnerBlockEntityTag(blockEntity);
@@ -994,9 +995,9 @@ protected void addSelectedBannerPattern() {
 
     protected boolean isOnlySpawnerBlockEntityId(CompoundTag blockEntity) {
         return blockEntity.size() == 1
-                && blockEntity.contains(ENTITY_ID_TAG, Tag.TAG_STRING)
-                && (SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG))
-                || TRIAL_SPAWNER_BLOCK_ENTITY_ID.equals(blockEntity.getString(ENTITY_ID_TAG)));
+                && NbtCompat.contains(blockEntity, ENTITY_ID_TAG, Tag.TAG_STRING)
+                && (SPAWNER_BLOCK_ENTITY_ID.equals(NbtCompat.getString(blockEntity, ENTITY_ID_TAG))
+                || TRIAL_SPAWNER_BLOCK_ENTITY_ID.equals(NbtCompat.getString(blockEntity, ENTITY_ID_TAG)));
     }
 
     protected Component getSpawnEggBooleanText(SpawnEggTagRow row) {
@@ -1038,9 +1039,9 @@ protected void addSelectedBannerPattern() {
 
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
         if (row.choiceStorage() == SpawnEggChoiceStorage.INT) {
-            return parent.contains(leafKey, Tag.TAG_ANY_NUMERIC) ? Integer.toString(parent.getInt(leafKey)) : "";
+            return NbtCompat.contains(parent, leafKey, NbtCompat.TAG_ANY_NUMERIC) ? Integer.toString(NbtCompat.getInt(parent, leafKey)) : "";
         }
-        return parent.contains(leafKey, Tag.TAG_STRING) ? parent.getString(leafKey) : "";
+        return NbtCompat.contains(parent, leafKey, Tag.TAG_STRING) ? NbtCompat.getString(parent, leafKey) : "";
     }
 
     protected int getSpawnEggChoiceIndex(SpawnEggTagRow row, String value) {
@@ -1059,7 +1060,7 @@ protected void addSelectedBannerPattern() {
             return false;
         }
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
-        return parent.contains(leafKey, Tag.TAG_BYTE) && parent.getBoolean(leafKey);
+        return NbtCompat.contains(parent, leafKey, Tag.TAG_BYTE) && NbtCompat.getBoolean(parent, leafKey);
     }
 
     protected boolean getSpawnEggPresenceValue(SpawnEggTagRow row) {
@@ -1070,7 +1071,7 @@ protected void addSelectedBannerPattern() {
         }
 
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
-        return parent.contains(leafKey, Tag.TAG_INT_ARRAY) && parent.getIntArray(leafKey).length == 3;
+        return NbtCompat.contains(parent, leafKey, Tag.TAG_INT_ARRAY) && NbtCompat.getIntArray(parent, leafKey).length == 3;
     }
 
     protected String getSpawnEggNumberValue(SpawnEggTagRow row) {
@@ -1086,14 +1087,14 @@ protected void addSelectedBannerPattern() {
         }
 
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
-        if (!parent.contains(leafKey, Tag.TAG_ANY_NUMERIC)) {
+        if (!NbtCompat.contains(parent, leafKey, NbtCompat.TAG_ANY_NUMERIC)) {
             return "";
         }
         return switch (row.numberType()) {
-            case BYTE -> formatSpawnEggNumber(row.toDisplayNumber(parent.getByte(leafKey)));
-            case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(parent.getShort(leafKey)));
-            case INT -> formatSpawnEggNumber(row.toDisplayNumber(parent.getInt(leafKey)));
-            case FLOAT -> Float.toString((float) row.toDisplayNumber(parent.getFloat(leafKey)));
+            case BYTE -> formatSpawnEggNumber(row.toDisplayNumber(NbtCompat.getByte(parent, leafKey)));
+            case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(NbtCompat.getShort(parent, leafKey)));
+            case INT -> formatSpawnEggNumber(row.toDisplayNumber(NbtCompat.getInt(parent, leafKey)));
+            case FLOAT -> Float.toString((float) row.toDisplayNumber(NbtCompat.getFloat(parent, leafKey)));
         };
     }
 
@@ -1122,13 +1123,13 @@ protected void addSelectedBannerPattern() {
         CompoundTag current = entityTag;
         for (int i = 0; i < parts.length - 1; i++) {
             String part = parts[i];
-            if (!current.contains(part, Tag.TAG_COMPOUND)) {
+            if (!NbtCompat.contains(current, part, Tag.TAG_COMPOUND)) {
                 if (!create) {
                     return null;
                 }
                 current.put(part, new CompoundTag());
             }
-            current = current.getCompound(part);
+            current = NbtCompat.getCompound(current, part);
         }
         return current;
     }
@@ -1195,11 +1196,11 @@ protected void addSelectedBannerPattern() {
         }
 
         String part = parts[index];
-        if (!current.contains(part, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(current, part, Tag.TAG_COMPOUND)) {
             return current.isEmpty();
         }
 
-        CompoundTag child = current.getCompound(part);
+        CompoundTag child = NbtCompat.getCompound(current, part);
         if (removeSpawnEggTagValue(child, parts, index + 1)) {
             current.remove(part);
         } else {
@@ -1363,15 +1364,15 @@ protected void addSelectedBannerPattern() {
         }
 
         if (stack.getItem() instanceof SpawnEggItem spawnEggItem) {
-            return spawnEggItem.getType(ItemStackNbt.registryAccess(), stack);
+            return spawnEggItem.getType(stack);
         }
         return null;
     }
 
     protected String getSpawnEggEntityIdOverride(ItemStack stack) {
         CompoundTag entityTag = getSpawnEditorEntityTag(stack);
-        if (entityTag != null && entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
-            return entityTag.getString(ENTITY_ID_TAG);
+        if (entityTag != null && NbtCompat.contains(entityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            return NbtCompat.getString(entityTag, ENTITY_ID_TAG);
         }
         return "";
     }
@@ -1391,8 +1392,8 @@ protected void addSelectedBannerPattern() {
         if (isTrialSpawnerItem(stack)) {
             return getTrialSpawnerEntityTag(blockEntity);
         }
-        if (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag spawnData = blockEntity.getCompound(SPAWNER_SPAWN_DATA_TAG);
+        if (NbtCompat.contains(blockEntity, SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag spawnData = NbtCompat.getCompound(blockEntity, SPAWNER_SPAWN_DATA_TAG);
             CompoundTag entityTag = getSpawnerEntityFromSpawnData(spawnData);
             if (entityTag != null) {
                 return entityTag;
@@ -1406,8 +1407,8 @@ protected void addSelectedBannerPattern() {
         if (entityTag != null) {
             return entityTag;
         }
-        if (blockEntity.contains(TRIAL_SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
-            entityTag = getSpawnerEntityFromSpawnData(blockEntity.getCompound(TRIAL_SPAWNER_SPAWN_DATA_TAG));
+        if (NbtCompat.contains(blockEntity, TRIAL_SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)) {
+            entityTag = getSpawnerEntityFromSpawnData(NbtCompat.getCompound(blockEntity, TRIAL_SPAWNER_SPAWN_DATA_TAG));
             if (entityTag != null) {
                 return entityTag;
             }
@@ -1421,30 +1422,30 @@ protected void addSelectedBannerPattern() {
     }
 
     protected CompoundTag getTrialSpawnerConfig(CompoundTag blockEntity, String configKey, boolean create) {
-        if (!blockEntity.contains(configKey, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(blockEntity, configKey, Tag.TAG_COMPOUND)) {
             if (!create) {
                 return null;
             }
             blockEntity.put(configKey, new CompoundTag());
         }
-        return blockEntity.getCompound(configKey);
+        return NbtCompat.getCompound(blockEntity, configKey);
     }
 
     protected CompoundTag getFirstSpawnerPotentialEntity(CompoundTag blockEntity) {
-        if (blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
-            ListTag potentials = blockEntity.getList(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
+        if (NbtCompat.contains(blockEntity, SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
+            ListTag potentials = NbtCompat.getList(blockEntity, SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
             if (!potentials.isEmpty()) {
-                CompoundTag potential = potentials.getCompound(0);
+                CompoundTag potential = NbtCompat.getCompound(potentials, 0);
                 CompoundTag entityTag = getSpawnerEntityFromPotential(potential);
                 if (entityTag != null) {
                     return entityTag;
                 }
             }
         }
-        if (blockEntity.contains(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
-            ListTag potentials = blockEntity.getList(TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
+        if (NbtCompat.contains(blockEntity, TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST)) {
+            ListTag potentials = NbtCompat.getList(blockEntity, TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_COMPOUND);
             if (!potentials.isEmpty()) {
-                CompoundTag potential = potentials.getCompound(0);
+                CompoundTag potential = NbtCompat.getCompound(potentials, 0);
                 CompoundTag entityTag = getSpawnerEntityFromPotential(potential);
                 if (entityTag != null) {
                     return entityTag;
@@ -1455,30 +1456,30 @@ protected void addSelectedBannerPattern() {
     }
 
     protected CompoundTag getSpawnerEntityFromPotential(CompoundTag potential) {
-        if (potential.contains(SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag entityTag = getSpawnerEntityFromSpawnData(potential.getCompound(SPAWNER_POTENTIAL_DATA_TAG));
+        if (NbtCompat.contains(potential, SPAWNER_POTENTIAL_DATA_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag entityTag = getSpawnerEntityFromSpawnData(NbtCompat.getCompound(potential, SPAWNER_POTENTIAL_DATA_TAG));
             if (entityTag != null) {
                 return entityTag;
             }
         }
-        if (potential.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)
-                || potential.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        if (NbtCompat.contains(potential, SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)
+                || NbtCompat.contains(potential, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             CompoundTag entityTag = getSpawnerEntityFromSpawnData(potential);
             if (entityTag != null) {
                 return entityTag;
             }
         }
-        if (potential.contains(SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG, Tag.TAG_COMPOUND)) {
-            return potential.getCompound(SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG).copy();
+        if (NbtCompat.contains(potential, SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return NbtCompat.getCompound(potential, SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG).copy();
         }
         return null;
     }
 
     protected CompoundTag getSpawnerEntityFromSpawnData(CompoundTag spawnData) {
-        if (spawnData.contains(SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
-            return spawnData.getCompound(SPAWNER_ENTITY_TAG).copy();
+        if (NbtCompat.contains(spawnData, SPAWNER_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+            return NbtCompat.getCompound(spawnData, SPAWNER_ENTITY_TAG).copy();
         }
-        if (spawnData.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        if (NbtCompat.contains(spawnData, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             return spawnData.copy();
         }
         return null;
@@ -1486,8 +1487,8 @@ protected void addSelectedBannerPattern() {
 
     protected void putSpawnerSpawnData(CompoundTag blockEntity, CompoundTag originalSpawnData, CompoundTag entityTag) {
         CompoundTag spawnData = new CompoundTag();
-        if (originalSpawnData.contains(SPAWNER_CUSTOM_SPAWN_RULES_TAG, Tag.TAG_COMPOUND)) {
-            spawnData.put(SPAWNER_CUSTOM_SPAWN_RULES_TAG, originalSpawnData.getCompound(SPAWNER_CUSTOM_SPAWN_RULES_TAG).copy());
+        if (NbtCompat.contains(originalSpawnData, SPAWNER_CUSTOM_SPAWN_RULES_TAG, Tag.TAG_COMPOUND)) {
+            spawnData.put(SPAWNER_CUSTOM_SPAWN_RULES_TAG, NbtCompat.getCompound(originalSpawnData, SPAWNER_CUSTOM_SPAWN_RULES_TAG).copy());
         }
         spawnData.put(SPAWNER_ENTITY_TAG, entityTag);
         blockEntity.put(SPAWNER_SPAWN_DATA_TAG, spawnData);
@@ -1542,8 +1543,8 @@ protected void addSelectedBannerPattern() {
                 return blockEntity != null && getTrialSpawnerEntityTag(blockEntity) != null;
             }
             return blockEntity != null
-                    && (blockEntity.contains(SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)
-                    || blockEntity.contains(SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST));
+                    && (NbtCompat.contains(blockEntity, SPAWNER_SPAWN_DATA_TAG, Tag.TAG_COMPOUND)
+                    || NbtCompat.contains(blockEntity, SPAWNER_SPAWN_POTENTIALS_TAG, Tag.TAG_LIST));
         }
         return ItemStackNbt.getElement(stack, ENTITY_TAG) != null;
     }

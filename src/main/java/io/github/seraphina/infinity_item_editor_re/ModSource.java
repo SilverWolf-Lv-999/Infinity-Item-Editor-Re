@@ -1,6 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re;
 
 import com.mojang.logging.LogUtils;
+import io.github.seraphina.infinity_item_editor_re.client.ConfigScreenRegistration;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
@@ -30,7 +31,7 @@ public class ModSource {
         CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            io.github.seraphina.infinity_item_editor_re.client.ConfigScreenRegistration.register(modContainer);
+            ConfigScreenRegistration.register(modContainer);
         }
     }
 

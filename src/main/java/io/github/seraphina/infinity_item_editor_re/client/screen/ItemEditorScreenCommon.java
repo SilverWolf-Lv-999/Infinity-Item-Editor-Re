@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
@@ -40,7 +42,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -568,10 +569,10 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         this.loreValues.clear();
 
         CompoundTag display = ItemStackNbt.getElement(stack, DISPLAY_TAG);
-        if (display != null && display.contains(LORE_TAG, Tag.TAG_LIST)) {
-            ListTag lore = display.getList(LORE_TAG, Tag.TAG_STRING);
+        if (display != null && NbtCompat.contains(display, LORE_TAG, Tag.TAG_LIST)) {
+            ListTag lore = NbtCompat.getList(display, LORE_TAG, Tag.TAG_STRING);
             for (int i = 0; i < lore.size(); i++) {
-                this.loreValues.add(readLoreLine(lore.getString(i)));
+                this.loreValues.add(readLoreLine(NbtCompat.getString(lore, i)));
             }
         }
 
@@ -608,12 +609,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
 
         boolean readModernMessages = false;
-        if (blockEntity.contains(SIGN_FRONT_TEXT_TAG, Tag.TAG_COMPOUND)) {
-            CompoundTag frontText = blockEntity.getCompound(SIGN_FRONT_TEXT_TAG);
-            if (frontText.contains(SIGN_MESSAGES_TAG, Tag.TAG_LIST)) {
-                ListTag messages = frontText.getList(SIGN_MESSAGES_TAG, Tag.TAG_STRING);
+        if (NbtCompat.contains(blockEntity, SIGN_FRONT_TEXT_TAG, Tag.TAG_COMPOUND)) {
+            CompoundTag frontText = NbtCompat.getCompound(blockEntity, SIGN_FRONT_TEXT_TAG);
+            if (NbtCompat.contains(frontText, SIGN_MESSAGES_TAG, Tag.TAG_LIST)) {
+                ListTag messages = NbtCompat.getList(frontText, SIGN_MESSAGES_TAG, Tag.TAG_STRING);
                 for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
-                    readSignLine(i, messages.getString(i));
+                    readSignLine(i, NbtCompat.getString(messages, i));
                 }
                 readModernMessages = !messages.isEmpty();
             }
@@ -622,8 +623,8 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (!readModernMessages) {
             for (int i = 0; i < SIGN_LINES; i++) {
                 String key = LEGACY_SIGN_TEXT_TAG_PREFIX + (i + 1);
-                if (blockEntity.contains(key, Tag.TAG_STRING)) {
-                    readSignLine(i, blockEntity.getString(key));
+                if (NbtCompat.contains(blockEntity, key, Tag.TAG_STRING)) {
+                    readSignLine(i, NbtCompat.getString(blockEntity, key));
                 }
             }
         }
@@ -634,8 +635,8 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         this.signLineValues[line] = component.getString();
         if (line == 0) {
             ClickEvent clickEvent = component.getStyle().getClickEvent();
-            if (clickEvent != null && clickEvent.getAction() == ClickEvent.Action.RUN_COMMAND) {
-                this.signCommandValue = clickEvent.getValue();
+            if (clickEvent instanceof ClickEvent.RunCommand runCommand) {
+                this.signCommandValue = runCommand.command();
             }
         }
     }
@@ -653,8 +654,8 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        this.bookTitleValue = tag.getString(BOOK_TITLE_TAG);
-        this.bookAuthorValue = tag.getString(BOOK_AUTHOR_TAG);
+        this.bookTitleValue = NbtCompat.getString(tag, BOOK_TITLE_TAG);
+        this.bookAuthorValue = NbtCompat.getString(tag, BOOK_AUTHOR_TAG);
     }
 
     protected void readHeadFieldsFromStack(ItemStack stack) {
@@ -671,29 +672,29 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        if (tag.contains(SKULL_OWNER_TAG, Tag.TAG_STRING)) {
-            this.headOwnerValue = tag.getString(SKULL_OWNER_TAG);
+        if (NbtCompat.contains(tag, SKULL_OWNER_TAG, Tag.TAG_STRING)) {
+            this.headOwnerValue = NbtCompat.getString(tag, SKULL_OWNER_TAG);
             return;
         }
 
-        if (!tag.contains(SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(tag, SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag skullOwner = tag.getCompound(SKULL_OWNER_TAG);
-        if (skullOwner.contains(SKULL_OWNER_NAME_TAG, Tag.TAG_STRING)) {
-            this.headOwnerValue = skullOwner.getString(SKULL_OWNER_NAME_TAG);
+        CompoundTag skullOwner = NbtCompat.getCompound(tag, SKULL_OWNER_TAG);
+        if (NbtCompat.contains(skullOwner, SKULL_OWNER_NAME_TAG, Tag.TAG_STRING)) {
+            this.headOwnerValue = NbtCompat.getString(skullOwner, SKULL_OWNER_NAME_TAG);
         }
-        if (skullOwner.hasUUID(SKULL_OWNER_ID_TAG)) {
-            this.headUuidValue = skullOwner.getUUID(SKULL_OWNER_ID_TAG).toString();
+        if (NbtCompat.hasUUID(skullOwner, SKULL_OWNER_ID_TAG)) {
+            this.headUuidValue = NbtCompat.getUUID(skullOwner, SKULL_OWNER_ID_TAG).toString();
         }
-        CompoundTag properties = skullOwner.getCompound(SKULL_PROPERTIES_TAG);
-        if (properties.contains(SKULL_TEXTURES_TAG, Tag.TAG_LIST)) {
-            ListTag textures = properties.getList(SKULL_TEXTURES_TAG, Tag.TAG_COMPOUND);
+        CompoundTag properties = NbtCompat.getCompound(skullOwner, SKULL_PROPERTIES_TAG);
+        if (NbtCompat.contains(properties, SKULL_TEXTURES_TAG, Tag.TAG_LIST)) {
+            ListTag textures = NbtCompat.getList(properties, SKULL_TEXTURES_TAG, Tag.TAG_COMPOUND);
             if (!textures.isEmpty()) {
-                CompoundTag texture = textures.getCompound(0);
-                this.headTextureValue = texture.getString(SKULL_TEXTURE_VALUE_TAG);
-                this.headTextureSignatureValue = texture.getString(SKULL_TEXTURE_SIGNATURE_TAG);
+                CompoundTag texture = NbtCompat.getCompound(textures, 0);
+                this.headTextureValue = NbtCompat.getString(texture, SKULL_TEXTURE_VALUE_TAG);
+                this.headTextureSignatureValue = NbtCompat.getString(texture, SKULL_TEXTURE_SIGNATURE_TAG);
             }
         }
     }
@@ -713,15 +714,15 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        this.fireworkExplosionType = Mth.clamp(FireworkExplosion.Shape.byId(explosion.getByte(FIREWORK_TYPE_TAG)).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
-        this.fireworkFlicker = explosion.getBoolean(FIREWORK_FLICKER_TAG);
-        this.fireworkTrail = explosion.getBoolean(FIREWORK_TRAIL_TAG);
+        this.fireworkExplosionType = Mth.clamp(FireworkExplosion.Shape.byId(NbtCompat.getByte(explosion, FIREWORK_TYPE_TAG)).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
+        this.fireworkFlicker = NbtCompat.getBoolean(explosion, FIREWORK_FLICKER_TAG);
+        this.fireworkTrail = NbtCompat.getBoolean(explosion, FIREWORK_TRAIL_TAG);
 
-        int[] colors = explosion.getIntArray(FIREWORK_COLORS_TAG);
+        int[] colors = NbtCompat.getIntArray(explosion, FIREWORK_COLORS_TAG);
         if (colors.length > 0) {
             this.fireworkColor = getNearestFireworkDyeColorId(colors[0]);
         }
-        int[] fadeColors = explosion.getIntArray(FIREWORK_FADE_COLORS_TAG);
+        int[] fadeColors = NbtCompat.getIntArray(explosion, FIREWORK_FADE_COLORS_TAG);
         if (fadeColors.length > 0) {
             this.fireworkFadeColor = getNearestFireworkDyeColorId(fadeColors[0]);
         }
@@ -739,18 +740,18 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected CompoundTag getFireworkExplosionForFields(ItemStack stack) {
         if (stack.is(Items.FIREWORK_STAR)) {
             CompoundTag tag = ItemStackNbt.get(stack);
-            if (tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND)) {
-                return tag.getCompound(FIREWORK_EXPLOSION_TAG);
+            if (tag != null && NbtCompat.contains(tag, FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND)) {
+                return NbtCompat.getCompound(tag, FIREWORK_EXPLOSION_TAG);
             }
             return null;
         }
 
         CompoundTag fireworks = ItemStackNbt.getElement(stack, FIREWORKS_TAG);
-        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+        if (fireworks == null || !NbtCompat.contains(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return null;
         }
-        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
-        return explosions.isEmpty() ? null : explosions.getCompound(explosions.size() - 1);
+        ListTag explosions = NbtCompat.getList(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        return explosions.isEmpty() ? null : NbtCompat.getCompound(explosions, explosions.size() - 1);
     }
 
     protected void readBannerFieldsFromStack(ItemStack stack) {
@@ -759,7 +760,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             this.bannerBaseColor = getBannerBaseColor().getId();
             ListTag patterns = getBannerPatterns();
             if (!patterns.isEmpty()) {
-                this.bannerPatternColor = DyeColor.byId(patterns.getCompound(patterns.size() - 1).getInt(BANNER_COLOR_TAG)).getId();
+                this.bannerPatternColor = DyeColor.byId(NbtCompat.getInt(NbtCompat.getCompound(patterns, patterns.size() - 1), BANNER_COLOR_TAG)).getId();
             }
         }
         this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
@@ -777,13 +778,13 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
         CompoundTag entityTag = getSpawnEditorEntityTag(stack);
         if (entityTag != null) {
-            if (entityTag.contains(ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
-                this.spawnEggCustomNameValue = readSerializedComponent(entityTag.getString(ENTITY_CUSTOM_NAME_TAG)).getString();
+            if (NbtCompat.contains(entityTag, ENTITY_CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
+                this.spawnEggCustomNameValue = readSerializedComponent(NbtCompat.getString(entityTag, ENTITY_CUSTOM_NAME_TAG)).getString();
             }
-            if (entityTag.hasUUID(ENTITY_OWNER_TAG)) {
-                this.spawnEggOwnerValue = entityTag.getUUID(ENTITY_OWNER_TAG).toString();
-            } else if (entityTag.contains(ENTITY_OWNER_TAG, Tag.TAG_STRING)) {
-                this.spawnEggOwnerValue = entityTag.getString(ENTITY_OWNER_TAG);
+            if (NbtCompat.hasUUID(entityTag, ENTITY_OWNER_TAG)) {
+                this.spawnEggOwnerValue = NbtCompat.getUUID(entityTag, ENTITY_OWNER_TAG).toString();
+            } else if (NbtCompat.contains(entityTag, ENTITY_OWNER_TAG, Tag.TAG_STRING)) {
+                this.spawnEggOwnerValue = NbtCompat.getString(entityTag, ENTITY_OWNER_TAG);
             }
         }
 
@@ -951,7 +952,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (value.isEmpty() || "{}".equals(value)) {
             return null;
         }
-        return TagParser.parseTag(value);
+        return NbtCompat.parseTag(value);
     }
 
     protected void cleanupEmptyDisplayTag() {
@@ -959,7 +960,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (tag == null) {
             return;
         }
-        CompoundTag display = tag.getCompound(DISPLAY_TAG);
+        CompoundTag display = NbtCompat.getCompound(tag, DISPLAY_TAG);
         if (display.isEmpty()) {
             tag.remove(DISPLAY_TAG);
         }
@@ -1104,17 +1105,17 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected int getBookGeneration() {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        return tag == null ? 0 : Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+        return tag == null ? 0 : Mth.clamp(NbtCompat.getInt(tag, BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
     }
 
     protected int getBookPageCount() {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        return tag == null ? 0 : tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING).size();
+        return tag == null ? 0 : NbtCompat.getList(tag, BOOK_PAGES_TAG, Tag.TAG_STRING).size();
     }
 
     protected Component getBookResolvedText() {
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        boolean resolved = tag != null && tag.getBoolean(BOOK_RESOLVED_TAG);
+        boolean resolved = tag != null && NbtCompat.getBoolean(tag, BOOK_RESOLVED_TAG);
         return Component.translatable(key("book.resolved." + (resolved ? 1 : 0)));
     }
 
@@ -1130,20 +1131,20 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (fireworks == null) {
             return 1;
         }
-        return Mth.clamp(fireworks.getByte(FIREWORK_FLIGHT_TAG), 1, MAX_FIREWORK_FLIGHT);
+        return Mth.clamp(NbtCompat.getByte(fireworks, FIREWORK_FLIGHT_TAG), 1, MAX_FIREWORK_FLIGHT);
     }
 
     protected int getFireworkExplosionCount() {
         if (this.previewStack.is(Items.FIREWORK_STAR)) {
             CompoundTag tag = ItemStackNbt.get(this.previewStack);
-            return tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) ? 1 : 0;
+            return tag != null && NbtCompat.contains(tag, FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) ? 1 : 0;
         }
 
         CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
-        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+        if (fireworks == null || !NbtCompat.contains(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return 0;
         }
-        return fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).size();
+        return NbtCompat.getList(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).size();
     }
 
     protected boolean hasFireworkData() {
@@ -1152,9 +1153,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return false;
         }
         if (this.previewStack.is(Items.FIREWORK_ROCKET)) {
-            return tag.contains(FIREWORKS_TAG, Tag.TAG_COMPOUND) && !tag.getCompound(FIREWORKS_TAG).isEmpty();
+            return NbtCompat.contains(tag, FIREWORKS_TAG, Tag.TAG_COMPOUND) && !NbtCompat.getCompound(tag, FIREWORKS_TAG).isEmpty();
         }
-        return tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) && !tag.getCompound(FIREWORK_EXPLOSION_TAG).isEmpty();
+        return NbtCompat.contains(tag, FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) && !NbtCompat.getCompound(tag, FIREWORK_EXPLOSION_TAG).isEmpty();
     }
 
     protected Component getFireworkTypeName(int type) {
@@ -1214,11 +1215,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static int getDefaultAttributeSlot(ItemStack stack) {
-        if (stack.getItem() instanceof ArmorItem) {
-            var equippable = stack.get(DataComponents.EQUIPPABLE);
-            if (equippable != null) {
-                return getAttributeSlotNumber(equippable.slot());
-            }
+        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        if (equippable != null) {
+            return getAttributeSlotNumber(equippable.slot());
         }
         if (stack.is(Items.SHIELD) || stack.is(Items.TOTEM_OF_UNDYING)) {
             return 2;
@@ -1289,7 +1288,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static int findEnchantmentIndex(ListTag enchantments, ResourceLocation id) {
         for (int i = 0; i < enchantments.size(); i++) {
-            ResourceLocation storedId = ResourceLocation.tryParse(enchantments.getCompound(i).getString("id"));
+            ResourceLocation storedId = ResourceLocation.tryParse(NbtCompat.getString(NbtCompat.getCompound(enchantments, i), "id"));
             if (id.equals(storedId)) {
                 return i;
             }

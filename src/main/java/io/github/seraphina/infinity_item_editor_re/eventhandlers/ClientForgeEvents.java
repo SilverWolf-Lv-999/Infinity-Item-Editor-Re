@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import net.neoforged.fml.common.EventBusSubscriber;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -406,10 +408,10 @@ public final class ClientForgeEvents {
         stack.applyComponents(blockEntity.collectComponents());
         if (stack.getItem() instanceof PlayerHeadItem) {
             CompoundTag stackTag = ItemStackNbt.get(stack);
-            if (stackTag != null && stackTag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
-                CompoundTag stackBlockEntityTag = stackTag.getCompound(BLOCK_ENTITY_TAG);
-                if (stackBlockEntityTag.contains(SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
-                    stackTag.put(SKULL_OWNER_TAG, stackBlockEntityTag.getCompound(SKULL_OWNER_TAG));
+            if (stackTag != null && NbtCompat.contains(stackTag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+                CompoundTag stackBlockEntityTag = NbtCompat.getCompound(stackTag, BLOCK_ENTITY_TAG);
+                if (NbtCompat.contains(stackBlockEntityTag, SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
+                    stackTag.put(SKULL_OWNER_TAG, NbtCompat.getCompound(stackBlockEntityTag, SKULL_OWNER_TAG));
                     stackBlockEntityTag.remove(SKULL_OWNER_TAG);
                     cleanupCopiedBlockEntityTag(stackTag, stackBlockEntityTag);
                     return;
@@ -448,18 +450,18 @@ public final class ClientForgeEvents {
     }
 
     private static boolean isOnlyBlockEntityId(CompoundTag blockEntityTag) {
-        return blockEntityTag.size() == 1 && blockEntityTag.contains(BLOCK_ENTITY_ID_TAG, Tag.TAG_STRING);
+        return blockEntityTag.size() == 1 && NbtCompat.contains(blockEntityTag, BLOCK_ENTITY_ID_TAG, Tag.TAG_STRING);
     }
 
     private static boolean hasCopiedBlockEntityData(ItemStack stack) {
         CompoundTag tag = ItemStackNbt.get(stack);
-        return tag != null && tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND);
+        return tag != null && NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND);
     }
 
     private static void addCopiedNbtLore(ItemStack stack) {
         CompoundTag displayTag = ItemStackNbt.getOrCreateElement(stack, DISPLAY_TAG);
-        ListTag lore = displayTag.contains(LORE_TAG, Tag.TAG_LIST)
-                ? displayTag.getList(LORE_TAG, Tag.TAG_STRING).copy()
+        ListTag lore = NbtCompat.contains(displayTag, LORE_TAG, Tag.TAG_LIST)
+                ? NbtCompat.getList(displayTag, LORE_TAG, Tag.TAG_STRING).copy()
                 : new ListTag();
         lore.add(StringTag.valueOf(COPIED_NBT_LORE));
         displayTag.put(LORE_TAG, lore);

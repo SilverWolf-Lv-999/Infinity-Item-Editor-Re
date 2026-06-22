@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -34,7 +36,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -88,7 +89,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         if (!hasContent) {
             blockEntity.remove(SIGN_FRONT_TEXT_TAG);
             removeLegacySignText(blockEntity);
@@ -97,7 +98,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag frontText = blockEntity.getCompound(SIGN_FRONT_TEXT_TAG);
+        CompoundTag frontText = NbtCompat.getCompound(blockEntity, SIGN_FRONT_TEXT_TAG);
         ListTag messages = new ListTag();
         for (int i = 0; i < SIGN_LINES; i++) {
             messages.add(StringTag.valueOf(ComponentCompat.toJson(createSignLineComponent(i))));
@@ -105,10 +106,10 @@ protected void applySignToStack() {
 
         frontText.put(SIGN_MESSAGES_TAG, messages);
         frontText.remove(SIGN_FILTERED_MESSAGES_TAG);
-        if (!frontText.contains(SIGN_COLOR_TAG, Tag.TAG_STRING)) {
+        if (!NbtCompat.contains(frontText, SIGN_COLOR_TAG, Tag.TAG_STRING)) {
             frontText.putString(SIGN_COLOR_TAG, "black");
         }
-        if (!frontText.contains(SIGN_GLOWING_TEXT_TAG, Tag.TAG_BYTE)) {
+        if (!NbtCompat.contains(frontText, SIGN_GLOWING_TEXT_TAG, Tag.TAG_BYTE)) {
             frontText.putBoolean(SIGN_GLOWING_TEXT_TAG, false);
         }
 
@@ -136,7 +137,7 @@ protected void applySignToStack() {
         }
 
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        int current = Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+        int current = Mth.clamp(NbtCompat.getInt(tag, BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
         int next = Mth.positiveModulo(current + 1, MAX_BOOK_GENERATION + 1);
         if (next == 0) {
             tag.remove(BOOK_GENERATION_TAG);
@@ -155,7 +156,7 @@ protected void applySignToStack() {
         }
 
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        if (tag.getBoolean(BOOK_RESOLVED_TAG)) {
+        if (NbtCompat.getBoolean(tag, BOOK_RESOLVED_TAG)) {
             tag.remove(BOOK_RESOLVED_TAG);
         } else {
             tag.putBoolean(BOOK_RESOLVED_TAG, true);
@@ -195,8 +196,8 @@ protected void applySignToStack() {
         ItemStackNbt.set(writableBook, writableTag);
         this.previewStack = writableBook;
         readMainFieldsFromStack(this.previewStack);
-        this.bookTitleValue = this.rememberedSignedBookData.getString(BOOK_TITLE_TAG);
-        this.bookAuthorValue = this.rememberedSignedBookData.getString(BOOK_AUTHOR_TAG);
+        this.bookTitleValue = NbtCompat.getString(this.rememberedSignedBookData, BOOK_TITLE_TAG);
+        this.bookAuthorValue = NbtCompat.getString(this.rememberedSignedBookData, BOOK_AUTHOR_TAG);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.status = Component.translatable(messageKey("editor_book_unsigned"));
         rebuildWidgets();
@@ -211,8 +212,8 @@ protected void applySignToStack() {
         int generation = 0;
         boolean resolved = false;
         if (this.rememberedSignedBookData != null) {
-            generation = Mth.clamp(this.rememberedSignedBookData.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
-            resolved = this.rememberedSignedBookData.getBoolean(BOOK_RESOLVED_TAG);
+            generation = Mth.clamp(NbtCompat.getInt(this.rememberedSignedBookData, BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
+            resolved = NbtCompat.getBoolean(this.rememberedSignedBookData, BOOK_RESOLVED_TAG);
         }
 
         signedTag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
@@ -240,27 +241,27 @@ protected void applySignToStack() {
     }
 
     protected void convertWrittenPagesToWritable(CompoundTag tag) {
-        if (!tag.contains(BOOK_PAGES_TAG, Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(tag, BOOK_PAGES_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag pages = tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING);
+        ListTag pages = NbtCompat.getList(tag, BOOK_PAGES_TAG, Tag.TAG_STRING);
         ListTag converted = new ListTag();
         for (int i = 0; i < pages.size(); i++) {
-            converted.add(StringTag.valueOf(readSerializedComponent(pages.getString(i)).getString()));
+            converted.add(StringTag.valueOf(readSerializedComponent(NbtCompat.getString(pages, i)).getString()));
         }
         tag.put(BOOK_PAGES_TAG, converted);
     }
 
     protected void convertWritablePagesToWritten(CompoundTag tag) {
-        if (!tag.contains(BOOK_PAGES_TAG, Tag.TAG_LIST)) {
+        if (!NbtCompat.contains(tag, BOOK_PAGES_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag pages = tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING);
+        ListTag pages = NbtCompat.getList(tag, BOOK_PAGES_TAG, Tag.TAG_STRING);
         ListTag converted = new ListTag();
         for (int i = 0; i < pages.size(); i++) {
-            converted.add(StringTag.valueOf(ComponentCompat.toJson(readBookPageComponent(pages.getString(i)))));
+            converted.add(StringTag.valueOf(ComponentCompat.toJson(readBookPageComponent(NbtCompat.getString(pages, i)))));
         }
         tag.put(BOOK_PAGES_TAG, converted);
     }
@@ -308,7 +309,7 @@ protected void applySignToStack() {
             skullOwner.putString(SKULL_OWNER_NAME_TAG, ownerName);
         }
         if (uuid != null) {
-            skullOwner.putUUID(SKULL_OWNER_ID_TAG, uuid);
+            NbtCompat.putUUID(skullOwner, SKULL_OWNER_ID_TAG, uuid);
         }
         if (!textureValue.isEmpty()) {
             CompoundTag properties = new CompoundTag();
@@ -363,7 +364,7 @@ protected void applySignToStack() {
         }
 
         CompoundTag entityTag = getOrCreateArmorStandEntityTag();
-        if (entityTag.getBoolean(tagKey)) {
+        if (NbtCompat.getBoolean(entityTag, tagKey)) {
             entityTag.remove(tagKey);
         } else {
             entityTag.putBoolean(tagKey, true);
@@ -380,14 +381,14 @@ protected void applySignToStack() {
         }
 
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(ENTITY_TAG, Tag.TAG_COMPOUND)) {
+        if (tag == null || !NbtCompat.contains(tag, ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag currentEntityTag = tag.getCompound(ENTITY_TAG);
+        CompoundTag currentEntityTag = NbtCompat.getCompound(tag, ENTITY_TAG);
         CompoundTag clearedEntityTag = new CompoundTag();
-        if (currentEntityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
-            clearedEntityTag.putString(ENTITY_ID_TAG, currentEntityTag.getString(ENTITY_ID_TAG));
+        if (NbtCompat.contains(currentEntityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            clearedEntityTag.putString(ENTITY_ID_TAG, NbtCompat.getString(currentEntityTag, ENTITY_ID_TAG));
         }
         if (clearedEntityTag.isEmpty()) {
             tag.remove(ENTITY_TAG);
@@ -402,7 +403,7 @@ protected void applySignToStack() {
 
     protected CompoundTag getOrCreateArmorStandEntityTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
+        CompoundTag entityTag = NbtCompat.getCompound(tag, ENTITY_TAG);
         tag.put(ENTITY_TAG, entityTag);
         return entityTag;
     }
@@ -428,7 +429,7 @@ protected void applySignToStack() {
 
     protected boolean getArmorStandFlag(String tagKey) {
         CompoundTag entityTag = ItemStackNbt.getElement(this.previewStack, ENTITY_TAG);
-        return entityTag != null && entityTag.getBoolean(tagKey);
+        return entityTag != null && NbtCompat.getBoolean(entityTag, tagKey);
     }
 
     protected void cycleFireworkFlight() {
@@ -517,11 +518,11 @@ protected void applySignToStack() {
         }
 
         CompoundTag fireworks = getOrCreateFireworksTag();
-        if (!fireworks.contains(FIREWORK_FLIGHT_TAG, Tag.TAG_BYTE)) {
+        if (!NbtCompat.contains(fireworks, FIREWORK_FLIGHT_TAG, Tag.TAG_BYTE)) {
             fireworks.putByte(FIREWORK_FLIGHT_TAG, (byte) getFireworkFlight());
         }
-        ListTag explosions = fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)
-                ? fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).copy()
+        ListTag explosions = NbtCompat.contains(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)
+                ? NbtCompat.getList(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND).copy()
                 : new ListTag();
         explosions.add(createFireworkExplosionTag());
         fireworks.put(FIREWORK_EXPLOSIONS_TAG, explosions);
@@ -536,11 +537,11 @@ protected void applySignToStack() {
         }
 
         CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
-        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+        if (fireworks == null || !NbtCompat.contains(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        ListTag explosions = NbtCompat.getList(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
         if (explosions.isEmpty()) {
             return;
         }
@@ -591,11 +592,11 @@ protected void applySignToStack() {
         }
 
         CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
-        if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
+        if (fireworks == null || !NbtCompat.contains(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return;
         }
 
-        ListTag explosions = fireworks.getList(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
+        ListTag explosions = NbtCompat.getList(fireworks, FIREWORK_EXPLOSIONS_TAG, Tag.TAG_COMPOUND);
         if (explosions.isEmpty()) {
             return;
         }
@@ -623,7 +624,7 @@ protected void applySignToStack() {
 
     protected CompoundTag getOrCreateFireworksTag() {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag fireworks = tag.getCompound(FIREWORKS_TAG);
+        CompoundTag fireworks = NbtCompat.getCompound(tag, FIREWORKS_TAG);
         tag.put(FIREWORKS_TAG, fireworks);
         return fireworks;
     }
@@ -679,7 +680,7 @@ protected void applySignToStack() {
             return ItemStack.EMPTY;
         }
 
-        CompoundTag itemTag = TagParser.parseTag(trimmed);
+        CompoundTag itemTag = NbtCompat.parseTag(trimmed);
         ItemStack slotStack = ItemStackNbt.parse(itemTag);
         if (slotStack.isEmpty()) {
             throw new IllegalArgumentException(Component.translatable(messageKey("editor_container_invalid_item")).getString());
@@ -704,11 +705,11 @@ protected void applySignToStack() {
         }
 
         CompoundTag tag = ItemStackNbt.get(this.previewStack);
-        if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
+        if (tag == null || !NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
 
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG);
         blockEntity.remove(CONTAINER_ITEMS_TAG);
         cleanupBlockEntityTag(tag, blockEntity);
         this.containerSlotNbtValue = "{}";
@@ -718,16 +719,16 @@ protected void applySignToStack() {
 
     protected void setContainerSlotItem(int slot, ItemStack slotStack) {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag blockEntity = tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)
-                ? tag.getCompound(BLOCK_ENTITY_TAG)
+        CompoundTag blockEntity = NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)
+                ? NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG)
                 : new CompoundTag();
-        ListTag currentItems = blockEntity.contains(CONTAINER_ITEMS_TAG, Tag.TAG_LIST)
-                ? blockEntity.getList(CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND)
+        ListTag currentItems = NbtCompat.contains(blockEntity, CONTAINER_ITEMS_TAG, Tag.TAG_LIST)
+                ? NbtCompat.getList(blockEntity, CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND)
                 : new ListTag();
         List<CompoundTag> updatedItems = new ArrayList<>();
         for (int i = 0; i < currentItems.size(); i++) {
-            CompoundTag itemTag = currentItems.getCompound(i);
-            if ((itemTag.getByte(CONTAINER_SLOT_TAG) & 255) != slot) {
+            CompoundTag itemTag = NbtCompat.getCompound(currentItems, i);
+            if ((NbtCompat.getByte(itemTag, CONTAINER_SLOT_TAG) & 255) != slot) {
                 updatedItems.add(itemTag.copy());
             }
         }
@@ -738,7 +739,7 @@ protected void applySignToStack() {
             updatedItems.add(itemTag);
         }
 
-        updatedItems.sort(Comparator.comparingInt(itemTag -> itemTag.getByte(CONTAINER_SLOT_TAG) & 255));
+        updatedItems.sort(Comparator.comparingInt(itemTag -> NbtCompat.getByte(itemTag, CONTAINER_SLOT_TAG) & 255));
         ListTag items = new ListTag();
         for (CompoundTag itemTag : updatedItems) {
             items.add(itemTag);
@@ -761,8 +762,8 @@ protected void applySignToStack() {
         ListTag items = getContainerItemsList();
         ItemStack found = ItemStack.EMPTY;
         for (int i = 0; i < items.size(); i++) {
-            CompoundTag itemTag = items.getCompound(i);
-            if ((itemTag.getByte(CONTAINER_SLOT_TAG) & 255) == slot) {
+            CompoundTag itemTag = NbtCompat.getCompound(items, i);
+            if ((NbtCompat.getByte(itemTag, CONTAINER_SLOT_TAG) & 255) == slot) {
                 found = ItemStackNbt.parse(itemTag);
             }
         }
@@ -771,10 +772,10 @@ protected void applySignToStack() {
 
     protected ListTag getContainerItemsList() {
         CompoundTag blockEntity = ItemStackNbt.getElement(this.previewStack, BLOCK_ENTITY_TAG);
-        if (blockEntity == null || !blockEntity.contains(CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
+        if (blockEntity == null || !NbtCompat.contains(blockEntity, CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
             return new ListTag();
         }
-        return blockEntity.getList(CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND);
+        return NbtCompat.getList(blockEntity, CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND);
     }
 
     protected int getContainerItemCount() {
@@ -826,7 +827,7 @@ protected void applySignToStack() {
         if (line == 0) {
             String command = getNormalizedSignCommand();
             if (!command.isEmpty()) {
-                component.setStyle(Style.EMPTY.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command)));
+                component.setStyle(Style.EMPTY.withClickEvent(new ClickEvent.RunCommand(command)));
             }
         }
         return component;

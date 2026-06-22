@@ -33,7 +33,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -72,7 +71,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @OnlyIn(Dist.CLIENT)
-abstract class ItemEditorScreenState extends Screen {
+abstract class ItemEditorScreenState extends CompatScreen {
     protected static final int MAX_COUNT = 64;
     protected static final int MAX_ENCHANTMENT_LEVEL = 32767;
     protected static final int MAX_POTION_LEVEL = 127;

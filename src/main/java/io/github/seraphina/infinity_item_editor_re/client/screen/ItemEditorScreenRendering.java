@@ -1,7 +1,8 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -31,7 +32,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -534,10 +535,10 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().scale(4.0F, 4.0F);
         guiGraphics.renderItem(this.previewStack, isSidebarUi() ? this.midX / 4 - 8 : this.width / 8 - 8, 5);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
 
         drawPanelTitle(guiGraphics, Component.translatable(key("color")));
 
@@ -643,11 +644,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         drawPanelTitle(guiGraphics, Component.translatable(key("banner")));
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(this.midX, 78, 100.0F);
-        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(this.midX, 78);
+        guiGraphics.pose().scale(4.0F, 4.0F);
         guiGraphics.renderItem(this.previewStack, -8, -8);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
 
         drawCenteredLabel(guiGraphics, Component.translatable(key("banner.search")),
                 this.bannerPatternFilterBox.getX() + this.bannerPatternFilterBox.getWidth() / 2,
@@ -692,11 +693,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         drawPanelTitle(guiGraphics, Component.translatable(key("decorated_pot")));
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(this.midX, 78, 100.0F);
-        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(this.midX, 78);
+        guiGraphics.pose().scale(4.0F, 4.0F);
         guiGraphics.renderItem(this.previewStack, -8, -8);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
 
         drawCenteredLabel(guiGraphics, Component.translatable(key("decorated_pot.search")),
                 this.potterySherdFilterBox.getX() + this.potterySherdFilterBox.getWidth() / 2,
@@ -744,11 +745,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         drawPanelTitle(guiGraphics, Component.translatable(key(getSpawnEditorTitleKey())));
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(this.midX, 78, 100.0F);
-        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(this.midX, 78);
+        guiGraphics.pose().scale(4.0F, 4.0F);
         guiGraphics.renderItem(this.previewStack, -8, -8);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
 
         drawCenteredLabel(guiGraphics, Component.translatable(key("spawnegg.search")),
                 this.spawnEggEntityFilterBox.getX() + this.spawnEggEntityFilterBox.getWidth() / 2,
@@ -820,7 +821,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     this.midX + listWidth / 2 + 8, bottom, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         for (int i = 0; i < size; i++) {
-            String tradeText = formatTradeRecipe(trades.getCompound(i));
+            String tradeText = formatTradeRecipe(NbtCompat.getCompound(trades, i));
             boolean hovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, tradeText, this.midX, getTradeListRowY(i, size));
             foundHover = foundHover || hovered;
             int rowY = getTradeListRowY(i, size);
@@ -988,10 +989,10 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             return;
         }
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().scale(0.8F, 0.8F, 1.0F);
-        guiGraphics.renderTooltip(this.font, this.previewStack, 0, 25);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().scale(0.8F, 0.8F);
+        guiGraphics.setTooltipForNextFrame(this.font, this.previewStack, 0, 25);
+        guiGraphics.pose().popMatrix();
     }
 
     protected void renderPrettyNbt(GuiGraphics guiGraphics) {
@@ -1000,10 +1001,10 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
         List<Component> lines = getPrettyNbtLines();
         if (!lines.isEmpty()) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().scale(0.8F, 0.8F, 1.0F);
-            guiGraphics.renderComponentTooltip(this.font, lines, 0, this.height);
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().scale(0.8F, 0.8F);
+            guiGraphics.setTooltipForNextFrame(this.font, lines, Optional.empty(), 0, this.height);
+            guiGraphics.pose().popMatrix();
         }
     }
 
@@ -1033,12 +1034,12 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             ModernUi.fillSoftHalo(guiGraphics, centerX, this.midY + 18, 104, 34, ModernUi.alpha(0xFFB347, 22));
             ModernUi.fillSoftHalo(guiGraphics, centerX, this.midY + 21, 76, 18, ModernUi.alpha(0x62D1C7, 18));
         }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(centerX, this.midY, 100.0F);
-        guiGraphics.pose().mulPose(Axis.ZN.rotationDegrees(this.rotOff * 3.0F));
-        guiGraphics.pose().scale(5.0F, 5.0F, 1.0F);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(centerX, this.midY);
+        guiGraphics.pose().rotate((float) Math.toRadians(this.rotOff * 3.0F));
+        guiGraphics.pose().scale(5.0F, 5.0F);
         guiGraphics.renderItem(this.previewStack, -8, -8);
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
     protected void renderPanelTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -1046,27 +1047,27 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int previewX = itemPreviewCenterX() - ITEM_SIZE / 2;
             int previewY = itemPreviewCenterY() - ITEM_SIZE / 2;
             if (isMouseIn(mouseX, mouseY, previewX, previewY, ITEM_SIZE, ITEM_SIZE)) {
-                guiGraphics.renderTooltip(this.font, this.previewStack, mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, this.previewStack, mouseX, mouseY);
             }
             if (this.itemIdBox != null && this.itemIdBox.getValue().length() > 9
                     && isMouseIn(mouseX, mouseY, this.itemIdBox.getX(), this.itemIdBox.getY(), this.itemIdBox.getWidth(), this.itemIdBox.getHeight())) {
-                guiGraphics.renderTooltip(this.font, Component.literal(this.itemIdBox.getValue()), mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, Component.literal(this.itemIdBox.getValue()), mouseX, mouseY);
             }
             int dropX = isSidebarUi() ? itemPanelDropButtonX() : this.midX + 30;
             int dropY = isSidebarUi() ? sidebarBottomButtonY() : this.height - 35;
             int dropWidth = isSidebarUi() ? itemPanelDropButtonWidth() : OLD_BUTTON_WIDTH;
             int dropHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : OLD_BUTTON_HEIGHT;
             if (isMouseIn(mouseX, mouseY, dropX, dropY, dropWidth, dropHeight)) {
-                guiGraphics.renderComponentTooltip(this.font, List.of(
+                guiGraphics.setTooltipForNextFrame(this.font, List.of(
                         Component.translatable(key("item.drop.tooltip.1")),
-                        Component.translatable(key("item.drop.tooltip.2"))), mouseX, mouseY);
+                        Component.translatable(key("item.drop.tooltip.2"))), Optional.empty(), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.LORE) {
             for (EditBox box : this.loreBoxes) {
                 if (isMouseIn(mouseX, mouseY, box.getX(), box.getY(), box.getWidth(), box.getHeight())) {
                     String value = box.getValue().replace(ChatFormatting.PREFIX_CODE, '&');
                     if (!value.isEmpty()) {
-                        guiGraphics.renderTooltip(this.font, Component.literal(value), mouseX, mouseY);
+                        guiGraphics.setTooltipForNextFrame(this.font, Component.literal(value), mouseX, mouseY);
                     }
                     return;
                 }
@@ -1074,29 +1075,29 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int previewX = isSidebarUi() ? itemPreviewCenterX() - ITEM_SIZE / 2 : this.midX - 9;
             int previewY = isSidebarUi() ? itemPreviewCenterY() - ITEM_SIZE / 2 : 27;
             if (isMouseIn(mouseX, mouseY, previewX, previewY, 18, 18)) {
-                guiGraphics.renderTooltip(this.font, this.previewStack, mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, this.previewStack, mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.CONTAINER) {
             int slot = getHoveredContainerSlot(mouseX, mouseY);
             if (slot >= 0) {
                 ItemStack slotStack = getContainerSlotItem(slot);
                 if (!slotStack.isEmpty()) {
-                    guiGraphics.renderTooltip(this.font, slotStack, mouseX, mouseY);
+                    guiGraphics.setTooltipForNextFrame(this.font, slotStack, mouseX, mouseY);
                 } else {
-                    guiGraphics.renderTooltip(this.font, Component.translatable(key("container.empty_slot")), mouseX, mouseY);
+                    guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key("container.empty_slot")), mouseX, mouseY);
                 }
                 return;
             }
             if (this.containerSlotNbtBox != null && this.containerSlotNbtBox.getValue().length() > 20
                     && isMouseIn(mouseX, mouseY, this.containerSlotNbtBox.getX(), this.containerSlotNbtBox.getY(),
                     this.containerSlotNbtBox.getWidth(), this.containerSlotNbtBox.getHeight())) {
-                guiGraphics.renderTooltip(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.TRADES) {
             if (getHoveredTradeListIndex(mouseX, mouseY) >= 0) {
-                guiGraphics.renderComponentTooltip(this.font, List.of(
+                guiGraphics.setTooltipForNextFrame(this.font, List.of(
                         Component.translatable(key("trades.leftclick")),
-                        Component.translatable(key("trades.rightclick"))), mouseX, mouseY);
+                        Component.translatable(key("trades.rightclick"))), Optional.empty(), mouseX, mouseY);
                 return;
             }
             int resetX = this.midX - 30;
@@ -1111,7 +1112,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 resetHeight = SIDEBAR_BUTTON_HEIGHT;
             }
             if (isMouseIn(mouseX, mouseY, resetX, resetY, resetWidth, resetHeight)) {
-                guiGraphics.renderTooltip(this.font, Component.translatable(key("trades.reset")), mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key("trades.reset")), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.TRADE) {
             int slot = getHoveredSingleTradeSlot(mouseX, mouseY);
@@ -1119,16 +1120,16 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 CompoundTag recipe = getSelectedTradeRecipe();
                 ItemStack stack = recipe == null ? ItemStack.EMPTY : getTradeSlotItem(recipe, slot);
                 if (!stack.isEmpty()) {
-                    guiGraphics.renderTooltip(this.font, stack, mouseX, mouseY);
+                    guiGraphics.setTooltipForNextFrame(this.font, stack, mouseX, mouseY);
                 }
-                guiGraphics.renderTooltip(this.font, Component.translatable(key("trade.click_to_edit")), mouseX, mouseY - 16);
+                guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key("trade.click_to_edit")), mouseX, mouseY - 16);
             }
         } else if (this.activePanel == Panel.LORE_PAINTER) {
             if (this.lorePainterScaleButton != null && isMouseIn(mouseX, mouseY,
                     this.lorePainterScaleButton.getX(), this.lorePainterScaleButton.getY(),
                     this.lorePainterScaleButton.getWidth(), this.lorePainterScaleButton.getHeight())
                     && this.minecraft != null) {
-                guiGraphics.renderTooltip(this.font, Component.literal(String.valueOf(this.minecraft.options.guiScale().get())), mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, Component.literal(String.valueOf(this.minecraft.options.guiScale().get())), mouseX, mouseY);
                 return;
             }
             boolean hoveringPreview = this.lorePainterPreviewButton != null && isMouseIn(mouseX, mouseY,
@@ -1140,7 +1141,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 for (List<LorePixel> row : this.lorePainterRows) {
                     lines.add(Component.literal(buildLorePainterRow(row)));
                 }
-                guiGraphics.renderComponentTooltip(this.font, lines, mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, lines, Optional.empty(), mouseX, mouseY);
             }
         }
     }

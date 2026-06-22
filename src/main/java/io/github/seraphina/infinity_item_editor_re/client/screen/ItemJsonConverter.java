@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import com.google.gson.Gson;
@@ -58,7 +60,7 @@ final class ItemJsonConverter {
         CompoundTag saved = jsonObjectToCompound(parsed.getAsJsonObject());
         normalizeStackKeys(saved);
         ItemStack stack = ItemStackNbt.parse(saved);
-        if (stack.isEmpty() && !"minecraft:air".equals(saved.getString("id"))) {
+        if (stack.isEmpty() && !"minecraft:air".equals(NbtCompat.getString(saved, "id"))) {
             throw new JsonParseException("JSON does not describe a valid item stack.");
         }
         return stack;
@@ -67,13 +69,13 @@ final class ItemJsonConverter {
     private static void normalizeStackKeys(CompoundTag saved) {
         if (!saved.contains("id")) {
             if (saved.contains("item")) {
-                saved.putString("id", saved.getString("item"));
+                saved.putString("id", NbtCompat.getString(saved, "item"));
             } else if (saved.contains("Item")) {
-                saved.putString("id", saved.getString("Item"));
+                saved.putString("id", NbtCompat.getString(saved, "Item"));
             }
         }
         if (!saved.contains("Count") && saved.contains("count")) {
-            saved.putByte("Count", saved.getByte("count"));
+            saved.putByte("Count", NbtCompat.getByte(saved, "count"));
         }
         if (!saved.contains("Count")) {
             saved.putByte("Count", (byte) 1);

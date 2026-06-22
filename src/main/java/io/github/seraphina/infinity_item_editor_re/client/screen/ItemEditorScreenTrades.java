@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -33,7 +35,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
@@ -82,16 +83,16 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
 
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
-        if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        CompoundTag entityTag = NbtCompat.getCompound(tag, ENTITY_TAG);
+        if (!NbtCompat.contains(entityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
         }
         ensureVillagerData(entityTag);
-        if (!entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(entityTag, OFFERS_TAG, Tag.TAG_COMPOUND)) {
             entityTag.put(OFFERS_TAG, new CompoundTag());
         }
-        CompoundTag offers = entityTag.getCompound(OFFERS_TAG);
-        if (!offers.contains(RECIPES_TAG, Tag.TAG_LIST)) {
+        CompoundTag offers = NbtCompat.getCompound(entityTag, OFFERS_TAG);
+        if (!NbtCompat.contains(offers, RECIPES_TAG, Tag.TAG_LIST)) {
             offers.put(RECIPES_TAG, new ListTag());
         }
         entityTag.put(OFFERS_TAG, offers);
@@ -101,19 +102,19 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
     }
 
     protected void ensureVillagerData(CompoundTag entityTag) {
-        CompoundTag villagerData = entityTag.contains(VILLAGER_DATA_TAG, Tag.TAG_COMPOUND)
-                ? entityTag.getCompound(VILLAGER_DATA_TAG)
+        CompoundTag villagerData = NbtCompat.contains(entityTag, VILLAGER_DATA_TAG, Tag.TAG_COMPOUND)
+                ? NbtCompat.getCompound(entityTag, VILLAGER_DATA_TAG)
                 : new CompoundTag();
-        if (!villagerData.contains(VILLAGER_TYPE_TAG, Tag.TAG_STRING)) {
+        if (!NbtCompat.contains(villagerData, VILLAGER_TYPE_TAG, Tag.TAG_STRING)) {
             villagerData.putString(VILLAGER_TYPE_TAG, DEFAULT_VILLAGER_TYPE);
         }
-        if (!villagerData.contains(VILLAGER_PROFESSION_TAG, Tag.TAG_STRING)) {
+        if (!NbtCompat.contains(villagerData, VILLAGER_PROFESSION_TAG, Tag.TAG_STRING)) {
             villagerData.putString(VILLAGER_PROFESSION_TAG, DEFAULT_VILLAGER_PROFESSION);
         }
-        if (!villagerData.contains(VILLAGER_LEVEL_TAG, Tag.TAG_ANY_NUMERIC)) {
+        if (!NbtCompat.contains(villagerData, VILLAGER_LEVEL_TAG, NbtCompat.TAG_ANY_NUMERIC)) {
             villagerData.putInt(VILLAGER_LEVEL_TAG, DEFAULT_VILLAGER_LEVEL);
         } else {
-            villagerData.putInt(VILLAGER_LEVEL_TAG, Mth.clamp(villagerData.getInt(VILLAGER_LEVEL_TAG), 1, 5));
+            villagerData.putInt(VILLAGER_LEVEL_TAG, Mth.clamp(NbtCompat.getInt(villagerData, VILLAGER_LEVEL_TAG), 1, 5));
         }
         entityTag.put(VILLAGER_DATA_TAG, villagerData);
     }
@@ -181,7 +182,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
 
         clampTradeSelection(recipes);
-        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        CompoundTag recipe = NbtCompat.getCompound(recipes, this.selectedTradeIndex).copy();
         try {
             ItemStack slotStack = parseTradeSlotItem(this.tradeItemNbtValue);
             if (slotStack.isEmpty() && this.selectedTradeSlot != TRADE_SLOT_SECOND_BUY) {
@@ -219,7 +220,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
 
         clampTradeSelection(recipes);
-        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        CompoundTag recipe = NbtCompat.getCompound(recipes, this.selectedTradeIndex).copy();
         this.tradeRewardExp = !this.tradeRewardExp;
         recipe.putBoolean(TRADE_REWARD_EXP_TAG, this.tradeRewardExp);
         recipes.set(this.selectedTradeIndex, recipe);
@@ -235,7 +236,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
 
         clampTradeSelection(recipes);
-        CompoundTag recipe = recipes.getCompound(this.selectedTradeIndex).copy();
+        CompoundTag recipe = NbtCompat.getCompound(recipes, this.selectedTradeIndex).copy();
         int maxUses = parseTradeIntField(this.tradeMaxUsesValue, "max_uses",
                 TRADE_DEFAULT_MAX_USES, -TRADE_MAX_USES_LIMIT, TRADE_MAX_USES_LIMIT);
         recipe.putInt(TRADE_MAX_USES_TAG, maxUses);
@@ -288,7 +289,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         clampTradeSelection(trades);
         int clampedSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
         this.selectedTradeSlot = clampedSlot;
-        ItemStack slotStack = getTradeSlotItem(trades.getCompound(this.selectedTradeIndex), clampedSlot);
+        ItemStack slotStack = getTradeSlotItem(NbtCompat.getCompound(trades, this.selectedTradeIndex), clampedSlot);
         this.minecraft.setScreen(new ItemEditorScreen(slotStack, (ItemEditorScreen) this, this.selectedTradeIndex, clampedSlot));
     }
 
@@ -321,7 +322,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
         int clampedIndex = Mth.clamp(tradeIndex, 0, recipes.size() - 1);
         int clampedSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
-        CompoundTag recipe = recipes.getCompound(clampedIndex).copy();
+        CompoundTag recipe = NbtCompat.getCompound(recipes, clampedIndex).copy();
         putTradeSlotItem(recipe, clampedSlot, stack);
         recipes.set(clampedIndex, recipe);
         this.selectedTradeIndex = clampedIndex;
@@ -338,7 +339,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             return;
         }
 
-        CompoundTag recipe = trades.getCompound(this.selectedTradeIndex);
+        CompoundTag recipe = NbtCompat.getCompound(trades, this.selectedTradeIndex);
         ItemStack slotStack = getTradeSlotItem(recipe, this.selectedTradeSlot);
         this.tradeItemNbtValue = getTradeSlotItemNbt(slotStack);
         this.tradeUsesValue = Integer.toString(getTradeInt(recipe, TRADE_USES_TAG, 0));
@@ -348,7 +349,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
                 TRADE_DEFAULT_PRICE_MULTIPLIER));
         this.tradeSpecialPriceValue = Integer.toString(getTradeInt(recipe, TRADE_SPECIAL_PRICE_TAG, 0));
         this.tradeDemandValue = Integer.toString(getTradeInt(recipe, TRADE_DEMAND_TAG, 0));
-        this.tradeRewardExp = !recipe.contains(TRADE_REWARD_EXP_TAG, Tag.TAG_BYTE) || recipe.getBoolean(TRADE_REWARD_EXP_TAG);
+        this.tradeRewardExp = !NbtCompat.contains(recipe, TRADE_REWARD_EXP_TAG, Tag.TAG_BYTE) || NbtCompat.getBoolean(recipe, TRADE_REWARD_EXP_TAG);
     }
 
     protected void resetTradeFieldValues() {
@@ -368,15 +369,15 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
     protected ListTag getVillagerTradeRecipes(ItemStack stack) {
         CompoundTag entityTag = ItemStackNbt.getElement(stack, ENTITY_TAG);
-        if (entityTag == null || !entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)) {
+        if (entityTag == null || !NbtCompat.contains(entityTag, OFFERS_TAG, Tag.TAG_COMPOUND)) {
             return new ListTag();
         }
 
-        CompoundTag offers = entityTag.getCompound(OFFERS_TAG);
-        if (!offers.contains(RECIPES_TAG, Tag.TAG_LIST)) {
+        CompoundTag offers = NbtCompat.getCompound(entityTag, OFFERS_TAG);
+        if (!NbtCompat.contains(offers, RECIPES_TAG, Tag.TAG_LIST)) {
             return new ListTag();
         }
-        return offers.getList(RECIPES_TAG, Tag.TAG_COMPOUND);
+        return NbtCompat.getList(offers, RECIPES_TAG, Tag.TAG_COMPOUND);
     }
 
     protected int getVillagerTradeCount() {
@@ -389,29 +390,29 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             return null;
         }
         clampTradeSelection(trades);
-        return trades.getCompound(this.selectedTradeIndex);
+        return NbtCompat.getCompound(trades, this.selectedTradeIndex);
     }
 
     protected ListTag copyTradeRecipes(ListTag recipes) {
         ListTag copy = new ListTag();
         for (int i = 0; i < recipes.size(); i++) {
-            copy.add(recipes.getCompound(i).copy());
+            copy.add(NbtCompat.getCompound(recipes, i).copy());
         }
         return copy;
     }
 
     protected void putVillagerTradeRecipes(ListTag recipes) {
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
-        CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
-        if (!recipes.isEmpty() && !entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
+        CompoundTag entityTag = NbtCompat.getCompound(tag, ENTITY_TAG);
+        if (!recipes.isEmpty() && !NbtCompat.contains(entityTag, ENTITY_ID_TAG, Tag.TAG_STRING)) {
             entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
         }
         if (!recipes.isEmpty()) {
             ensureVillagerData(entityTag);
         }
 
-        CompoundTag offers = entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)
-                ? entityTag.getCompound(OFFERS_TAG)
+        CompoundTag offers = NbtCompat.contains(entityTag, OFFERS_TAG, Tag.TAG_COMPOUND)
+                ? NbtCompat.getCompound(entityTag, OFFERS_TAG)
                 : new CompoundTag();
         offers.put(RECIPES_TAG, recipes);
         entityTag.put(OFFERS_TAG, offers);
@@ -444,10 +445,10 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
     protected ItemStack getTradeSlotItem(CompoundTag recipe, int slot) {
         String tagName = getTradeSlotTagName(slot);
-        if (!recipe.contains(tagName, Tag.TAG_COMPOUND)) {
+        if (!NbtCompat.contains(recipe, tagName, Tag.TAG_COMPOUND)) {
             return ItemStack.EMPTY;
         }
-        return ItemStackNbt.parse(recipe.getCompound(tagName));
+        return ItemStackNbt.parse(NbtCompat.getCompound(recipe, tagName));
     }
 
     protected String getTradeSlotTagName(int slot) {
@@ -464,7 +465,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             return ItemStack.EMPTY;
         }
 
-        CompoundTag itemTag = TagParser.parseTag(trimmed);
+        CompoundTag itemTag = NbtCompat.parseTag(trimmed);
         ItemStack stack = ItemStackNbt.parse(itemTag);
         if (stack.isEmpty()) {
             throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
@@ -516,11 +517,11 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
     }
 
     protected int getTradeInt(CompoundTag recipe, String tagName, int defaultValue) {
-        return recipe.contains(tagName, Tag.TAG_ANY_NUMERIC) ? recipe.getInt(tagName) : defaultValue;
+        return NbtCompat.contains(recipe, tagName, NbtCompat.TAG_ANY_NUMERIC) ? NbtCompat.getInt(recipe, tagName) : defaultValue;
     }
 
     protected float getTradeFloat(CompoundTag recipe, String tagName, float defaultValue) {
-        return recipe.contains(tagName, Tag.TAG_ANY_NUMERIC) ? recipe.getFloat(tagName) : defaultValue;
+        return NbtCompat.contains(recipe, tagName, NbtCompat.TAG_ANY_NUMERIC) ? NbtCompat.getFloat(recipe, tagName) : defaultValue;
     }
 
     protected String formatTradeRecipe(CompoundTag recipe) {
@@ -566,7 +567,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         ListTag trades = getVillagerTradeRecipes();
         int size = trades.size();
         for (int i = 0; i < size; i++) {
-            if (isMouseOverCenteredText(mouseX, mouseY, formatTradeRecipe(trades.getCompound(i)),
+            if (isMouseOverCenteredText(mouseX, mouseY, formatTradeRecipe(NbtCompat.getCompound(trades, i)),
                     this.midX, getTradeListRowY(i, size))) {
                 return i;
             }
