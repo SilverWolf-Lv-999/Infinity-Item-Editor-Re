@@ -100,6 +100,10 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.status = Component.empty();
         this.rawNbtValue = getInitialNbt(this.previewStack);
+        if (isBundleEditableItem(this.previewStack)) {
+            this.minecraft.setScreen(BundleItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
+            return;
+        }
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
@@ -147,6 +151,38 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             applyMainFieldsToStack(false);
         }
         this.minecraft.setScreen(new ItemPickScreen((ItemEditorScreen) this, this::replacePickedStack, () -> this.previewStack));
+    }
+
+    protected void openContainerSlotPicker() {
+        if (this.minecraft == null || !isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+        captureFieldValues();
+        this.minecraft.setScreen(new ItemPickScreen((ItemEditorScreen) this, this::replaceContainerSlotPickedStack,
+                () -> getContainerSlotItem(this.selectedContainerSlot)));
+    }
+
+    private void replaceContainerSlotPickedStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return;
+        }
+
+        boolean bundle = isBundleEditableItem(this.previewStack);
+        int previousBundleCount = getBundleItemCount(this.previewStack);
+        boolean appendingBundleEntry = bundle && this.selectedContainerSlot >= previousBundleCount;
+        ItemStack pickedStack = stack.copy();
+        setContainerSlotItem(this.selectedContainerSlot, pickedStack);
+        clampSelectedContainerSlot();
+        this.containerSlotNbtValue = getContainerSelectedSlotNbt();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        if (bundle) {
+            this.status = appendingBundleEntry
+                    ? Component.translatable(messageKey("editor_bundle_entry_added"), pickedStack.getHoverName())
+                    : Component.translatable(messageKey("editor_bundle_entry_updated"), this.selectedContainerSlot + 1, pickedStack.getHoverName());
+        } else {
+            this.status = Component.translatable(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, pickedStack.getHoverName());
+        }
+        rebuildWidgets();
     }
 
     private void replacePickedStack(ItemStack stack) {

@@ -44,6 +44,7 @@ import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.FireworkRocketItem;
@@ -725,11 +726,13 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected void readContainerFieldsFromStack(ItemStack stack) {
-        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, CONTAINER_SIZE - 1);
         if (!isContainerEditableItem(stack)) {
+            this.selectedContainerSlot = 0;
             this.containerSlotNbtValue = "{}";
             return;
         }
+
+        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, getContainerSelectableSize(stack) - 1);
         this.containerSlotNbtValue = getContainerSlotNbt(getContainerSlotItem(this.selectedContainerSlot));
     }
 
@@ -868,6 +871,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         if (this.potionTimeBox != null) {
             this.potionTimeValue = this.potionTimeBox.getValue();
+        }
+        if (this.attributeFilterBox != null) {
+            this.attributeFilterValue = this.attributeFilterBox.getValue();
         }
         if (this.attributeAmountBox != null) {
             this.attributeAmountValue = this.attributeAmountBox.getValue();
@@ -1088,11 +1094,28 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static boolean isContainerEditableItem(ItemStack stack) {
+        return isBlockContainerEditableItem(stack) || isBundleEditableItem(stack);
+    }
+
+    protected static boolean isBlockContainerEditableItem(ItemStack stack) {
         if (!(stack.getItem() instanceof BlockItem blockItem)) {
             return false;
         }
         Block block = blockItem.getBlock();
         return block instanceof ChestBlock || block instanceof BarrelBlock || block instanceof ShulkerBoxBlock;
+    }
+
+    protected static boolean isBundleEditableItem(ItemStack stack) {
+        return stack.getItem() instanceof BundleItem;
+    }
+
+    protected int getContainerSelectableSize(ItemStack stack) {
+        return isBundleEditableItem(stack) ? Math.max(1, getBundleItemCount(stack) + 1) : CONTAINER_SIZE;
+    }
+
+    protected int getBundleItemCount(ItemStack stack) {
+        CompoundTag tag = ItemStackNbt.get(stack);
+        return tag == null ? 0 : NbtCompat.getList(tag, CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND).size();
     }
 
     protected static boolean isBookEditableItem(ItemStack stack) {

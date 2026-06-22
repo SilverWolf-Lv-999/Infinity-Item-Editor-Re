@@ -140,7 +140,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             case HEAD -> Component.translatable(key("head"));
             case ARMOR_STAND -> Component.translatable(key("armorstand"));
             case FIREWORK -> Component.translatable(key("firework"));
-            case CONTAINER -> Component.translatable(key("container"));
+            case CONTAINER -> Component.translatable(key(isBundleEditableItem(this.previewStack) ? "bundle" : "container"));
             case BANNER -> Component.translatable(key("banner"));
             case DECORATED_POT -> Component.translatable(key("decorated_pot"));
             case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
@@ -496,6 +496,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     protected void renderAttributesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int centerX = contentMidX();
         drawPanelTitle(guiGraphics, Component.translatable(key("attributes")));
+        drawCenteredLabel(guiGraphics, Component.translatable(key("enchanting.search")),
+                this.attributeFilterBox.getX() + this.attributeFilterBox.getWidth() / 2,
+                this.attributeFilterBox.getY() - 12);
         List<AttributeEntry> entries = getAttributeModifierEntries();
         int start = this.midY - 5 * entries.size();
         for (int i = 0; i < entries.size(); i++) {
@@ -512,6 +515,12 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderLargePreviewItem(guiGraphics);
 
         List<Attribute> attributes = getSharedAttributes();
+        if (attributes.isEmpty()) {
+            guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_attribute_matches")),
+                    centerX, this.midY + 34, panelAccentColor());
+            return;
+        }
+
         int radius = getRingRadius();
         double angle = (2.0D * Math.PI) / attributes.size();
         double rotation = (this.rotOff + (Math.abs(this.mouseDist - radius) >= RING_HOVER_WIDTH ? partialTick : 0.0D)) / 60.0D;
@@ -595,7 +604,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderContainerPanel(GuiGraphics guiGraphics) {
         renderSmallItem(guiGraphics, this.midX, 34);
-        drawPanelTitle(guiGraphics, Component.translatable(key("container")));
+        drawPanelTitle(guiGraphics, Component.translatable(key(isBundleEditableItem(this.previewStack) ? "bundle" : "container")));
 
         int gridX = getContainerGridX();
         int gridY = getContainerGridY();
@@ -605,9 +614,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     gridY + CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 7, 8, 0xA8101821, ModernUi.BORDER);
         }
         for (int slot = 0; slot < CONTAINER_SIZE; slot++) {
+            int displaySlot = getContainerDisplaySlot(slot);
+            boolean enabled = isContainerDisplaySlotEnabled(slot);
             int x = gridX + (slot % CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
             int y = gridY + (slot / CONTAINER_COLUMNS) * CONTAINER_SLOT_PIXEL_SIZE;
-            boolean selected = slot == this.selectedContainerSlot;
+            boolean selected = enabled && displaySlot == this.selectedContainerSlot;
             if (isSidebarUi()) {
                 ModernUi.fillSlot(guiGraphics, x, y, selected);
             } else {
@@ -615,22 +626,26 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 guiGraphics.fill(x, y, x + ITEM_SIZE, y + ITEM_SIZE, 0xFF1C1C1C);
             }
 
-            ItemStack slotStack = getContainerSlotItem(slot);
+            if (!enabled) {
+                continue;
+            }
+
+            ItemStack slotStack = getContainerSlotItem(displaySlot);
             if (!slotStack.isEmpty()) {
                 guiGraphics.renderItem(slotStack, x, y);
                 guiGraphics.renderItemDecorations(this.font, slotStack, x, y);
             }
         }
 
-        Component selected = Component.translatable(key("container.slot"), this.selectedContainerSlot + 1);
-        Component itemCount = Component.translatable(key("container.items"), getContainerItemCount());
+        Component selected = Component.translatable(key(isBundleEditableItem(this.previewStack) ? "container.entry" : "container.slot"), this.selectedContainerSlot + 1);
+        Component itemCount = Component.translatable(key(isBundleEditableItem(this.previewStack) ? "container.entries" : "container.items"), getContainerItemCount());
         int infoY = gridY + CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 6;
         guiGraphics.drawString(this.font, selected, gridX, infoY, isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
         guiGraphics.drawString(this.font, itemCount,
                 gridX + CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE - this.font.width(itemCount), infoY,
                 isSidebarUi() ? ModernUi.TEXT_MUTED : ALT_COLOR);
         if (this.containerSlotNbtBox != null) {
-            drawCenteredLabel(guiGraphics, Component.translatable(key("container.slot_nbt")),
+            drawCenteredLabel(guiGraphics, Component.translatable(key(isBundleEditableItem(this.previewStack) ? "container.entry_nbt" : "container.slot_nbt")),
                     this.containerSlotNbtBox.getX() + this.containerSlotNbtBox.getWidth() / 2,
                     this.containerSlotNbtBox.getY() - 12);
         }
@@ -1080,7 +1095,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 if (!slotStack.isEmpty()) {
                     guiGraphics.setTooltipForNextFrame(this.font, slotStack, mouseX, mouseY);
                 } else {
-                    guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key("container.empty_slot")), mouseX, mouseY);
+                    guiGraphics.setTooltipForNextFrame(this.font, Component.translatable(key(isBundleEditableItem(this.previewStack) ? "container.empty_entry" : "container.empty_slot")), mouseX, mouseY);
                 }
                 return;
             }
@@ -1242,18 +1257,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected boolean handleContainerClick(double mouseX, double mouseY) {
-        int gridX = getContainerGridX();
-        int gridY = getContainerGridY();
-        int gridWidth = CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE;
-        int gridHeight = CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE;
-        if (!isMouseIn(mouseX, mouseY, gridX - 1, gridY - 1, gridWidth + 2, gridHeight + 2)) {
-            return false;
-        }
-
-        int column = ((int) mouseX - gridX) / CONTAINER_SLOT_PIXEL_SIZE;
-        int row = ((int) mouseY - gridY) / CONTAINER_SLOT_PIXEL_SIZE;
-        int slot = column + row * CONTAINER_COLUMNS;
-        if (column < 0 || column >= CONTAINER_COLUMNS || row < 0 || row >= CONTAINER_ROWS || slot < 0 || slot >= CONTAINER_SIZE) {
+        int slot = getHoveredContainerSlot((int) mouseX, (int) mouseY);
+        if (slot < 0) {
             return false;
         }
 

@@ -278,6 +278,11 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             return true;
         }
 
+        if (this.activePanel == Panel.CONTAINER && isBundleEditableItem(this.previewStack)) {
+            cycleContainerSlot(-(int) Math.signum(scrollY));
+            return true;
+        }
+
         if (this.activePanel == Panel.BANNER) {
             setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(scrollY));
             return true;

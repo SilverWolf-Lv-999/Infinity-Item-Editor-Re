@@ -327,7 +327,7 @@ protected void addItemPanel() {
 
         if (isContainerEditableItem(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
-                    Component.translatable(key("container")), button -> openContainerItemEditor());
+                    Component.translatable(key(isBundleEditableItem(this.previewStack) ? "bundle" : "container")), button -> openContainerItemEditor());
         }
 
         if (isBannerEditableItem(this.previewStack)) {
@@ -482,7 +482,7 @@ protected void addItemPanel() {
 
         if (isContainerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
-                    Component.translatable(key("container")), button -> openContainerItemEditor()));
+                    Component.translatable(key(isBundleEditableItem(this.previewStack) ? "bundle" : "container")), button -> openContainerItemEditor()));
             y += 30;
         }
 
@@ -871,30 +871,37 @@ protected void addItemPanel() {
     }
 
     protected void addContainerPanel() {
-        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, CONTAINER_SIZE - 1);
+        clampSelectedContainerSlot();
         int boxWidth = contentLimitedWidth(300, 180, 20);
         this.containerSlotNbtBox = addTrackedBox(legacyTextBox(centeredContentX(boxWidth), 132, boxWidth, FIELD_HEIGHT,
-                Component.translatable(key("container.slot_nbt"))));
+                Component.translatable(key(isBundleEditableItem(this.previewStack) ? "container.entry_nbt" : "container.slot_nbt"))));
         this.containerSlotNbtBox.setMaxLength(20000);
         this.containerSlotNbtBox.setValue(this.containerSlotNbtValue == null ? getContainerSelectedSlotNbt() : this.containerSlotNbtValue);
         this.containerSlotNbtBox.setResponder(value -> this.containerSlotNbtValue = value);
 
-        int controlsWidth = contentLimitedWidth(270, 160, 20);
+        int controlsWidth = contentLimitedWidth(320, 190, 20);
         int x = centeredContentX(controlsWidth);
         int gap = isSidebarUi() ? 4 : 4;
         int smallWidth = isSidebarUi() ? 20 : 24;
-        int remainingWidth = Math.max(1, controlsWidth - smallWidth * 2 - gap * 4);
-        int updateWidth = isSidebarUi() ? Math.max(1, remainingWidth * 84 / 204) : 84;
-        int clearWidth = isSidebarUi() ? Math.max(1, remainingWidth * 58 / 204) : 58;
-        int clearAllWidth = isSidebarUi() ? Math.max(1, remainingWidth - updateWidth - clearWidth) : 62;
+        int remainingWidth = Math.max(1, controlsWidth - smallWidth * 2 - gap * 5);
+        int pickWidth = isSidebarUi() ? Math.max(1, remainingWidth * 50 / 254) : 50;
+        int updateWidth = isSidebarUi() ? Math.max(1, remainingWidth * 74 / 254) : 74;
+        int clearWidth = isSidebarUi() ? Math.max(1, remainingWidth * 58 / 254) : 58;
+        int clearAllWidth = isSidebarUi() ? Math.max(1, remainingWidth - pickWidth - updateWidth - clearWidth) : 62;
 
         addRenderableWidget(new InfinityEditorButton(x, 158, smallWidth, FIELD_HEIGHT,
                 Component.literal("<"), button -> cycleContainerSlot(-1)));
         addRenderableWidget(new InfinityEditorButton(x + smallWidth + gap, 158, smallWidth, FIELD_HEIGHT,
                 Component.literal(">"), button -> cycleContainerSlot(1)));
-        int updateX = x + smallWidth * 2 + gap * 2;
+        int pickX = x + smallWidth * 2 + gap * 2;
+        addRenderableWidget(new InfinityEditorButton(pickX, 158, pickWidth, FIELD_HEIGHT,
+                Component.translatable(key("pick")), button -> openContainerSlotPicker()));
+        int updateX = pickX + pickWidth + gap;
         addRenderableWidget(new InfinityEditorButton(updateX, 158, updateWidth, FIELD_HEIGHT,
-                Component.translatable(key("container.update_slot")), button -> updateContainerSlotFromNbt()));
+                Component.translatable(key(isBundleEditableItem(this.previewStack)
+                        && this.selectedContainerSlot >= getBundleItemCount(this.previewStack)
+                        ? "container.add_entry"
+                        : "container.update_slot")), button -> updateContainerSlotFromNbt()));
         int clearX = updateX + updateWidth + gap;
         addRenderableWidget(new InfinityEditorButton(clearX, 158, clearWidth, FIELD_HEIGHT,
                 Component.translatable(key("container.clear_slot")), button -> clearContainerSlot()));
@@ -1155,6 +1162,13 @@ protected void addItemPanel() {
 
     protected void addAttributesPanel() {
         int controlLeft = editorControlLeft();
+        this.attributeFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
+                Component.translatable(key("attribute_filter"))));
+        this.attributeFilterBox.setMaxLength(48);
+        this.attributeFilterBox.setTextColor(MAIN_COLOR);
+        this.attributeFilterBox.setValue(this.attributeFilterValue);
+        this.attributeFilterBox.setResponder(value -> this.attributeFilterValue = value.toLowerCase(Locale.ROOT));
+
         this.attributeInfinityButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 123, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.infinity." + (this.attributeInfinity ? 1 : 0))),
                 button -> toggleAttributeInfinity()));

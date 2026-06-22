@@ -16,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -248,6 +249,7 @@ public final class ItemStackNbt {
         readComponentPotion(components, tag);
         readComponentBooks(components, tag);
         readComponentFireworks(components, tag);
+        readComponentBundleContents(components, tag);
         readComponentProfile(components, tag);
         readComponentBlockEntity(stack, components, tag);
 
@@ -378,6 +380,7 @@ public final class ItemStackNbt {
         writePotionComponents(customData, components);
         writeBookComponents(customData, components);
         writeFireworkComponents(customData, components);
+        writeBundleContentsComponent(itemId, customData, components);
         writeProfileComponent(customData, components);
         writeBlockEntityComponents(itemId, customData, components);
 
@@ -868,6 +871,15 @@ public final class ItemStackNbt {
         }
     }
 
+    private static void writeBundleContentsComponent(String itemId, CompoundTag customData, CompoundTag components) {
+        if (!isBundleItemId(itemId) || !NbtCompat.contains(customData, "Items", Tag.TAG_LIST)) {
+            return;
+        }
+
+        components.put("minecraft:bundle_contents", bundleItemsToComponent(NbtCompat.getList(customData, "Items", Tag.TAG_COMPOUND)));
+        customData.remove("Items");
+    }
+
     private static void writeProfileComponent(CompoundTag customData, CompoundTag components) {
         if (!customData.contains("SkullOwner")) {
             return;
@@ -1040,6 +1052,12 @@ public final class ItemStackNbt {
         }
     }
 
+    private static void readComponentBundleContents(CompoundTag components, CompoundTag tag) {
+        if (components.contains("minecraft:bundle_contents")) {
+            tag.put("Items", bundleItemsFromComponent(NbtCompat.getList(components, "minecraft:bundle_contents", Tag.TAG_COMPOUND)));
+        }
+    }
+
     private static void readComponentProfile(CompoundTag components, CompoundTag tag) {
         if (!components.contains("minecraft:profile")) {
             return;
@@ -1113,6 +1131,37 @@ public final class ItemStackNbt {
             CompoundTag item = NbtCompat.getCompound(componentItem, "item").copy();
             item.putByte("Slot", (byte) NbtCompat.getInt(componentItem, "slot"));
             items.add(item);
+        }
+        return items;
+    }
+
+    private static ListTag bundleItemsToComponent(ListTag oldItems) {
+        ListTag items = new ListTag();
+        for (int i = 0; i < oldItems.size(); i++) {
+            Tag oldItem = oldItems.get(i);
+            if (oldItem instanceof CompoundTag oldItemTag) {
+                CompoundTag stackTag = oldItemTag.copy();
+                stackTag.remove("Slot");
+                items.add(normalizeStackTag(stackTag));
+            } else if (oldItem != null) {
+                items.add(oldItem.copy());
+            }
+        }
+        return items;
+    }
+
+    private static ListTag bundleItemsFromComponent(ListTag componentItems) {
+        ListTag items = new ListTag();
+        for (int i = 0; i < componentItems.size(); i++) {
+            Tag componentItem = componentItems.get(i);
+            if (componentItem instanceof CompoundTag itemTag) {
+                items.add(itemTag.copy());
+            } else if (componentItem instanceof StringTag stringTag) {
+                CompoundTag item = new CompoundTag();
+                item.putString("id", stringTag.value());
+                item.putInt("count", 1);
+                items.add(item);
+            }
         }
         return items;
     }
@@ -1458,6 +1507,11 @@ public final class ItemStackNbt {
 
         String id = BLOCK_ENTITY_BY_ITEM.get(path);
         return id == null ? null : "minecraft:" + id;
+    }
+
+    private static boolean isBundleItemId(String itemId) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        return id != null && BuiltInRegistries.ITEM.getValue(id) instanceof BundleItem;
     }
 
     private static String namespace(String id) {

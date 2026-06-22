@@ -641,7 +641,7 @@ protected void applySignToStack() {
     }
 
     protected void cycleContainerSlot(int direction) {
-        this.selectedContainerSlot = Mth.positiveModulo(this.selectedContainerSlot + direction, CONTAINER_SIZE);
+        this.selectedContainerSlot = Mth.positiveModulo(this.selectedContainerSlot + direction, getContainerSelectableSize(this.previewStack));
         this.containerSlotNbtValue = getContainerSelectedSlotNbt();
         if (this.containerSlotNbtBox != null) {
             this.containerSlotNbtBox.setValue(this.containerSlotNbtValue);
@@ -656,12 +656,26 @@ protected void applySignToStack() {
 
         captureFieldValues();
         try {
+            boolean bundle = isBundleEditableItem(this.previewStack);
+            int previousBundleCount = getBundleItemCount(this.previewStack);
+            boolean appendingBundleEntry = bundle && this.selectedContainerSlot >= previousBundleCount;
             ItemStack slotStack = parseContainerSlotItem(this.containerSlotNbtValue);
             setContainerSlotItem(this.selectedContainerSlot, slotStack);
+            clampSelectedContainerSlot();
             this.containerSlotNbtValue = getContainerSlotNbt(slotStack);
-            this.status = slotStack.isEmpty()
-                    ? Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1)
-                    : Component.translatable(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
+            if (bundle) {
+                if (slotStack.isEmpty()) {
+                    this.status = Component.translatable(messageKey("editor_bundle_entry_cleared"), this.selectedContainerSlot + 1);
+                } else if (appendingBundleEntry) {
+                    this.status = Component.translatable(messageKey("editor_bundle_entry_added"), slotStack.getHoverName());
+                } else {
+                    this.status = Component.translatable(messageKey("editor_bundle_entry_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
+                }
+            } else {
+                this.status = slotStack.isEmpty()
+                        ? Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1)
+                        : Component.translatable(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
+            }
             rebuildWidgets();
         } catch (CommandSyntaxException exception) {
             this.status = Component.translatable(messageKey("editor_invalid_nbt"), exception.getMessage());
@@ -690,13 +704,31 @@ protected void applySignToStack() {
         }
 
         setContainerSlotItem(this.selectedContainerSlot, ItemStack.EMPTY);
+        clampSelectedContainerSlot();
         this.containerSlotNbtValue = "{}";
-        this.status = Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1);
+        this.status = Component.translatable(messageKey(isBundleEditableItem(this.previewStack)
+                ? "editor_bundle_entry_cleared"
+                : "editor_container_slot_cleared"), this.selectedContainerSlot + 1);
         rebuildWidgets();
     }
 
     protected void clearContainerItems() {
         if (!isContainerEditableItem(this.previewStack)) {
+            return;
+        }
+
+        if (isBundleEditableItem(this.previewStack)) {
+            CompoundTag tag = ItemStackNbt.get(this.previewStack);
+            if (tag == null || !NbtCompat.contains(tag, CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
+                return;
+            }
+
+            tag.remove(CONTAINER_ITEMS_TAG);
+            cleanupEmptyTag();
+            this.selectedContainerSlot = 0;
+            this.containerSlotNbtValue = "{}";
+            this.status = Component.translatable(messageKey("editor_bundle_cleared"));
+            rebuildWidgets();
             return;
         }
 
@@ -714,6 +746,11 @@ protected void applySignToStack() {
     }
 
     protected void setContainerSlotItem(int slot, ItemStack slotStack) {
+        if (isBundleEditableItem(this.previewStack)) {
+            setBundleSlotItem(slot, slotStack);
+            return;
+        }
+
         CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag blockEntity = NbtCompat.contains(tag, BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)
                 ? NbtCompat.getCompound(tag, BLOCK_ENTITY_TAG)
@@ -754,6 +791,9 @@ protected void applySignToStack() {
         if (!isContainerEditableItem(this.previewStack)) {
             return ItemStack.EMPTY;
         }
+        if (isBundleEditableItem(this.previewStack)) {
+            return getBundleSlotItem(slot);
+        }
 
         ListTag items = getContainerItemsList();
         ItemStack found = ItemStack.EMPTY;
@@ -775,6 +815,10 @@ protected void applySignToStack() {
     }
 
     protected int getContainerItemCount() {
+        if (isBundleEditableItem(this.previewStack)) {
+            return getBundleItemCount(this.previewStack);
+        }
+
         int count = 0;
         for (int slot = 0; slot < CONTAINER_SIZE; slot++) {
             if (!getContainerSlotItem(slot).isEmpty()) {
@@ -793,6 +837,94 @@ protected void applySignToStack() {
             return "{}";
         }
         return ItemStackNbt.save(stack).toString();
+    }
+
+    protected void setBundleSlotItem(int slot, ItemStack slotStack) {
+        ListTag currentItems = getBundleItemsList();
+        ListTag updatedItems = new ListTag();
+        for (int i = 0; i < currentItems.size(); i++) {
+            if (i == slot) {
+                if (!slotStack.isEmpty()) {
+                    updatedItems.add(ItemStackNbt.save(slotStack));
+                }
+                continue;
+            }
+            CompoundTag existingItem = normalizeBundleItemTag(currentItems.get(i));
+            if (!existingItem.isEmpty()) {
+                updatedItems.add(existingItem);
+            }
+        }
+
+        if (slot >= currentItems.size() && !slotStack.isEmpty()) {
+            updatedItems.add(ItemStackNbt.save(slotStack));
+        }
+
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
+        if (updatedItems.isEmpty()) {
+            tag.remove(CONTAINER_ITEMS_TAG);
+        } else {
+            tag.put(CONTAINER_ITEMS_TAG, updatedItems);
+        }
+        cleanupEmptyTag();
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    protected ItemStack getBundleSlotItem(int slot) {
+        ListTag items = getBundleItemsList();
+        if (slot < 0 || slot >= items.size()) {
+            return ItemStack.EMPTY;
+        }
+
+        Tag itemTag = items.get(slot);
+        CompoundTag compoundTag = normalizeBundleItemTag(itemTag);
+        if (compoundTag.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        return ItemStackNbt.parse(compoundTag);
+    }
+
+    private CompoundTag normalizeBundleItemTag(Tag itemTag) {
+        if (itemTag instanceof CompoundTag compoundTag) {
+            return compoundTag.copy();
+        }
+        if (itemTag instanceof StringTag stringTag) {
+            CompoundTag item = new CompoundTag();
+            item.putString("id", stringTag.value());
+            item.putInt("count", 1);
+            return item;
+        }
+        return new CompoundTag();
+    }
+
+    protected ListTag getBundleItemsList() {
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
+        if (tag == null || !NbtCompat.contains(tag, CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
+            return new ListTag();
+        }
+        return NbtCompat.getList(tag, CONTAINER_ITEMS_TAG, Tag.TAG_COMPOUND);
+    }
+
+    protected void clampSelectedContainerSlot() {
+        this.selectedContainerSlot = Mth.clamp(this.selectedContainerSlot, 0, getContainerSelectableSize(this.previewStack) - 1);
+    }
+
+    protected int getContainerPageStart() {
+        if (!isBundleEditableItem(this.previewStack)) {
+            return 0;
+        }
+        return this.selectedContainerSlot / CONTAINER_SIZE * CONTAINER_SIZE;
+    }
+
+    protected boolean isContainerDisplaySlotEnabled(int localSlot) {
+        if (!isBundleEditableItem(this.previewStack)) {
+            return localSlot >= 0 && localSlot < CONTAINER_SIZE;
+        }
+        int slot = getContainerPageStart() + localSlot;
+        return slot >= 0 && slot < getContainerSelectableSize(this.previewStack);
+    }
+
+    protected int getContainerDisplaySlot(int localSlot) {
+        return isBundleEditableItem(this.previewStack) ? getContainerPageStart() + localSlot : localSlot;
     }
 
     protected int getContainerGridX() {
@@ -814,8 +946,12 @@ protected void applySignToStack() {
 
         int column = (mouseX - gridX) / CONTAINER_SLOT_PIXEL_SIZE;
         int row = (mouseY - gridY) / CONTAINER_SLOT_PIXEL_SIZE;
-        int slot = column + row * CONTAINER_COLUMNS;
-        return column < 0 || column >= CONTAINER_COLUMNS || row < 0 || row >= CONTAINER_ROWS ? -1 : slot;
+        int localSlot = column + row * CONTAINER_COLUMNS;
+        if (column < 0 || column >= CONTAINER_COLUMNS || row < 0 || row >= CONTAINER_ROWS
+                || localSlot < 0 || localSlot >= CONTAINER_SIZE || !isContainerDisplaySlotEnabled(localSlot)) {
+            return -1;
+        }
+        return getContainerDisplaySlot(localSlot);
     }
 
     protected MutableComponent createSignLineComponent(int line) {
