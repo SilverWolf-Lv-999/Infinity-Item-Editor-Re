@@ -138,6 +138,18 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String BANNER_COLOR_TAG = "Color";
     protected static final String BANNER_BASE_TAG = "Base";
     protected static final int BANNER_PATTERN_ROWS = 8;
+    protected static final String DECORATED_POT_SHERDS_TAG = "sherds";
+    protected static final int DECORATED_POT_SIDE_BACK = 0;
+    protected static final int DECORATED_POT_SIDE_LEFT = 1;
+    protected static final int DECORATED_POT_SIDE_RIGHT = 2;
+    protected static final int DECORATED_POT_SIDE_FRONT = 3;
+    protected static final int[] DECORATED_POT_DISPLAY_SIDES = {
+            DECORATED_POT_SIDE_FRONT,
+            DECORATED_POT_SIDE_LEFT,
+            DECORATED_POT_SIDE_RIGHT,
+            DECORATED_POT_SIDE_BACK
+    };
+    protected static final int POTTERY_SHERD_ROWS = 8;
     protected static final String BOOK_TITLE_TAG = "title";
     protected static final String BOOK_FILTERED_TITLE_TAG = "filtered_title";
     protected static final String BOOK_AUTHOR_TAG = "author";
@@ -256,6 +268,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected String headTextureSignatureValue = "";
     protected String containerSlotNbtValue = "{}";
     protected String bannerPatternFilterValue = "";
+    protected String potterySherdFilterValue = "";
     protected String spawnEggEntityFilterValue = "";
     protected String spawnEggCustomNameValue = "";
     protected String spawnEggOwnerValue = "";
@@ -289,6 +302,9 @@ abstract class ItemEditorScreenState extends Screen {
     protected int bannerPatternColor = DyeColor.BLACK.getId();
     protected int bannerPatternScroll;
     protected int selectedBannerPatternIndex;
+    protected int potterySherdScroll;
+    protected int selectedPotterySherdIndex;
+    protected int selectedDecoratedPotSide = DECORATED_POT_SIDE_FRONT;
     protected int fireworkExplosionType;
     protected int fireworkColor = DyeColor.RED.getId();
     protected int fireworkFadeColor = -1;
@@ -341,6 +357,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected EditBox headTextureSignatureBox;
     protected EditBox containerSlotNbtBox;
     protected EditBox bannerPatternFilterBox;
+    protected EditBox potterySherdFilterBox;
     protected EditBox spawnEggEntityFilterBox;
     protected EditBox spawnEggCustomNameBox;
     protected EditBox spawnEggOwnerBox;
@@ -521,6 +538,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract boolean handleContainerClick(double mouseX, double mouseY);
 
     protected abstract boolean handleBannerClick(double mouseX, double mouseY);
+
+    protected abstract boolean handleDecoratedPotClick(double mouseX, double mouseY);
 
     protected abstract boolean handleSpawnEggClick(double mouseX, double mouseY);
 
@@ -735,6 +754,34 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract CompoundTag getOrCreateBannerBlockEntityTag();
 
     protected abstract BannerPatternEntry getBannerPatternEntry(String hash);
+
+    protected abstract void applySelectedPotterySherd();
+
+    protected abstract void clearDecoratedPotSide();
+
+    protected abstract void clearDecoratedPotDecorations();
+
+    protected abstract void selectDecoratedPotSide(int side);
+
+    protected abstract void cycleSelectedPotterySherd(int direction);
+
+    protected abstract void setPotterySherdScroll(int value);
+
+    protected abstract void clampPotterySherdSelection(List<PotterySherdEntry> sherds);
+
+    protected abstract int getPotterySherdRowY(int row);
+
+    protected abstract List<PotterySherdEntry> getFilteredPotterySherds();
+
+    protected abstract Component getPotterySherdName(PotterySherdEntry entry);
+
+    protected abstract Component getDecoratedPotSideName(int side);
+
+    protected abstract Component getDecoratedPotSideItemName(int side);
+
+    protected abstract int getDecoratedPotDecorationCount();
+
+    protected abstract void renderDecoratedPotSides(GuiGraphics guiGraphics);
 
     protected abstract void applySelectedSpawnEggEntity();
 
@@ -1155,6 +1202,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract CompoundTag getFireworkExplosionForFields(ItemStack stack);
 
     protected abstract void readBannerFieldsFromStack(ItemStack stack);
+
+    protected abstract void readDecoratedPotFieldsFromStack(ItemStack stack);
 
     protected abstract void readSpawnEggFieldsFromStack(ItemStack stack);
 

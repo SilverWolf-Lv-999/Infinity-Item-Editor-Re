@@ -679,6 +679,10 @@ public final class ItemStackNbt {
             components.putString("minecraft:base_color", dyeNameById(blockEntity.getInt("Base")));
             blockEntity.remove("Base");
         }
+        if ("minecraft:decorated_pot".equals(itemId) && blockEntity.contains("sherds", Tag.TAG_LIST)) {
+            components.put("minecraft:pot_decorations", potDecorationsToComponent(blockEntity.getList("sherds", Tag.TAG_STRING)));
+            blockEntity.remove("sherds");
+        }
         moveInto(blockEntity, components, "Lock", "minecraft:lock");
         if (blockEntity.contains("LootTable", Tag.TAG_STRING)) {
             CompoundTag loot = new CompoundTag();
@@ -906,6 +910,9 @@ public final class ItemStackNbt {
         if (components.contains("minecraft:base_color", Tag.TAG_STRING)) {
             blockEntity.putInt("Base", dyeIdByName(components.getString("minecraft:base_color")));
         }
+        if (stack.is(Items.DECORATED_POT) && components.contains("minecraft:pot_decorations", Tag.TAG_LIST)) {
+            blockEntity.put("sherds", potDecorationsFromComponent(components.getList("minecraft:pot_decorations", Tag.TAG_STRING)));
+        }
         copyTag(components, "minecraft:lock", blockEntity, "Lock");
         if (components.contains("minecraft:container_loot", Tag.TAG_COMPOUND)) {
             CompoundTag loot = components.getCompound("minecraft:container_loot");
@@ -967,6 +974,31 @@ public final class ItemStackNbt {
             patterns.add(pattern);
         }
         return patterns;
+    }
+
+    private static ListTag potDecorationsToComponent(ListTag oldSherds) {
+        ListTag sherds = new ListTag();
+        for (int i = 0; i < 4; i++) {
+            String itemId = i < oldSherds.size() ? oldSherds.getString(i) : "minecraft:brick";
+            sherds.add(StringTag.valueOf(normalizeItemId(itemId)));
+        }
+        return sherds;
+    }
+
+    private static ListTag potDecorationsFromComponent(ListTag componentSherds) {
+        ListTag sherds = new ListTag();
+        for (int i = 0; i < Math.min(4, componentSherds.size()); i++) {
+            sherds.add(StringTag.valueOf(normalizeItemId(componentSherds.getString(i))));
+        }
+        return sherds;
+    }
+
+    private static String normalizeItemId(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return "minecraft:brick";
+        }
+        return normalized.contains(":") ? normalized : "minecraft:" + normalized;
     }
 
     private static CompoundTag fireworkExplosionToComponent(CompoundTag oldExplosion) {

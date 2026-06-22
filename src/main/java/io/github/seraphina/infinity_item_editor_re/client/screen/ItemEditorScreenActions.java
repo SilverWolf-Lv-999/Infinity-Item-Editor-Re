@@ -386,6 +386,9 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             if (this.activePanel == Panel.BANNER) {
                 readBannerFieldsFromStack(this.previewStack);
             }
+            if (this.activePanel == Panel.DECORATED_POT) {
+                readDecoratedPotFieldsFromStack(this.previewStack);
+            }
             this.rawNbtValue = getInitialNbt(this.previewStack);
             return true;
         } catch (IllegalArgumentException exception) {

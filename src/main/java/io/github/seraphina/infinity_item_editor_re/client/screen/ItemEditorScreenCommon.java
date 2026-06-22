@@ -371,6 +371,19 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return Mth.clamp(contentWidth() / 4, Math.min(132, maxWidth), maxWidth);
     }
 
+    protected int potterySherdListX() {
+        return isSidebarUi() ? safeLeft() + 10 : 10;
+    }
+
+    protected int potterySherdListWidth() {
+        if (!isSidebarUi()) {
+            return 170;
+        }
+
+        int maxWidth = Math.max(1, Math.min(210, contentWidth() - 20));
+        return Mth.clamp(contentWidth() / 4, Math.min(150, maxWidth), maxWidth);
+    }
+
     protected int spawnEggEntityListX() {
         return isSidebarUi() ? safeLeft() + 10 : 10;
     }
@@ -567,6 +580,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         readBannerFieldsFromStack(stack);
         readFireworkFieldsFromStack(stack);
         readContainerFieldsFromStack(stack);
+        readDecoratedPotFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
         readTradeFieldsFromStack(stack);
     }
@@ -896,6 +910,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.bannerPatternFilterBox != null) {
             this.bannerPatternFilterValue = this.bannerPatternFilterBox.getValue();
         }
+        if (this.potterySherdFilterBox != null) {
+            this.potterySherdFilterValue = this.potterySherdFilterBox.getValue();
+        }
         if (this.spawnEggEntityFilterBox != null) {
             this.spawnEggEntityFilterValue = this.spawnEggEntityFilterBox.getValue();
         }
@@ -1027,6 +1044,10 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static boolean isBannerEditableItem(ItemStack stack) {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
+    }
+
+    protected static boolean isDecoratedPotItem(ItemStack stack) {
+        return stack.is(Items.DECORATED_POT);
     }
 
     protected static boolean isSpawnEggItem(ItemStack stack) {

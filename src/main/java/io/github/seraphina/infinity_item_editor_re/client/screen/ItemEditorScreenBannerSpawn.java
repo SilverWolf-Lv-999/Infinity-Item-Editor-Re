@@ -16,6 +16,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -51,6 +52,7 @@ import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.block.entity.PotDecorations;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -382,6 +384,241 @@ protected void addSelectedBannerPattern() {
             }
         }
         return null;
+    }
+
+    protected void applySelectedPotterySherd() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        clampPotterySherdSelection(sherds);
+        if (sherds.isEmpty()) {
+            this.status = Component.translatable(key("decorated_pot.no_match"));
+            return;
+        }
+
+        PotterySherdEntry entry = sherds.get(this.selectedPotterySherdIndex);
+        setDecoratedPotSideItem(this.selectedDecoratedPotSide, entry.item());
+        this.status = Component.translatable(messageKey("editor_decorated_pot_side_updated"),
+                getDecoratedPotSideName(this.selectedDecoratedPotSide), getPotterySherdName(entry));
+        readDecoratedPotFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    protected void clearDecoratedPotSide() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        setDecoratedPotSideItem(this.selectedDecoratedPotSide, Items.BRICK);
+        this.status = Component.translatable(messageKey("editor_decorated_pot_side_cleared"),
+                getDecoratedPotSideName(this.selectedDecoratedPotSide));
+        readDecoratedPotFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    protected void clearDecoratedPotDecorations() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        this.previewStack.set(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.status = Component.translatable(messageKey("editor_decorated_pot_cleared"));
+        readDecoratedPotFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    protected void selectDecoratedPotSide(int side) {
+        this.selectedDecoratedPotSide = normalizeDecoratedPotSide(side);
+        readDecoratedPotFieldsFromStack(this.previewStack);
+        rebuildWidgets();
+    }
+
+    protected void cycleSelectedPotterySherd(int direction) {
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        if (sherds.isEmpty()) {
+            return;
+        }
+
+        this.selectedPotterySherdIndex = Mth.positiveModulo(this.selectedPotterySherdIndex + direction, sherds.size());
+        scrollPotterySherdSelectionIntoView(sherds);
+    }
+
+    protected void setPotterySherdScroll(int value) {
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        int maxScroll = Math.max(0, sherds.size() - POTTERY_SHERD_ROWS);
+        this.potterySherdScroll = Mth.clamp(value, 0, maxScroll);
+        clampPotterySherdSelection(sherds);
+        if (!sherds.isEmpty()) {
+            int lastVisible = Math.min(sherds.size() - 1, this.potterySherdScroll + POTTERY_SHERD_ROWS - 1);
+            this.selectedPotterySherdIndex = Mth.clamp(this.selectedPotterySherdIndex, this.potterySherdScroll, lastVisible);
+        }
+    }
+
+    protected void scrollPotterySherdSelectionIntoView(List<PotterySherdEntry> sherds) {
+        clampPotterySherdSelection(sherds);
+        if (sherds.isEmpty()) {
+            return;
+        }
+
+        if (this.selectedPotterySherdIndex < this.potterySherdScroll) {
+            this.potterySherdScroll = this.selectedPotterySherdIndex;
+        } else if (this.selectedPotterySherdIndex >= this.potterySherdScroll + POTTERY_SHERD_ROWS) {
+            this.potterySherdScroll = this.selectedPotterySherdIndex - POTTERY_SHERD_ROWS + 1;
+        }
+        this.potterySherdScroll = Mth.clamp(this.potterySherdScroll, 0, Math.max(0, sherds.size() - POTTERY_SHERD_ROWS));
+    }
+
+    protected void clampPotterySherdSelection(List<PotterySherdEntry> sherds) {
+        if (sherds.isEmpty()) {
+            this.selectedPotterySherdIndex = 0;
+            this.potterySherdScroll = 0;
+            return;
+        }
+
+        this.selectedPotterySherdIndex = Mth.clamp(this.selectedPotterySherdIndex, 0, sherds.size() - 1);
+        this.potterySherdScroll = Mth.clamp(this.potterySherdScroll, 0, Math.max(0, sherds.size() - POTTERY_SHERD_ROWS));
+    }
+
+    protected int getPotterySherdRowY(int row) {
+        return sideListStartY() + row * 10;
+    }
+
+    protected List<PotterySherdEntry> getFilteredPotterySherds() {
+        String filter = this.potterySherdFilterValue == null ? "" : this.potterySherdFilterValue.trim().toLowerCase(Locale.ROOT);
+        if (filter.isEmpty()) {
+            return new ArrayList<>(PotterySherdCatalog.SHERDS);
+        }
+
+        List<PotterySherdEntry> sherds = new ArrayList<>();
+        for (PotterySherdEntry entry : PotterySherdCatalog.SHERDS) {
+            ResourceLocation id = CompatRegistries.ITEMS.getKey(entry.item());
+            String itemId = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
+            String displayName = getPotterySherdName(entry).getString().toLowerCase(Locale.ROOT);
+            if (entry.name().contains(filter)
+                    || entry.name().replace('_', ' ').contains(filter)
+                    || itemId.contains(filter)
+                    || displayName.contains(filter)) {
+                sherds.add(entry);
+            }
+        }
+        return sherds;
+    }
+
+    protected Component getPotterySherdName(PotterySherdEntry entry) {
+        if (entry.item() == Items.BRICK) {
+            return Component.translatable(key("decorated_pot.no_pattern"));
+        }
+        return entry.item().getDefaultInstance().getHoverName();
+    }
+
+    protected Component getDecoratedPotSideName(int side) {
+        return Component.translatable(key("decorated_pot.side." + getDecoratedPotSideKey(side)));
+    }
+
+    protected Component getDecoratedPotSideItemName(int side) {
+        Item item = getDecoratedPotSideItem(side);
+        if (item == Items.BRICK) {
+            return Component.translatable(key("decorated_pot.no_pattern"));
+        }
+        return item.getDefaultInstance().getHoverName();
+    }
+
+    protected int getDecoratedPotDecorationCount() {
+        int count = 0;
+        for (Item item : getDecoratedPotOrderedItems()) {
+            if (item != Items.BRICK) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    protected void renderDecoratedPotSides(GuiGraphics guiGraphics) {
+        int x = this.midX - 78;
+        int y = 124;
+        if (isSidebarUi()) {
+            ModernUi.fillPanel(guiGraphics, x - 8, y - 8, x + 178, y + 58, 8, ModernUi.SURFACE, ModernUi.BORDER);
+        }
+
+        guiGraphics.drawString(this.font, Component.translatable(key("decorated_pot.sides")), x, y,
+                isSidebarUi() ? ModernUi.TEXT_MUTED : MAIN_COLOR);
+        for (int i = 0; i < DECORATED_POT_DISPLAY_SIDES.length; i++) {
+            int side = DECORATED_POT_DISPLAY_SIDES[i];
+            boolean selected = side == this.selectedDecoratedPotSide;
+            int color = isSidebarUi()
+                    ? (selected ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                    : (selected ? CONTRAST_COLOR : MAIN_COLOR);
+            Component text = Component.translatable(key("decorated_pot.side_state"),
+                    getDecoratedPotSideName(side), getDecoratedPotSideItemName(side));
+            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text.getString(), 164),
+                    x, y + 12 + i * 10, color);
+        }
+    }
+
+    protected void readDecoratedPotFieldsFromStack(ItemStack stack) {
+        this.selectedDecoratedPotSide = normalizeDecoratedPotSide(this.selectedDecoratedPotSide);
+        if (!isDecoratedPotItem(stack)) {
+            this.potterySherdScroll = 0;
+            this.selectedPotterySherdIndex = 0;
+            return;
+        }
+
+        Item current = getDecoratedPotSideItem(this.selectedDecoratedPotSide);
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        for (int i = 0; i < sherds.size(); i++) {
+            if (sherds.get(i).item() == current) {
+                this.selectedPotterySherdIndex = i;
+                scrollPotterySherdSelectionIntoView(sherds);
+                return;
+            }
+        }
+        clampPotterySherdSelection(sherds);
+    }
+
+    protected void setDecoratedPotSideItem(int side, Item item) {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        Item[] ordered = getDecoratedPotOrderedItems();
+        ordered[normalizeDecoratedPotSide(side)] = item == null ? Items.BRICK : item;
+        PotDecorations decorations = new PotDecorations(ordered[0], ordered[1], ordered[2], ordered[3]);
+        this.previewStack.set(DataComponents.POT_DECORATIONS, decorations);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    protected Item getDecoratedPotSideItem(int side) {
+        return getDecoratedPotOrderedItems()[normalizeDecoratedPotSide(side)];
+    }
+
+    protected Item[] getDecoratedPotOrderedItems() {
+        Item[] items = {Items.BRICK, Items.BRICK, Items.BRICK, Items.BRICK};
+        List<Item> ordered = this.previewStack.getOrDefault(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY).ordered();
+        for (int i = 0; i < Math.min(items.length, ordered.size()); i++) {
+            items[i] = ordered.get(i) == null ? Items.BRICK : ordered.get(i);
+        }
+        return items;
+    }
+
+    protected int normalizeDecoratedPotSide(int side) {
+        return switch (side) {
+            case DECORATED_POT_SIDE_LEFT -> DECORATED_POT_SIDE_LEFT;
+            case DECORATED_POT_SIDE_RIGHT -> DECORATED_POT_SIDE_RIGHT;
+            case DECORATED_POT_SIDE_FRONT -> DECORATED_POT_SIDE_FRONT;
+            default -> DECORATED_POT_SIDE_BACK;
+        };
+    }
+
+    protected String getDecoratedPotSideKey(int side) {
+        return switch (normalizeDecoratedPotSide(side)) {
+            case DECORATED_POT_SIDE_LEFT -> "left";
+            case DECORATED_POT_SIDE_RIGHT -> "right";
+            case DECORATED_POT_SIDE_FRONT -> "front";
+            default -> "back";
+        };
     }
 
     protected void applySelectedSpawnEggEntity() {

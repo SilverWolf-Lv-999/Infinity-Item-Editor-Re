@@ -145,6 +145,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             case FIREWORK -> Component.translatable(key("firework"));
             case CONTAINER -> Component.translatable(key("container"));
             case BANNER -> Component.translatable(key("banner"));
+            case DECORATED_POT -> Component.translatable(key("decorated_pot"));
             case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
             case TRADES -> Component.translatable(key("trades"));
             case TRADE -> Component.translatable(key("trade"));
@@ -685,6 +686,58 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 this.midX, this.height - 78, panelTitleColor());
 
         renderBannerPatternLayers(guiGraphics);
+    }
+
+    protected void renderDecoratedPotPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        drawPanelTitle(guiGraphics, Component.translatable(key("decorated_pot")));
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.midX, 78, 100.0F);
+        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.renderItem(this.previewStack, -8, -8);
+        guiGraphics.pose().popPose();
+
+        drawCenteredLabel(guiGraphics, Component.translatable(key("decorated_pot.search")),
+                this.potterySherdFilterBox.getX() + this.potterySherdFilterBox.getWidth() / 2,
+                this.potterySherdFilterBox.getY() - 12);
+
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        clampPotterySherdSelection(sherds);
+        int listX = potterySherdListX();
+        int listWidth = potterySherdListWidth();
+        if (isSidebarUi()) {
+            ModernUi.fillPanel(guiGraphics, listX - 5, getPotterySherdRowY(0) - 7, listX + listWidth + 5,
+                    getPotterySherdRowY(POTTERY_SHERD_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
+        }
+        if (sherds.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("decorated_pot.no_match")),
+                    listX + 2, getPotterySherdRowY(0), BAD_RED);
+        } else {
+            int end = Math.min(sherds.size(), this.potterySherdScroll + POTTERY_SHERD_ROWS);
+            for (int i = this.potterySherdScroll; i < end; i++) {
+                int y = getPotterySherdRowY(i - this.potterySherdScroll);
+                boolean selectedSherd = i == this.selectedPotterySherdIndex;
+                int color = isSidebarUi()
+                        ? (selectedSherd ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                        : (selectedSherd ? CONTRAST_COLOR : MAIN_COLOR);
+                Component name = getPotterySherdName(sherds.get(i));
+                drawModernListRow(guiGraphics, listX, y - 3, listX + listWidth, y + 10, selectedSherd, false);
+                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(name.getString(), listWidth - 5),
+                        listX + 2, y, color);
+            }
+        }
+
+        Component selected = sherds.isEmpty()
+                ? Component.translatable(key("decorated_pot.no_match"))
+                : getPotterySherdName(sherds.get(this.selectedPotterySherdIndex));
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.selected"), selected),
+                this.midX, this.height - 78, panelTitleColor());
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.editing"),
+                getDecoratedPotSideName(this.selectedDecoratedPotSide), getDecoratedPotSideItemName(this.selectedDecoratedPotSide)),
+                this.midX, 112, panelSecondaryColor());
+
+        renderDecoratedPotSides(guiGraphics);
     }
 
     protected void renderSpawnEggPanel(GuiGraphics guiGraphics) {
@@ -1232,6 +1285,27 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         this.selectedBannerPatternIndex = index;
+        return true;
+    }
+
+    protected boolean handleDecoratedPotClick(double mouseX, double mouseY) {
+        if (!isMouseIn(mouseX, mouseY, potterySherdListX(), getPotterySherdRowY(0) - 1,
+                potterySherdListWidth(), POTTERY_SHERD_ROWS * 10 + 2)) {
+            return false;
+        }
+
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        if (sherds.isEmpty()) {
+            return false;
+        }
+
+        int row = ((int) mouseY - getPotterySherdRowY(0)) / 10;
+        int index = this.potterySherdScroll + row;
+        if (row < 0 || row >= POTTERY_SHERD_ROWS || index < 0 || index >= sherds.size()) {
+            return false;
+        }
+
+        this.selectedPotterySherdIndex = index;
         return true;
     }
 

@@ -125,6 +125,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.headTextureSignatureBox = null;
         this.containerSlotNbtBox = null;
         this.bannerPatternFilterBox = null;
+        this.potterySherdFilterBox = null;
         this.spawnEggEntityFilterBox = null;
         this.spawnEggCustomNameBox = null;
         this.spawnEggOwnerBox = null;
@@ -164,6 +165,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case FIREWORK -> addFireworkPanel();
             case CONTAINER -> addContainerPanel();
             case BANNER -> addBannerPanel();
+            case DECORATED_POT -> addDecoratedPotPanel();
             case SPAWN_EGG -> addSpawnEggPanel();
             case TRADES -> addTradesPanel();
             case TRADE -> addTradePanel();
@@ -211,6 +213,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case FIREWORK -> renderFireworkPanel(guiGraphics);
             case CONTAINER -> renderContainerPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
+            case DECORATED_POT -> renderDecoratedPotPanel(guiGraphics);
             case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
             case TRADES -> renderTradesPanel(guiGraphics, mouseX, mouseY);
             case TRADE -> renderTradePanel(guiGraphics);
@@ -282,6 +285,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
             return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
+        if (this.activePanel == Panel.DECORATED_POT && this.potterySherdFilterBox != null && this.potterySherdFilterBox.isFocused()) {
+            return this.potterySherdFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
         if (this.activePanel == Panel.SPAWN_EGG && this.spawnEggEntityFilterBox != null && this.spawnEggEntityFilterBox.isFocused()) {
             return this.spawnEggEntityFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
@@ -312,6 +318,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case COLOR -> handleColorClick(mouseX, mouseY);
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
+            case DECORATED_POT -> handleDecoratedPotClick(mouseX, mouseY);
             case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
@@ -336,6 +343,11 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
         if (this.activePanel == Panel.BANNER) {
             setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(scrollY));
+            return true;
+        }
+
+        if (this.activePanel == Panel.DECORATED_POT) {
+            setPotterySherdScroll(this.potterySherdScroll - (int) Math.signum(scrollY));
             return true;
         }
 

@@ -340,6 +340,11 @@ protected void addItemPanel() {
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER));
         }
 
+        if (isDecoratedPotItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("decorated_pot")), button -> switchPanel(Panel.DECORATED_POT));
+        }
+
         if (isSpawnEditorItem(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
                     Component.translatable(key(getSpawnEditorTitleKey())), button -> switchPanel(Panel.SPAWN_EGG));
@@ -495,6 +500,12 @@ protected void addItemPanel() {
         if (isBannerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));
+            y += 30;
+        }
+
+        if (isDecoratedPotItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("decorated_pot")), button -> switchPanel(Panel.DECORATED_POT)));
             y += 30;
         }
 
@@ -939,6 +950,55 @@ protected void addItemPanel() {
             addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
                     Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
         }
+    }
+
+    protected void addDecoratedPotPanel() {
+        int listX = potterySherdListX();
+        int listWidth = potterySherdListWidth();
+        this.potterySherdFilterBox = addTrackedBox(legacyTextBox(listX, sideListSearchY(), Math.min(180, listWidth), FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.search"))));
+        this.potterySherdFilterBox.setMaxLength(48);
+        this.potterySherdFilterBox.setValue(this.potterySherdFilterValue);
+        this.potterySherdFilterBox.setResponder(value -> {
+            this.potterySherdFilterValue = value.toLowerCase(Locale.ROOT);
+            this.potterySherdScroll = 0;
+            this.selectedPotterySherdIndex = 0;
+        });
+
+        int width = isSidebarUi() ? contentLimitedWidth(132, 88, 20) : 132;
+        int controlsX = rightControlsX(width, listX, listWidth);
+        int sideButtonWidth = (width - 4) / 2;
+        for (int i = 0; i < DECORATED_POT_DISPLAY_SIDES.length; i++) {
+            int side = DECORATED_POT_DISPLAY_SIDES[i];
+            int x = controlsX + (i % 2) * (sideButtonWidth + 4);
+            int y = 52 + (i / 2) * 26;
+            addDecoratedPotSideButton(x, y, sideButtonWidth, side);
+        }
+
+        addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.apply")), button -> applySelectedPotterySherd()));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 130, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.clear_side")), button -> clearDecoratedPotSide()));
+        InfinityEditorButton clearAll = addRenderableWidget(new InfinityEditorButton(controlsX, 156, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.clear_all")), button -> clearDecoratedPotDecorations()));
+        clearAll.active = getDecoratedPotDecorationCount() > 0;
+
+        if (!isSidebarUi()) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal("<"), button -> cycleSelectedPotterySherd(-1)));
+            addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                    Component.translatable(key("decorated_pot.apply")), button -> applySelectedPotterySherd()));
+            addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal(">"), button -> cycleSelectedPotterySherd(1)));
+        }
+    }
+
+    protected void addDecoratedPotSideButton(int x, int y, int width, int side) {
+        Component text = side == this.selectedDecoratedPotSide
+                ? Component.literal("> ").append(getDecoratedPotSideName(side))
+                : getDecoratedPotSideName(side);
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT, text,
+                button -> selectDecoratedPotSide(side)));
     }
 
     protected void addSpawnEggPanel() {
