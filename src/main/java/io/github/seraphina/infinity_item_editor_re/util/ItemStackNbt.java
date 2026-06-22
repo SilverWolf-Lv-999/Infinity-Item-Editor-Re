@@ -145,14 +145,22 @@ public final class ItemStackNbt {
     }
 
     public static CompoundTag save(ItemStack stack) {
+        return save(stack, provider());
+    }
+
+    public static CompoundTag save(ItemStack stack, HolderLookup.Provider provider) {
         Tag saved = ItemStack.OPTIONAL_CODEC
-                .encodeStart(provider().createSerializationContext(NbtOps.INSTANCE), stack)
+                .encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), stack)
                 .getOrThrow();
         return saved instanceof CompoundTag compoundTag ? compoundTag : new CompoundTag();
     }
 
     public static ItemStack parse(CompoundTag tag) {
-        ItemStack parsed = parseStackTag(normalizeStackTag(tag));
+        return parse(tag, provider());
+    }
+
+    public static ItemStack parse(CompoundTag tag, HolderLookup.Provider provider) {
+        ItemStack parsed = parseStackTag(normalizeStackTag(tag), provider);
         if (!parsed.isEmpty() || !isLegacyStackTag(tag)) {
             return parsed;
         }
@@ -169,6 +177,11 @@ public final class ItemStackNbt {
             set(stack, NbtCompat.getCompound(tag, "tag").copy());
         }
         return stack;
+    }
+
+    public static ItemStack rebind(ItemStack stack, HolderLookup.Provider targetProvider) {
+        ItemStack rebound = parse(save(stack), targetProvider);
+        return rebound.isEmpty() && !stack.isEmpty() ? stack.copy() : rebound;
     }
 
     public static ItemStack parseEditorNbt(ItemStack current, CompoundTag tag) {
@@ -326,8 +339,12 @@ public final class ItemStackNbt {
     }
 
     private static ItemStack parseStackTag(CompoundTag tag) {
+        return parseStackTag(tag, provider());
+    }
+
+    private static ItemStack parseStackTag(CompoundTag tag, HolderLookup.Provider provider) {
         return ItemStack.OPTIONAL_CODEC
-                .parse(provider().createSerializationContext(NbtOps.INSTANCE), tag)
+                .parse(provider.createSerializationContext(NbtOps.INSTANCE), tag)
                 .result()
                 .orElse(ItemStack.EMPTY);
     }
