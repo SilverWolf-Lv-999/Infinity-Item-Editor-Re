@@ -750,17 +750,26 @@ protected void updateRawNbt() {
 
     protected List<Attribute> getSharedAttributes() {
         List<Attribute> attributes = new ArrayList<>();
-        attributes.add(Attributes.MAX_HEALTH.value());
-        attributes.add(Attributes.FOLLOW_RANGE.value());
-        attributes.add(Attributes.KNOCKBACK_RESISTANCE.value());
-        attributes.add(Attributes.MOVEMENT_SPEED.value());
-        attributes.add(Attributes.ATTACK_DAMAGE.value());
-        attributes.add(Attributes.ATTACK_SPEED.value());
-        attributes.add(Attributes.ARMOR.value());
-        attributes.add(Attributes.ARMOR_TOUGHNESS.value());
-        attributes.add(Attributes.LUCK.value());
-        attributes.add(Attributes.BLOCK_INTERACTION_RANGE.value());
-        attributes.add(Attributes.FLYING_SPEED.value());
+        String filter = this.attributeFilterValue == null ? "" : this.attributeFilterValue.trim().toLowerCase(Locale.ROOT);
+        for (Attribute attribute : CompatRegistries.ATTRIBUTES.getValues()) {
+            if (attribute != null && matchesAttributeFilter(attribute, filter)) {
+                attributes.add(attribute);
+            }
+        }
         return attributes;
+    }
+
+    protected boolean matchesAttributeFilter(Attribute attribute, String filter) {
+        if (filter.isBlank()) {
+            return true;
+        }
+
+        ResourceLocation id = CompatRegistries.ATTRIBUTES.getKey(attribute);
+        String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
+        String descriptionId = attribute.getDescriptionId().toLowerCase(Locale.ROOT);
+        String name = Component.translatable(attribute.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
+        return idString.contains(filter)
+                || descriptionId.contains(filter)
+                || name.contains(filter);
     }
 }

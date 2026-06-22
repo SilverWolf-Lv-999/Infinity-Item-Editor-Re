@@ -250,6 +250,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String potionFilterValue = "";
     protected String potionLevelValue = "1";
     protected String potionTimeValue = "1";
+    protected String attributeFilterValue = "";
     protected String attributeAmountValue = "0";
     protected String attributeDecimalValue = "0";
     protected String colorHexValue;
@@ -340,6 +341,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected EditBox potionFilterBox;
     protected EditBox potionLevelBox;
     protected EditBox potionTimeBox;
+    protected EditBox attributeFilterBox;
     protected EditBox attributeAmountBox;
     protected EditBox attributeDecimalBox;
     protected EditBox colorHexBox;
