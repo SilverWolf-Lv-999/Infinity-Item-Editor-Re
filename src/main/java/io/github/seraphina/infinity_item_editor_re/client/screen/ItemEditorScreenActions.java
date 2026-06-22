@@ -21,6 +21,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -238,12 +240,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
     }
 
     protected void applyToSelectedSlot() {
-        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null || this.minecraft.player == null || this.minecraft.gameMode == null) {
-            return;
-        }
-
-        if (!this.minecraft.player.getAbilities().instabuild) {
-            this.status = Component.translatable(messageKey("editor_requires_creative"));
+        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null || this.minecraft.player == null) {
             return;
         }
 
@@ -257,8 +254,43 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
+        if (this.minecraft.hasSingleplayerServer()) {
+            setSingleplayerServerStack(containerSlot, inventoryStack);
+            this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+            return;
+        }
+
+        if (this.minecraft.gameMode == null) {
+            return;
+        }
+
+        if (!this.minecraft.player.getAbilities().instabuild) {
+            this.status = Component.translatable(messageKey("editor_requires_creative"));
+            return;
+        }
+
         this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), containerSlot);
         this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+    }
+
+    private void setSingleplayerServerStack(int containerSlot, ItemStack stack) {
+        MinecraftServer server = this.minecraft.getSingleplayerServer();
+        if (server == null || this.minecraft.player == null) {
+            return;
+        }
+
+        UUID playerId = this.minecraft.player.getUUID();
+        ItemStack serverStack = stack.copy();
+        server.execute(() -> {
+            ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
+            if (serverPlayer == null || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
+                return;
+            }
+            serverPlayer.inventoryMenu.broadcastChanges();
+            if (serverPlayer.containerMenu != serverPlayer.inventoryMenu) {
+                serverPlayer.containerMenu.broadcastChanges();
+            }
+        });
     }
 
     protected void dropEditedStack() {

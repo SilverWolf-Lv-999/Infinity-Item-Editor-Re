@@ -50,10 +50,12 @@ public final class PlayerInventorySlots {
         ItemStack localStack = stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
         if (containerSlot >= HOTBAR_CONTAINER_SLOT_START && containerSlot <= HOTBAR_CONTAINER_SLOT_END) {
             inventory.items.set(containerSlot - HOTBAR_CONTAINER_SLOT_START, localStack);
+            inventory.setChanged();
             return true;
         }
         if (containerSlot >= 9 && containerSlot <= 35) {
             inventory.items.set(containerSlot, localStack);
+            inventory.setChanged();
             return true;
         }
 
@@ -67,6 +69,7 @@ public final class PlayerInventorySlots {
                 return false;
             }
         }
+        inventory.setChanged();
         return true;
     }
 }
