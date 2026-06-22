@@ -14,6 +14,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -27,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -242,12 +244,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
     }
 
     protected void applyToSelectedSlot() {
-        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null || this.minecraft.player == null || this.minecraft.gameMode == null) {
-            return;
-        }
-
-        if (!this.minecraft.player.getAbilities().instabuild) {
-            this.status = Component.translatable(messageKey("editor_requires_creative"));
+        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null || this.minecraft.player == null) {
             return;
         }
 
@@ -256,6 +253,25 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
                 ? this.targetContainerSlot
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
         ItemStack inventoryStack = this.previewStack.copy();
+        if (this.minecraft.isSingleplayer()) {
+            if (!applySingleplayerInventoryStack(containerSlot, inventoryStack)) {
+                this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
+                return;
+            }
+
+            this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+            return;
+        }
+
+        if (this.minecraft.gameMode == null) {
+            return;
+        }
+
+        if (!this.minecraft.player.getAbilities().instabuild) {
+            this.status = Component.translatable(messageKey("editor_requires_creative"));
+            return;
+        }
+
         if (!PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, inventoryStack)) {
             this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
             return;
@@ -263,6 +279,28 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
         this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), containerSlot);
         this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+    }
+
+    private boolean applySingleplayerInventoryStack(int containerSlot, ItemStack stack) {
+        IntegratedServer server = this.minecraft.getSingleplayerServer();
+        if (server == null || !PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, stack)) {
+            return false;
+        }
+
+        UUID playerId = this.minecraft.player.getUUID();
+        ItemStack serverStack = stack.copy();
+        server.execute(() -> {
+            ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
+            if (serverPlayer == null || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
+                return;
+            }
+
+            serverPlayer.containerMenu.broadcastChanges();
+            if (serverPlayer.containerMenu != serverPlayer.inventoryMenu) {
+                serverPlayer.inventoryMenu.broadcastChanges();
+            }
+        });
+        return true;
     }
 
     protected void dropEditedStack() {
