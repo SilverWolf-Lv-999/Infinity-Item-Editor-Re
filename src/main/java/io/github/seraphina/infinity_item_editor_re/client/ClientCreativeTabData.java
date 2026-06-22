@@ -30,13 +30,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.FireworkExplosion;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;
-
-@OnlyIn(Dist.CLIENT)
 public final class ClientCreativeTabData {
     private static final int HOTBAR_SIZE = 9;
     private static final int MAX_CHAT_LINKED_ITEMS = 256;

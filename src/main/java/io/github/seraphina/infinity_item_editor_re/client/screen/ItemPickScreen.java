@@ -12,16 +12,12 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-@OnlyIn(Dist.CLIENT)
 final class ItemPickScreen extends CompatScreen {
     private static final int MAX_IN_ROW = 8;
     private static final int ROWS = 10;

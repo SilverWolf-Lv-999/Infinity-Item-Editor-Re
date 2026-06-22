@@ -27,15 +27,11 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.WritableBookContent;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-@OnlyIn(Dist.CLIENT)
 final class BookItemScreen extends CompatScreen {
     private static final int TEXT_WIDTH = 114;
     private static final int TEXT_HEIGHT = 128;

@@ -6,10 +6,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
-@OnlyIn(Dist.CLIENT)
 public class ItemEditorScreen extends ItemEditorScreenRendering {
     public ItemEditorScreen(ItemStack stack) {
         this(stack, -1);

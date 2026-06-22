@@ -24,8 +24,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
@@ -37,8 +35,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-@OnlyIn(Dist.CLIENT)
 final class ItemJsonEditorScreen extends CompatScreen {
     private static final int BUTTON_WIDTH = 78;
     private static final int BUTTON_HEIGHT = 20;

@@ -11,14 +11,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-@OnlyIn(Dist.CLIENT)
 public class InfinityConfigScreen extends CompatScreen {
     private static final int LIST_TOP = 32;
     private static final int LIST_BOTTOM_PADDING = 40;
@@ -141,8 +137,6 @@ public class InfinityConfigScreen extends CompatScreen {
     private static Component itemGuiModeText(Config.ItemEditorUiMode mode) {
         return Component.translatable("screen." + ModSource.MODID + ".ui.mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
     }
-
-    @OnlyIn(Dist.CLIENT)
     private static final class ConfigList extends ObjectSelectionList<ConfigEntry> {
         private ConfigList(InfinityConfigScreen screen, Minecraft minecraft, int width, int height, int top, int bottom) {
             super(minecraft, width, bottom - top, top, ROW_HEIGHT);
@@ -174,8 +168,6 @@ public class InfinityConfigScreen extends CompatScreen {
         protected void renderSelection(GuiGraphics guiGraphics, ConfigEntry entry, int color) {
         }
     }
-
-    @OnlyIn(Dist.CLIENT)
     private static final class ConfigEntry extends ObjectSelectionList.Entry<ConfigEntry> {
         private static final int TOGGLE_WIDTH = 58;
         private static final int TOGGLE_HEIGHT = 20;

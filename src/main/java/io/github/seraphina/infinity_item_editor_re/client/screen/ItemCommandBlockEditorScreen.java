@@ -13,10 +13,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
-@OnlyIn(Dist.CLIENT)
 final class ItemCommandBlockEditorScreen extends CompatScreen {
     private static final int BUTTON_HEIGHT = 20;
     private static final int EDITOR_MARGIN = 18;

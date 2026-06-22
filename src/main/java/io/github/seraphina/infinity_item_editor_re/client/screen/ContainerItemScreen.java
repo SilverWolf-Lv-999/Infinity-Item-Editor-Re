@@ -14,10 +14,6 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
-@OnlyIn(Dist.CLIENT)
 final class ContainerItemScreen extends ContainerScreen {
     private static final int INVENTORY_CLONE_COLOR = 0x7C2C87;
 
