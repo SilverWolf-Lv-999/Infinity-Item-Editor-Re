@@ -166,6 +166,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case FIREWORK -> addFireworkPanel();
             case CONTAINER -> addContainerPanel();
             case BANNER -> addBannerPanel();
+            case DECORATED_POT -> addDecoratedPotPanel();
             case SPAWN_EGG -> addSpawnEggPanel();
             case TRADES -> addTradesPanel();
             case TRADE -> addTradePanel();
@@ -216,6 +217,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case FIREWORK -> renderFireworkPanel(guiGraphics);
             case CONTAINER -> renderContainerPanel(guiGraphics);
             case BANNER -> renderBannerPanel(guiGraphics);
+            case DECORATED_POT -> renderDecoratedPotPanel(guiGraphics);
             case SPAWN_EGG -> renderSpawnEggPanel(guiGraphics);
             case TRADES -> renderTradesPanel(guiGraphics, mouseX, mouseY);
             case TRADE -> renderTradePanel(guiGraphics);

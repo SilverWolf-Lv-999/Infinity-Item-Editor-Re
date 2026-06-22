@@ -377,6 +377,10 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return Mth.clamp(contentWidth() / 4, Math.min(150, maxWidth), maxWidth);
     }
 
+    protected int decoratedPotButtonStartY() {
+        return Mth.clamp(sidebarBottomButtonY() - 156, 116, 132);
+    }
+
     protected int rightControlsX(int width, int listX, int listWidth) {
         if (!isSidebarUi()) {
             return Math.max(this.midX + 76, this.width - width - 10);
@@ -562,6 +566,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         readContainerFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
         readTradeFieldsFromStack(stack);
+        readDecoratedPotFieldsFromStack(stack);
     }
 
     protected String readLoreLine(String raw) {
@@ -742,6 +747,160 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
         clampBannerPatternSelection(getFilteredBannerPatterns());
+    }
+
+    protected void readDecoratedPotFieldsFromStack(ItemStack stack) {
+        Arrays.fill(this.decoratedPotSherdValues, DECORATED_POT_DEFAULT_SHERD);
+        if (!isDecoratedPotItem(stack)) {
+            return;
+        }
+
+        CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity == null || !blockEntity.contains(DECORATED_POT_SHERDS_TAG, Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag sherds = blockEntity.getList(DECORATED_POT_SHERDS_TAG, Tag.TAG_STRING);
+        for (int i = 0; i < DECORATED_POT_SHERD_COUNT && i < sherds.size(); i++) {
+            this.decoratedPotSherdValues[i] = normalizeDecoratedPotSherdId(sherds.getString(i));
+        }
+    }
+
+    protected void cycleDecoratedPotSherd(int sideIndex, int direction) {
+        if (!isDecoratedPotItem(this.previewStack) || !isDecoratedPotSideIndex(sideIndex)) {
+            return;
+        }
+
+        int current = getDecoratedPotSherdCatalogIndex(getDecoratedPotSherdId(sideIndex));
+        int next = Mth.positiveModulo(current + direction, DECORATED_POT_SHERD_ITEMS.length);
+        this.decoratedPotSherdValues[sideIndex] = getDecoratedPotCatalogSherdId(next);
+        applyDecoratedPotSherdsToStack();
+        this.status = Component.translatable(messageKey("editor_decorated_pot_sherd_updated"),
+                getDecoratedPotSideName(sideIndex), getDecoratedPotSherdName(sideIndex));
+        rebuildWidgets();
+    }
+
+    protected void clearDecoratedPotSherds() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        Arrays.fill(this.decoratedPotSherdValues, DECORATED_POT_DEFAULT_SHERD);
+        applyDecoratedPotSherdsToStack();
+        this.status = Component.translatable(messageKey("editor_decorated_pot_cleared"));
+        rebuildWidgets();
+    }
+
+    protected boolean hasDecoratedPotSherdData() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return false;
+        }
+
+        CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
+        if (blockEntity != null && blockEntity.contains(DECORATED_POT_SHERDS_TAG, Tag.TAG_LIST)) {
+            return true;
+        }
+
+        for (int i = 0; i < DECORATED_POT_SHERD_COUNT; i++) {
+            if (!DECORATED_POT_DEFAULT_SHERD.equals(getDecoratedPotSherdId(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected Component getDecoratedPotSideButtonText(int sideIndex) {
+        return Component.translatable(key("decorated_pot.side." + getDecoratedPotSideKey(sideIndex)),
+                getDecoratedPotSherdName(sideIndex));
+    }
+
+    protected Component getDecoratedPotSideName(int sideIndex) {
+        return Component.translatable(key("decorated_pot.side_name." + getDecoratedPotSideKey(sideIndex)));
+    }
+
+    protected Component getDecoratedPotSherdName(int sideIndex) {
+        String sherdId = getDecoratedPotSherdId(sideIndex);
+        Item item = getDecoratedPotSherdItem(sherdId);
+        if (item != null && item != Items.AIR) {
+            return new ItemStack(item).getHoverName();
+        }
+        return Component.literal(sherdId);
+    }
+
+    protected String getDecoratedPotSherdId(int sideIndex) {
+        if (!isDecoratedPotSideIndex(sideIndex)) {
+            return DECORATED_POT_DEFAULT_SHERD;
+        }
+        return normalizeDecoratedPotSherdId(this.decoratedPotSherdValues[sideIndex]);
+    }
+
+    protected void applyDecoratedPotSherdsToStack() {
+        if (!isDecoratedPotItem(this.previewStack)) {
+            return;
+        }
+
+        ListTag sherds = new ListTag();
+        boolean hasNonDefaultSherd = false;
+        for (int i = 0; i < DECORATED_POT_SHERD_COUNT; i++) {
+            String sherdId = getDecoratedPotSherdId(i);
+            this.decoratedPotSherdValues[i] = sherdId;
+            hasNonDefaultSherd |= !DECORATED_POT_DEFAULT_SHERD.equals(sherdId);
+            sherds.add(StringTag.valueOf(sherdId));
+        }
+
+        CompoundTag tag = hasNonDefaultSherd ? this.previewStack.getOrCreateTag() : this.previewStack.getTag();
+        if (tag == null) {
+            return;
+        }
+
+        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
+        if (hasNonDefaultSherd) {
+            blockEntity.put(DECORATED_POT_SHERDS_TAG, sherds);
+        } else {
+            blockEntity.remove(DECORATED_POT_SHERDS_TAG);
+        }
+        cleanupBlockEntityTag(tag, blockEntity);
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+    }
+
+    protected int getDecoratedPotSherdCatalogIndex(String sherdId) {
+        String normalized = normalizeDecoratedPotSherdId(sherdId);
+        for (int i = 0; i < DECORATED_POT_SHERD_ITEMS.length; i++) {
+            if (normalized.equals(getDecoratedPotCatalogSherdId(i))) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    protected String getDecoratedPotCatalogSherdId(int index) {
+        ResourceLocation id = ForgeRegistries.ITEMS.getKey(DECORATED_POT_SHERD_ITEMS[Mth.clamp(index, 0, DECORATED_POT_SHERD_ITEMS.length - 1)]);
+        return id == null ? DECORATED_POT_DEFAULT_SHERD : id.toString();
+    }
+
+    protected Item getDecoratedPotSherdItem(String sherdId) {
+        ResourceLocation id = parseResourceLocation(normalizeDecoratedPotSherdId(sherdId));
+        return id == null ? null : ForgeRegistries.ITEMS.getValue(id);
+    }
+
+    protected String normalizeDecoratedPotSherdId(String sherdId) {
+        String value = sherdId == null ? "" : sherdId.trim().toLowerCase(Locale.ROOT);
+        if (value.isEmpty()) {
+            return DECORATED_POT_DEFAULT_SHERD;
+        }
+        return value.contains(":") ? value : "minecraft:" + value;
+    }
+
+    protected ResourceLocation parseResourceLocation(String value) {
+        return ResourceLocation.tryParse(value);
+    }
+
+    protected boolean isDecoratedPotSideIndex(int sideIndex) {
+        return sideIndex >= 0 && sideIndex < DECORATED_POT_SHERD_COUNT;
+    }
+
+    protected String getDecoratedPotSideKey(int sideIndex) {
+        return isDecoratedPotSideIndex(sideIndex) ? DECORATED_POT_SIDE_KEYS[sideIndex] : DECORATED_POT_SIDE_KEYS[DECORATED_POT_FRONT_INDEX];
     }
 
     protected void readSpawnEggFieldsFromStack(ItemStack stack) {
@@ -1020,6 +1179,10 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static boolean isBannerEditableItem(ItemStack stack) {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
+    }
+
+    protected static boolean isDecoratedPotItem(ItemStack stack) {
+        return stack.is(Items.DECORATED_POT);
     }
 
     protected static boolean isSpawnEggItem(ItemStack stack) {

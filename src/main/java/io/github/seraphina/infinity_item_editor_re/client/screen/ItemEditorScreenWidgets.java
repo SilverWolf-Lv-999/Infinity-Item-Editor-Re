@@ -342,6 +342,11 @@ protected void addItemPanel() {
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER));
         }
 
+        if (isDecoratedPotItem(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("decorated_pot")), button -> switchPanel(Panel.DECORATED_POT));
+        }
+
         if (isSpawnEditorItem(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
                     Component.translatable(key(getSpawnEditorTitleKey())), button -> switchPanel(Panel.SPAWN_EGG));
@@ -497,6 +502,12 @@ protected void addItemPanel() {
         if (isBannerEditableItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("banner")), button -> switchPanel(Panel.BANNER)));
+            y += 30;
+        }
+
+        if (isDecoratedPotItem(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("decorated_pot")), button -> switchPanel(Panel.DECORATED_POT)));
             y += 30;
         }
 
@@ -941,6 +952,23 @@ protected void addItemPanel() {
             addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
                     Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
         }
+    }
+
+    protected void addDecoratedPotPanel() {
+        int width = contentLimitedWidth(190, 120, 32);
+        int x = centeredContentX(width);
+        int y = decoratedPotButtonStartY();
+        for (int i = 0; i < DECORATED_POT_UI_SIDES.length; i++) {
+            int sideIndex = DECORATED_POT_UI_SIDES[i];
+            addRenderableWidget(new InfinityEditorButton(x, y + i * 26, width, FIELD_HEIGHT,
+                    getDecoratedPotSideButtonText(sideIndex),
+                    button -> cycleDecoratedPotSherd(sideIndex, Screen.hasShiftDown() ? -1 : 1)));
+        }
+
+        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(x, y + DECORATED_POT_UI_SIDES.length * 26 + 8,
+                width, FIELD_HEIGHT, Component.translatable(key("decorated_pot.clear")),
+                button -> clearDecoratedPotSherds()));
+        clear.active = hasDecoratedPotSherdData();
     }
 
     protected void addSpawnEggPanel() {

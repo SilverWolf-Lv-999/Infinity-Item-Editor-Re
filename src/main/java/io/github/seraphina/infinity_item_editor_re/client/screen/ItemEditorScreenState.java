@@ -131,6 +131,43 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String BANNER_COLOR_TAG = "Color";
     protected static final String BANNER_BASE_TAG = "Base";
     protected static final int BANNER_PATTERN_ROWS = 8;
+    protected static final String DECORATED_POT_SHERDS_TAG = "sherds";
+    protected static final int DECORATED_POT_SHERD_COUNT = 4;
+    protected static final int DECORATED_POT_BACK_INDEX = 0;
+    protected static final int DECORATED_POT_LEFT_INDEX = 1;
+    protected static final int DECORATED_POT_RIGHT_INDEX = 2;
+    protected static final int DECORATED_POT_FRONT_INDEX = 3;
+    protected static final String DECORATED_POT_DEFAULT_SHERD = "minecraft:brick";
+    protected static final String[] DECORATED_POT_SIDE_KEYS = {"back", "left", "right", "front"};
+    protected static final int[] DECORATED_POT_UI_SIDES = {
+            DECORATED_POT_FRONT_INDEX,
+            DECORATED_POT_BACK_INDEX,
+            DECORATED_POT_LEFT_INDEX,
+            DECORATED_POT_RIGHT_INDEX
+    };
+    protected static final Item[] DECORATED_POT_SHERD_ITEMS = {
+            Items.BRICK,
+            Items.ANGLER_POTTERY_SHERD,
+            Items.ARCHER_POTTERY_SHERD,
+            Items.ARMS_UP_POTTERY_SHERD,
+            Items.BLADE_POTTERY_SHERD,
+            Items.BREWER_POTTERY_SHERD,
+            Items.BURN_POTTERY_SHERD,
+            Items.DANGER_POTTERY_SHERD,
+            Items.EXPLORER_POTTERY_SHERD,
+            Items.FRIEND_POTTERY_SHERD,
+            Items.HEART_POTTERY_SHERD,
+            Items.HEARTBREAK_POTTERY_SHERD,
+            Items.HOWL_POTTERY_SHERD,
+            Items.MINER_POTTERY_SHERD,
+            Items.MOURNER_POTTERY_SHERD,
+            Items.PLENTY_POTTERY_SHERD,
+            Items.PRIZE_POTTERY_SHERD,
+            Items.SHEAF_POTTERY_SHERD,
+            Items.SHELTER_POTTERY_SHERD,
+            Items.SKULL_POTTERY_SHERD,
+            Items.SNORT_POTTERY_SHERD
+    };
     protected static final String BOOK_TITLE_TAG = "title";
     protected static final String BOOK_FILTERED_TITLE_TAG = "filtered_title";
     protected static final String BOOK_AUTHOR_TAG = "author";
@@ -300,6 +337,7 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected final List<String> loreValues = new ArrayList<>();
     protected final List<List<LorePixel>> lorePainterRows = new ArrayList<>();
+    protected final String[] decoratedPotSherdValues = new String[DECORATED_POT_SHERD_COUNT];
     protected final List<EditBox> tickingBoxes = new ArrayList<>();
     protected final List<EditBox> mainTextBoxes = new ArrayList<>();
     protected final List<EditBox> loreBoxes = new ArrayList<>();
@@ -414,6 +452,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void addBannerPanel();
 
+    protected abstract void addDecoratedPotPanel();
+
     protected abstract void addSpawnEggPanel();
 
     protected abstract void addSpawnEggTagControl(SpawnEggTagRow row, int y, int controlsX, int width);
@@ -474,6 +514,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract void renderContainerPanel(GuiGraphics guiGraphics);
 
     protected abstract void renderBannerPanel(GuiGraphics guiGraphics);
+
+    protected abstract void renderDecoratedPotPanel(GuiGraphics guiGraphics);
 
     protected abstract void renderSpawnEggPanel(GuiGraphics guiGraphics);
 

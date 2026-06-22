@@ -147,6 +147,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             case FIREWORK -> Component.translatable(key("firework"));
             case CONTAINER -> Component.translatable(key("container"));
             case BANNER -> Component.translatable(key("banner"));
+            case DECORATED_POT -> Component.translatable(key("decorated_pot"));
             case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
             case TRADES -> Component.translatable(key("trades"));
             case TRADE -> Component.translatable(key("trade"));
@@ -687,6 +688,29 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 this.midX, this.height - 78, panelTitleColor());
 
         renderBannerPatternLayers(guiGraphics);
+    }
+
+    protected void renderDecoratedPotPanel(GuiGraphics guiGraphics) {
+        renderItemTooltipPreview(guiGraphics);
+        drawPanelTitle(guiGraphics, Component.translatable(key("decorated_pot")));
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.midX, 78, 100.0F);
+        guiGraphics.pose().scale(4.0F, 4.0F, 1.0F);
+        guiGraphics.renderItem(this.previewStack, -8, -8);
+        guiGraphics.pose().popPose();
+
+        int width = contentLimitedWidth(190, 120, 32);
+        int x = centeredContentX(width);
+        int firstY = decoratedPotButtonStartY();
+        if (isSidebarUi()) {
+            ModernUi.fillPanel(guiGraphics, x - 8, firstY - 8,
+                    x + width + 8, firstY + DECORATED_POT_UI_SIDES.length * 26 + 34,
+                    8, ModernUi.SURFACE, ModernUi.BORDER);
+        }
+
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.patterns")),
+                this.midX, firstY - 17, panelLabelColor());
     }
 
     protected void renderSpawnEggPanel(GuiGraphics guiGraphics) {
