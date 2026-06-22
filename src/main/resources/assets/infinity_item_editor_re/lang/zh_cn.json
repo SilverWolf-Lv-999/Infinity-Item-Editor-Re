@@ -1,5 +1,5 @@
 {
-  "key.categories.infinity_item_editor_re": "无限物品编辑器 Re",
+  "key.categories.infinity_item_editor_re": "无限物品编辑器:重生",
   "key.infinity_item_editor_re.open_editor": "编辑当前物品",
   "key.infinity_item_editor_re.copy_target": "复制目标",
   "key.infinity_item_editor_re.save_realm": "将当前物品保存到领域",
@@ -10,7 +10,7 @@
   "itemGroup.infinity_item_editor_re.thief": "无限 - 窃取",
   "itemGroup.infinity_item_editor_re.fireworks": "无限 - 烟花",
   "itemGroup.infinity_item_editor_re.void": "无限 - 虚空",
-  "config.infinity_item_editor_re.title": "无限物品编辑器 Re 配置",
+  "config.infinity_item_editor_re.title": "无限物品编辑器:重生",
   "config.infinity_item_editor_re.save": "保存",
   "config.infinity_item_editor_re.reset": "重置",
   "config.infinity_item_editor_re.done": "完成",
