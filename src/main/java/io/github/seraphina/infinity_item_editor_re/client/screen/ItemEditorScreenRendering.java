@@ -796,7 +796,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int end = Math.min(rows.size(), this.spawnEggTagScroll + SPAWN_EGG_TAG_ROWS);
         for (int i = this.spawnEggTagScroll; i < end; i++) {
             SpawnEggTagRow row = rows.get(i);
-            if (row.type() != SpawnEggTagRowType.BOOLEAN && row.type() != SpawnEggTagRowType.CHOICE) {
+            if (row.type() != SpawnEggTagRowType.BOOLEAN
+                    && row.type() != SpawnEggTagRowType.PRESENCE
+                    && row.type() != SpawnEggTagRowType.CHOICE) {
                 drawRightLabel(guiGraphics, Component.translatable(key("spawnegg." + row.translationSuffix())),
                         controlsX + 66, getSpawnEggTagRowY(i - this.spawnEggTagScroll) + 6);
             }

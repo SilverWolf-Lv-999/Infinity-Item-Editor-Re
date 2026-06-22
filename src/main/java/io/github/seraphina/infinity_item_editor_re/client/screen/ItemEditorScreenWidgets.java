@@ -1067,6 +1067,12 @@ protected void addItemPanel() {
             return;
         }
 
+        if (row.type() == SpawnEggTagRowType.PRESENCE) {
+            addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
+                    getSpawnEggPresenceText(row), button -> toggleSpawnEggPresence(row)));
+            return;
+        }
+
         EditBox box = addTrackedBox(legacyTextBox(controlsX + 70, y, width - 70, FIELD_HEIGHT,
                 Component.translatable(key("spawnegg." + row.translationSuffix()))));
         box.setMaxLength(getSpawnEggTagTextMaxLength(row));

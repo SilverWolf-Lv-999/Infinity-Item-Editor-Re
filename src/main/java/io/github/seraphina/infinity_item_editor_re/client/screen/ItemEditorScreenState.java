@@ -793,6 +793,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void toggleSpawnEggBoolean(SpawnEggTagRow row);
 
+    protected abstract void toggleSpawnEggPresence(SpawnEggTagRow row);
+
     protected abstract void applySpawnEggCustomName(String value);
 
     protected abstract void applySpawnEggOwner(String value);
@@ -820,6 +822,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract boolean isOnlySpawnerBlockEntityId(CompoundTag blockEntity);
 
     protected abstract Component getSpawnEggBooleanText(SpawnEggTagRow row);
+
+    protected abstract Component getSpawnEggPresenceText(SpawnEggTagRow row);
 
     protected abstract Component getSpawnEggChoiceText(SpawnEggTagRow row);
 

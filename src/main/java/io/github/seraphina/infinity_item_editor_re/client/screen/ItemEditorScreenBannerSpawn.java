@@ -708,6 +708,23 @@ protected void addSelectedBannerPattern() {
         rebuildWidgets();
     }
 
+    protected void toggleSpawnEggPresence(SpawnEggTagRow row) {
+        if (!isSpawnEditorItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+        if (getSpawnEggPresenceValue(row)) {
+            removeSpawnEggTagValue(entityTag, row.tagKey());
+        } else {
+            putSpawnEggPresenceValue(entityTag, row.tagKey());
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        rebuildWidgets();
+    }
+
     protected void applySpawnEggCustomName(String value) {
         if (!isSpawnEditorItem(this.previewStack)) {
             return;
@@ -988,6 +1005,12 @@ protected void addSelectedBannerPattern() {
                 Component.translatable(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
     }
 
+    protected Component getSpawnEggPresenceText(SpawnEggTagRow row) {
+        return Component.translatable(key("spawnegg.option_state"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())),
+                Component.translatable(key("spawnegg.state." + (getSpawnEggPresenceValue(row) ? 1 : 0))));
+    }
+
     protected Component getSpawnEggChoiceText(SpawnEggTagRow row) {
         return Component.translatable(key("spawnegg.option_state"),
                 Component.translatable(key("spawnegg." + row.translationSuffix())),
@@ -1037,6 +1060,17 @@ protected void addSelectedBannerPattern() {
         }
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
         return parent.contains(leafKey, Tag.TAG_BYTE) && parent.getBoolean(leafKey);
+    }
+
+    protected boolean getSpawnEggPresenceValue(SpawnEggTagRow row) {
+        CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (parent == null) {
+            return false;
+        }
+
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        return parent.contains(leafKey, Tag.TAG_INT_ARRAY) && parent.getIntArray(leafKey).length == 3;
     }
 
     protected String getSpawnEggNumberValue(SpawnEggTagRow row) {
@@ -1108,6 +1142,13 @@ protected void addSelectedBannerPattern() {
         CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
         if (parent != null) {
             parent.putBoolean(getSpawnEggLeafTagKey(tagPath), value);
+        }
+    }
+
+    protected void putSpawnEggPresenceValue(CompoundTag entityTag, String tagPath) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
+        if (parent != null) {
+            parent.putIntArray(getSpawnEggLeafTagKey(tagPath), new int[]{0, 0, 0});
         }
     }
 

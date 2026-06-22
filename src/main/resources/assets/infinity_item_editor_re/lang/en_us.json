@@ -290,6 +290,7 @@
   "screen.infinity_item_editor_re.spawnegg.explosion_radius": "Explosion Radius",
   "screen.infinity_item_editor_re.spawnegg.fuse": "Fuse",
   "screen.infinity_item_editor_re.spawnegg.ignited": "Ignited",
+  "screen.infinity_item_editor_re.spawnegg.creaking_heart_bound": "Heart Bound",
   "screen.infinity_item_editor_re.spawnegg.life_time": "Life Time",
   "screen.infinity_item_editor_re.spawnegg.variant": "Variant",
   "screen.infinity_item_editor_re.spawnegg.saddle": "Saddled",

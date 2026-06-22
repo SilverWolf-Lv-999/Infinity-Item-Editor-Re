@@ -71,6 +71,7 @@ final class SpawnEggTagRows {
                 rows.add(shortNumber("fuse", "Fuse", 0.0D, 500.0D));
                 rows.add(booleanRow("ignited", "ignited"));
             }
+            case "creaking" -> rows.add(presenceRow("creaking_heart_bound", "home_pos"));
             case "endermite" -> {
                 rows.add(intNumber("life_time", "Lifetime", 0.0D, 3000.0D));
             }
@@ -114,6 +115,10 @@ final class SpawnEggTagRows {
 
     private static SpawnEggTagRow booleanRow(String translationSuffix, String tagKey) {
         return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.BOOLEAN, null, 0.0D, 1.0D);
+    }
+
+    private static SpawnEggTagRow presenceRow(String translationSuffix, String tagKey) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.PRESENCE, null, 0.0D, 1.0D);
     }
 
     private static SpawnEggTagRow customName() {
@@ -199,6 +204,7 @@ record SpawnEggChoiceOption(String value, String translationSuffix) {
 
 enum SpawnEggTagRowType {
     BOOLEAN,
+    PRESENCE,
     NUMBER,
     CUSTOM_NAME,
     OWNER,

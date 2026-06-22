@@ -290,6 +290,7 @@
   "screen.infinity_item_editor_re.spawnegg.explosion_radius": "爆炸半径",
   "screen.infinity_item_editor_re.spawnegg.fuse": "引信时间",
   "screen.infinity_item_editor_re.spawnegg.ignited": "已点燃",
+  "screen.infinity_item_editor_re.spawnegg.creaking_heart_bound": "绑定嘎枝之心",
   "screen.infinity_item_editor_re.spawnegg.life_time": "存在时间",
   "screen.infinity_item_editor_re.spawnegg.variant": "变种",
   "screen.infinity_item_editor_re.spawnegg.saddle": "已上鞍",
