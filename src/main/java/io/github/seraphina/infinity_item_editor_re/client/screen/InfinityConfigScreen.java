@@ -157,7 +157,7 @@ public class InfinityConfigScreen extends Screen {
         }
 
         @Override
-        protected int getScrollbarPosition() {
+        protected int scrollBarX() {
             return Math.min(this.width - 8, this.getRowRight() + 6);
         }
 

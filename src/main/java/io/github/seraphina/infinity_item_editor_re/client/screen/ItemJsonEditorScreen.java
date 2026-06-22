@@ -7,7 +7,7 @@ import net.minecraft.util.StringUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.components.AbstractTextAreaWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -276,7 +276,7 @@ final class ItemJsonEditorScreen extends Screen {
         }
     }
 
-    static final class JsonCodeEditBox extends AbstractScrollWidget {
+    static final class JsonCodeEditBox extends AbstractTextAreaWidget {
         private static final int LINE_HEIGHT = 10;
         private static final int LINE_NUMBER_WIDTH = 34;
         private static final int COMPLETION_WIDTH = 176;
@@ -1779,6 +1779,13 @@ final class ItemJsonEditorScreen extends Screen {
         private boolean lineVisible(int y) {
             double scroll = scrollAmount();
             return y + LINE_HEIGHT - scroll >= getY() && y - scroll <= getY() + getHeight();
+        }
+
+        private boolean withinContentAreaPoint(double mouseX, double mouseY) {
+            return mouseX >= getX() + innerPadding()
+                    && mouseX < getRight()
+                    && mouseY >= getY() + innerPadding()
+                    && mouseY < getBottom() - innerPadding();
         }
 
         private int getTextX() {

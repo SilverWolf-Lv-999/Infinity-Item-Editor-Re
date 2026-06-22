@@ -11,6 +11,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import net.minecraft.client.gui.screens.inventory.PageButton;
@@ -166,7 +167,8 @@ final class BookItemScreen extends Screen {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         EditorBackgrounds.render(guiGraphics, this.width, this.height);
         int left = getBookLeft();
-        guiGraphics.blit(BookViewScreen.BOOK_LOCATION, left, 2, 0, 0, IMAGE_WIDTH, IMAGE_WIDTH);
+        guiGraphics.blit(RenderType::guiTextured, BookViewScreen.BOOK_LOCATION, left, 2,
+                0.0F, 0.0F, IMAGE_WIDTH, IMAGE_WIDTH, 256, 256);
         Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
         guiGraphics.drawString(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18, 0, false);
         super.render(guiGraphics, mouseX, mouseY, partialTick);

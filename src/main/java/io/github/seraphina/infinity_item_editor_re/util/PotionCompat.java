@@ -27,12 +27,12 @@ public final class PotionCompat {
 
     public static void setCustomColor(ItemStack stack, int color) {
         PotionContents old = contents(stack);
-        stack.set(DataComponents.POTION_CONTENTS, new PotionContents(old.potion(), Optional.of(color), old.customEffects()));
+        stack.set(DataComponents.POTION_CONTENTS, new PotionContents(old.potion(), Optional.of(color), old.customEffects(), old.customName()));
     }
 
     public static void setCustomEffects(ItemStack stack, List<MobEffectInstance> effects) {
         PotionContents old = contents(stack);
-        stack.set(DataComponents.POTION_CONTENTS, new PotionContents(old.potion(), old.customColor(), List.copyOf(effects)));
+        stack.set(DataComponents.POTION_CONTENTS, new PotionContents(old.potion(), old.customColor(), List.copyOf(effects), old.customName()));
     }
 
     public static List<MobEffectInstance> getCustomEffects(ItemStack stack) {

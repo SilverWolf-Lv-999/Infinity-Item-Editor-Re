@@ -34,7 +34,9 @@ import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.PlayerHeadItem;
@@ -360,13 +362,13 @@ public final class ClientForgeEvents {
             return;
         }
 
-        ItemStack stack = blockState.getCloneItemStack(blockHitResult, minecraft.level, blockPos, minecraft.player);
+        boolean controlDown = Screen.hasControlDown();
+        ItemStack stack = blockState.getCloneItemStack(blockPos, minecraft.level, controlDown, minecraft.player);
         if (stack.isEmpty()) {
             minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_empty_block"), true);
             return;
         }
 
-        boolean controlDown = Screen.hasControlDown();
         if (controlDown && blockState.hasBlockEntity()) {
             BlockEntity blockEntity = minecraft.level.getBlockEntity(blockPos);
             if (blockEntity != null) {
@@ -392,13 +394,16 @@ public final class ClientForgeEvents {
             return;
         }
 
-        minecraft.player.getInventory().setPickedItem(stack);
+        setPickedItem(minecraft, stack);
         minecraft.gameMode.handleCreativeModeItemAdd(minecraft.player.getInventory().getSelected(), 36 + minecraft.player.getInventory().selected);
         minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copying", stack.getHoverName()), true);
     }
 
     private static void addCustomNbtData(ItemStack stack, BlockEntity blockEntity) {
-        blockEntity.saveToItem(stack, ItemStackNbt.provider());
+        CompoundTag blockEntityTag = blockEntity.saveCustomOnly(ItemStackNbt.provider());
+        blockEntity.removeComponentsFromTag(blockEntityTag);
+        BlockItem.setBlockEntityData(stack, blockEntity.getType(), blockEntityTag);
+        stack.applyComponents(blockEntity.collectComponents());
         if (stack.getItem() instanceof PlayerHeadItem) {
             CompoundTag stackTag = ItemStackNbt.get(stack);
             if (stackTag != null && stackTag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
@@ -414,6 +419,20 @@ public final class ClientForgeEvents {
 
         if (hasCopiedBlockEntityData(stack)) {
             addCopiedNbtLore(stack);
+        }
+    }
+
+    private static void setPickedItem(Minecraft minecraft, ItemStack stack) {
+        Inventory inventory = minecraft.player.getInventory();
+        int slot = inventory.findSlotMatchingItem(stack);
+        if (slot != -1) {
+            if (Inventory.isHotbarSlot(slot)) {
+                inventory.selected = slot;
+            } else {
+                inventory.pickSlot(slot);
+            }
+        } else {
+            inventory.addAndPickItem(stack);
         }
     }
 

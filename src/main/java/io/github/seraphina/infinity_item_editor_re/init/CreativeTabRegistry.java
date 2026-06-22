@@ -22,7 +22,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -33,6 +32,7 @@ import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.api.distmarker.Dist;
@@ -344,7 +344,7 @@ public final class CreativeTabRegistry {
                 .forEach(enchantmentHolder -> {
                     Enchantment enchantment = enchantmentHolder.value();
                     for (int level = enchantment.getMinLevel(); level <= enchantment.getMaxLevel(); level++) {
-                        addUnique(stacks, normalizedTabStack(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantmentHolder, level))));
+                        addUnique(stacks, normalizedTabStack(EnchantmentHelper.createBook(new EnchantmentInstance(enchantmentHolder, level))));
                     }
                 });
     }

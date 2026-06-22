@@ -1322,7 +1322,7 @@ protected void addSelectedBannerPattern() {
         }
 
         if (stack.getItem() instanceof SpawnEggItem spawnEggItem) {
-            return spawnEggItem.getType(stack);
+            return spawnEggItem.getType(ItemStackNbt.registryAccess(), stack);
         }
         return null;
     }

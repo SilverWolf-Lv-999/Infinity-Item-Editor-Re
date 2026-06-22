@@ -19,6 +19,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -1213,8 +1214,11 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static int getDefaultAttributeSlot(ItemStack stack) {
-        if (stack.getItem() instanceof ArmorItem armorItem) {
-            return getAttributeSlotNumber(armorItem.getEquipmentSlot());
+        if (stack.getItem() instanceof ArmorItem) {
+            var equippable = stack.get(DataComponents.EQUIPPABLE);
+            if (equippable != null) {
+                return getAttributeSlotNumber(equippable.slot());
+            }
         }
         if (stack.is(Items.SHIELD) || stack.is(Items.TOTEM_OF_UNDYING)) {
             return 2;
