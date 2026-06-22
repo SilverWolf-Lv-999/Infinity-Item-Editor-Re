@@ -10,14 +10,13 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-@Mod(ModSource.MODID)
+@Mod(value = ModSource.MODID, dist = Dist.CLIENT)
 public class ModSource {
     public static final String MODID = "infinity_item_editor_re";
     public static final String NAME = "Infinity Item Editor Re";
@@ -30,9 +29,7 @@ public class ModSource {
     public ModSource(IEventBus modEventBus, ModContainer modContainer) {
         CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
-        if (FMLEnvironment.getDist() == Dist.CLIENT) {
-            ConfigScreenRegistration.register(modContainer);
-        }
+        ConfigScreenRegistration.register(modContainer);
     }
 
     public static synchronized void initClientStorage(File minecraftDirectory) {
