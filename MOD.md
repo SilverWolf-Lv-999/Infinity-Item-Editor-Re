@@ -2,49 +2,57 @@
 
 ## English
 
-**Infinity Item Editor Re** is a client-side creative item editor for **Minecraft Forge 1.20.1**. It is a remake and port inspired by the old Infinity Item Editor mod, bringing the classic item-editing workflow to a newer Minecraft version.
+**Infinity Item Editor Re** is a client-side creative item editor for multiple Minecraft versions:
 
-This project is not an official update from the original author. It is an independent recreation/port made for players who still want the old creative item editing experience on modern Forge.
+- **Forge 1.20.1**
+- **NeoForge 1.21.1**
+- **NeoForge 1.21.4**
+- **NeoForge 1.21.10**
+- **NeoForge 1.21.11**
+
+It is an independent remake and port inspired by the old Infinity Item Editor mod. It is not an official update from the original author.
 
 ### What It Does
 
-Infinity Item Editor Re lets you edit the item you are holding, copy items from the world, save custom items, and access helper creative tabs for special items.
+Infinity Item Editor Re lets you edit held items, copy items from the world, save custom items, and use helper creative tabs for special or normally unavailable items.
 
 Current features include:
 
-- Open an item editor for the held item with the default `U` key.
-- Edit item ID, count, custom name, lore, NBT, and common display tags.
-- Copy a `/give` command for the edited item.
-- Edit enchantments, potion effects, custom attributes, hide flags, unbreakable state, and colors.
-- Dedicated editors for signs, player heads, armor stands, fireworks, containers, banners/shields, spawn eggs, books, and lore.
-- Lore Painter for drawing colored tooltip art with text characters.
+- Open the item editor with the default `U` key, including hovered player-inventory slots inside container screens.
+- Edit item ID, count, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
+- Switch between the legacy editor layout and the newer sidebar layout.
+- Copy `/give` commands, drop edited items, save items to Infinity Realm, and pick items from registry, Realm, Void, or inventory sources.
+- Edit enchantments, potion effects, custom attributes, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, trial spawners, villager trades, books, command blocks, and lore.
+- Use Lore Painter to draw colored tooltip art with text characters.
 - Copy targeted blocks, mobs, players, and armor stands with the default `V` key.
-- Save custom items into the Infinity Realm with the default `G` key.
-- Copy and paste item stacks in container screens with `Ctrl + C` and `Ctrl + V`.
+- Save custom items into Infinity Realm with the default `G` key.
+- Copy hovered item `/give` commands with `Ctrl + C` and paste `/give` item stacks into creative player-inventory slots with `Ctrl + V`.
+- Collect chat hover items and equipment-packet items into the Void cache.
 
 ### Creative Tabs
 
-The mod adds several searchable creative tabs:
+The mod adds searchable creative tabs:
 
-- **Infinity - Realm**: items saved by the player.
-- **Infinity - Unavailable**: command blocks, barrier, structure block, debug stick, and other normally hidden items.
-- **Infinity - Banners**: banner and shield helpers.
-- **Infinity - Heads**: MHF player heads.
-- **Infinity - Thief**: compatibility-style helper tab based on the old mod behavior.
-- **Infinity - Fireworks**: fireworks and firework stars.
-- **Infinity - Void**: collected item data from chat hover items and equipment packets.
+- **Infinity - Realm**: player-saved custom items.
+- **Infinity - Unavailable**: command blocks, barrier, structure blocks, spawners, potions, enchanted books, and other items not fully exposed by normal creative tabs.
+- **Infinity - Banners**: banner, shield, and pattern variants.
+- **Infinity - Heads**: player heads and MHF heads.
+- **Infinity - Thief**: compatibility-style helper tab based on old mod behavior.
+- **Infinity - Fireworks**: firework rockets, firework stars, and presets.
+- **Infinity - Void**: item data collected from chat hover items and equipment packets.
 
 ### Requirements
 
-- Minecraft **1.20.1**
-- Forge **47.x**
-- Java **17**
+Use the jar that matches your Minecraft version and loader.
 
-This is mainly a client-side tool. Servers normally do not need to install it, but inventory-writing features require creative mode permissions and may be limited by server rules.
+- Forge 1.20.1 builds require Java 17.
+- NeoForge 1.21.x builds require Java 21.
 
-### Current Status
+This is mainly a client-side tool. Servers normally do not need to install it, but inventory-writing and entity-equipment-copying features require creative mode permissions and may be limited by server rules.
 
-This is still a work-in-progress port. Most common editor panels are available, but some advanced or old-version behaviors may not be fully restored yet. The Advanced NBT Browser is currently incomplete and may receive more functionality later.
+### Status
+
+This is still a work-in-progress remake/port. Most common editor panels, creative tabs, JSON editing, command block editing, book page editing, decorated pot/trial spawner editing, and the main shortcut workflows are implemented. The Advanced NBT Browser can browse, expand, collapse, and scroll NBT structures, but it is not yet a full graphical NBT editor.
 
 ### Credits
 
@@ -60,49 +68,57 @@ Thanks to the original author and contributors. Please respect the original proj
 
 ## 中文
 
-**Infinity Item Editor Re** 是一个用于 **Minecraft Forge 1.20.1** 的客户端创造物品编辑 Mod。它复刻并移植了旧版 Infinity Item Editor 的使用体验，让新版 Forge 玩家也能继续使用类似的物品编辑工作流。
+**Infinity Item Editor Re** 是一个支持多个 Minecraft 版本的客户端创造物品编辑 Mod：
 
-本项目不是原作者的官方更新版，而是一个独立的复刻/移植项目，主要面向仍然需要旧版创造物品编辑功能的玩家。
+- **Forge 1.20.1**
+- **NeoForge 1.21.1**
+- **NeoForge 1.21.4**
+- **NeoForge 1.21.10**
+- **NeoForge 1.21.11**
+
+它复刻并移植了旧版 Infinity Item Editor 的使用体验。本项目不是原作者的官方更新版，而是独立维护的新版适配/复刻项目。
 
 ### 它能做什么
 
-Infinity Item Editor Re 可以编辑你手中的物品、从世界中复制物品、保存自定义物品，并提供多个辅助创造模式标签页。
+Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品、保存自定义物品，并提供多个辅助创造模式标签页。
 
 当前功能包括：
 
-- 默认按 `U` 打开当前手持物品的编辑器。
-- 编辑物品 ID、数量、自定义名称、Lore、NBT 和常用显示标签。
-- 为当前编辑后的物品复制 `/give` 命令。
-- 编辑附魔、药水效果、自定义属性、隐藏标签、无法破坏状态和颜色。
-- 为告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、刷怪蛋、书本和 Lore 提供专用编辑面板。
+- 默认按 `U` 打开物品编辑器，也可以在容器界面编辑鼠标悬停的玩家物品栏槽位。
+- 编辑物品 ID、数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
+- 支持旧版布局和新版侧边栏布局切换。
+- 复制 `/give` 命令、丢出编辑后的物品、保存到 Infinity Realm，并可从注册物品、Realm、Void 或物品栏来源选择物品。
+- 编辑附魔、药水效果、自定义属性、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、试炼刷怪笼、村民交易、书本、命令方块和 Lore。
 - 使用 Lore Painter 通过字符和颜色绘制物品提示文本图案。
 - 默认按 `V` 复制准星指向的方块、生物、玩家或盔甲架。
 - 默认按 `G` 将自定义物品保存到 Infinity Realm。
-- 在容器界面中使用 `Ctrl + C` 和 `Ctrl + V` 复制/粘贴物品栈。
+- 在容器界面中使用 `Ctrl + C` 复制鼠标悬停物品的 `/give` 命令，并可在创造模式下用 `Ctrl + V` 粘贴到玩家物品栏槽位。
+- 自动收集聊天悬浮物品和装备数据包中的物品数据到 Void 缓存。
 
 ### 创造模式标签页
 
 本 Mod 会添加多个带搜索栏的创造模式标签页：
 
 - **Infinity - Realm**：玩家保存的自定义物品。
-- **Infinity - Unavailable**：命令方块、屏障、结构方块、调试棒等常规创造物品栏中隐藏的物品。
-- **Infinity - Banners**：旗帜和盾牌相关辅助物品。
-- **Infinity - Heads**：MHF 系列玩家头颅。
+- **Infinity - Unavailable**：命令方块、屏障、结构方块、刷怪笼、药水、附魔书等常规创造物品栏中不直接提供或不完整提供的物品。
+- **Infinity - Banners**：旗帜、盾牌和图案变体。
+- **Infinity - Heads**：玩家头颅和 MHF 系列头颅。
 - **Infinity - Thief**：基于旧版行为保留的兼容辅助标签页。
-- **Infinity - Fireworks**：烟花火箭和烟火之星。
-- **Infinity - Void**：从聊天悬浮物品和装备数据包中收集到的物品数据。
+- **Infinity - Fireworks**：烟花火箭、烟火之星和预设变体。
+- **Infinity - Void**：从聊天悬浮物品和装备包中收集到的物品缓存。
 
 ### 运行需求
 
-- Minecraft **1.20.1**
-- Forge **47.x**
-- Java **17**
+请下载与 Minecraft 版本和加载器匹配的 jar。
+
+- Forge 1.20.1 版本使用 Java 17。
+- NeoForge 1.21.x 版本使用 Java 21。
 
 这是一个主要面向客户端的工具，服务端通常不需要安装。但写入玩家物品栏、复制实体装备等功能需要创造模式权限，也可能受到服务器规则限制。
 
 ### 当前状态
 
-本项目仍处于移植开发阶段。大部分常用编辑面板已经可用，但部分高级功能或旧版细节可能尚未完全恢复。高级 NBT 浏览器目前仍不完整，后续可能继续补全。
+本项目仍处于复刻/移植开发阶段。大部分常用编辑面板、创造标签页、JSON 编辑器、命令方块编辑器、书本页面编辑器、饰纹陶罐/试炼刷怪笼编辑和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。
 
 ### 致谢
 
