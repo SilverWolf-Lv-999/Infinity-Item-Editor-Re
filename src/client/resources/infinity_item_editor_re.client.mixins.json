@@ -4,6 +4,10 @@
   "package": "io.github.seraphina.infinity_item_editor_re.mixin.client",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "AbstractContainerScreenAccessor",
+    "ConnectionAccessor",
+    "CreativeModeInventoryScreenAccessor",
+    "ScreenInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1
