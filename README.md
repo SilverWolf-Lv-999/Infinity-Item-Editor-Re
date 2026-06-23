@@ -1,20 +1,20 @@
 # Infinity Item Editor Re
 
-Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。
+Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。
 
 这个仓库不是原作者的官方更新版，而是基于旧版功能思路重新适配到新版 Minecraft 的移植/复刻项目。当前仍处于开发阶段，部分面板和细节可能还会继续补全或调整。
 
 ## 基本信息
 
-| 项目 | 内容 |
-| --- | --- |
-| 多分支支持版本 | Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
-| 当前工作区 | NeoForge 1.21.11 |
-| 当前工作区 NeoForge | 21.11.42 |
-| Java | Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
-| Mod ID | `infinity_item_editor_re` |
-| 当前工作区版本 | `1.21.11-1.0.0-B` |
-| 许可证 | GNU GPL 3.0 |
+| 项目 | 内容                                                  |
+| --- |-----------------------------------------------------|
+| 支持版本 | Fabric 1.20.1；Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
+| 当前工作区 | Fabric 1.20.1                                      |
+| 当前工作区 Fabric Loader | 0.19.3                                  |
+| Java | Fabric/Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
+| Mod ID | `infinity_item_editor_re`                           |
+| 当前工作区版本 | `1.20.1-1.1.0-B`                                    |
+| 许可证 | GNU GPL 3.0                                         |
 
 ## 功能
 
@@ -30,7 +30,6 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 ### 数据编辑
 
 - NBT 编辑：直接编辑物品 NBT，支持校验、应用和重置。
-- 组件编辑：面向 Minecraft 1.20.5+ 数据组件系统，支持快捷效果、堆叠/耐久、食物与使用行为、工具/武器、装备和原始组件编辑。
 - 高级 NBT 浏览器：支持树状结构浏览、展开/折叠和滚动查看。
 - JSON 编辑器：支持物品 JSON 格式化、应用、语法高亮、基础键名补全和错误位置提示。
 - 隐藏标签：支持切换附魔、自定义属性、无法破坏、CanDestroy、CanPlaceOn、物品信息、染色信息、升级信息等 HideFlags。
@@ -50,7 +49,6 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 - 盔甲架：切换手臂、小型、隐形、底座、标记、重力、无敌等实体标签。
 - 烟花火箭/烟火之星：编辑飞行时间、爆炸形状、颜色、淡出颜色、闪烁、轨迹，支持添加、移除和清空爆炸数据。
 - 容器物品：编辑箱子、木桶、潜影盒等容器内的 27 个槽位，支持槽内物品 NBT 更新、从玩家物品栏副本选取物品、清空单槽和清空全部。
-- 收纳袋：编辑收纳袋条目，支持从玩家物品栏、Void 和 Realm 来源追加物品，更新或清空单个条目以及清空全部。
 - 旗帜/盾牌：搜索并添加图案，编辑底色和图案色，支持旗帜/盾牌互转、移除最后一层和清空图案。
 - 饰纹陶罐：搜索陶片，编辑四个方向的陶片图案，支持清空单面或全部图案。
 - 刷怪蛋/刷怪箱/试炼刷怪笼：搜索并应用实体类型，支持同步刷怪蛋物品，编辑常用实体标签并清除 `EntityTag`、`SpawnData` 或试炼刷怪笼生成配置。
@@ -86,7 +84,7 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 
 ## 使用说明
 
-1. 安装目标 Minecraft 版本对应的 Forge 或 NeoForge。
+1. 安装目标 Minecraft 版本对应的 Fabric、Forge 或 NeoForge。
 2. 下载或自行构建与目标版本和加载器匹配的 jar。
 3. 将 jar 放入客户端 `.minecraft/mods` 目录。
 4. 启动游戏后进入创造模式，手持一个物品并按 `U` 打开编辑器。
@@ -116,11 +114,11 @@ Mod 会在客户端游戏目录下创建数据目录：
 - `thiefTab`
 - `fireworkTab`
 
-配置文件由 Forge/NeoForge 生成，通常位于客户端 `config` 目录。
+配置文件通常位于客户端 `config` 目录。
 
 ## 从源码构建
 
-不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。本工作区对应 NeoForge 1.21.11，使用 NeoForge `21.11.42` 和 Java 21。
+不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。当前工作区是 Fabric 1.20.1 版本。
 
 Windows:
 
@@ -148,7 +146,7 @@ build/libs/
 
 ## 当前状态
 
-本项目是旧版 Mod 的 Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前支持 Forge 1.20.1，以及 NeoForge 1.21.1、1.21.4、1.21.10、1.21.11。常用物品编辑面板、组件编辑器、JSON 编辑器、命令方块编辑器、书本页面编辑器、收纳袋/容器/陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
+本项目是旧版 Mod 的 Fabric/Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前支持 Fabric 1.20.1、Forge 1.20.1，以及 NeoForge 1.21.1、1.21.4、1.21.10、1.21.11。常用物品编辑面板、JSON 编辑器、命令方块编辑器、书本页面编辑器、陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
 
 ## 原项目与参考
 

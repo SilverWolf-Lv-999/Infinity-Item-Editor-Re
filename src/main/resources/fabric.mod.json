@@ -2,10 +2,14 @@
   "schemaVersion": 1,
   "id": "infinity_item_editor_re",
   "version": "${version}",
-  "name": "Inifnity Item Editor Re",
+  "name": "Infinity Item Editor Re",
   "description": "Customized GUIs for nearly all items. Usable on any Creative Server!",
-  "authors": [],
-  "contact": {},
+  "authors": [
+    "Seraphina"
+  ],
+  "contact": {
+    "sources": "https://github.com/SilverWolf-Lv-999/Infinity-Item-Editor-Re"
+  },
   "license": "GPL-3.0",
   "icon": "assets/infinity_item_editor_re/icon.png",
   "environment": "client",
