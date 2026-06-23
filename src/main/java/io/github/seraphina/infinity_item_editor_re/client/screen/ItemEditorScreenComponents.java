@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 import net.minecraft.client.gui.components.EditBox;
@@ -264,7 +265,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         this.componentNbtBox = addTrackedBox(legacyTextBox(left, top, width, FIELD_HEIGHT,
                 Component.translatable(key("components.raw"))));
         this.componentNbtBox.setMaxLength(30000);
-        this.componentNbtBox.setTextColor(MAIN_COLOR);
+        this.componentNbtBox.setTextColor(componentInputTextColor());
         this.componentNbtBox.setValue(this.componentNbtValue == null ? getInitialComponentsNbt(this.previewStack) : this.componentNbtValue);
         this.componentNbtBox.setResponder(value -> this.componentNbtValue = value);
 
@@ -286,10 +287,14 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         this.componentEditorLabels.add(new ComponentEditorLabel(label, x, y));
         EditBox box = addTrackedBox(legacyTextBox(x, y + 10, columnWidth, 18, label));
         box.setMaxLength(128);
-        box.setTextColor(MAIN_COLOR);
+        box.setTextColor(componentInputTextColor());
         box.setValue(value == null ? "" : value);
         this.componentEditorBoxes.put(fieldKey, box);
         return box;
+    }
+
+    private int componentInputTextColor() {
+        return isSidebarUi() ? ModernUi.TEXT_PRIMARY : 0xFFFFFFFF;
     }
 
     private void addComponentActionButton(int left, int top, int width, int index, int total, Component text, InfinityEditorButton.PressAction action) {
