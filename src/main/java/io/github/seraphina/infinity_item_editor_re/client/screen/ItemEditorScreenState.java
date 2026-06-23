@@ -312,6 +312,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected int selectedTradeIndex;
     protected int selectedTradeSlot;
     protected int tradeScroll;
+    protected int componentEditorTab;
     protected int lorePainterWidth = 3;
     protected int lorePainterHeight = 3;
     protected boolean draggingLoreScroll;
@@ -324,6 +325,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected final List<EditBox> mainTextBoxes = new ArrayList<>();
     protected final List<EditBox> loreBoxes = new ArrayList<>();
     protected final List<EditBox> signBoxes = new ArrayList<>();
+    protected final Map<String, EditBox> componentEditorBoxes = new HashMap<>();
+    protected final List<ComponentEditorLabel> componentEditorLabels = new ArrayList<>();
     protected final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
     protected final Map<String, String> spawnEggNumberValueOverrides = new HashMap<>();
     protected final Set<String> expandedNbtPaths = new HashSet<>();
@@ -380,6 +383,9 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected ColorSlider redSlider;
     protected ColorSlider greenSlider;
     protected ColorSlider blueSlider;
+
+    protected record ComponentEditorLabel(Component text, int x, int y) {
+    }
 
     protected ItemEditorScreenState(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(Component.translatable(key("item")));

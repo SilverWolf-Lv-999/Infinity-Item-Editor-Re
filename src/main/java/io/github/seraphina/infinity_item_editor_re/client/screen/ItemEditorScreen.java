@@ -39,6 +39,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.mainTextBoxes.clear();
         this.loreBoxes.clear();
         this.signBoxes.clear();
+        this.componentEditorBoxes.clear();
+        this.componentEditorLabels.clear();
         this.loreActionButtons.clear();
         this.itemIdBox = null;
         this.countBox = null;
@@ -197,7 +199,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
                 return true;
             }
             if (this.activePanel == Panel.COMPONENTS) {
-                updateComponentNbt();
+                applyComponentEditor();
                 return true;
             }
             if (this.activePanel == Panel.COLOR) {

@@ -293,8 +293,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 38);
         drawPanelTitle(guiGraphics, Component.translatable(key("components")));
+        for (ComponentEditorLabel label : this.componentEditorLabels) {
+            guiGraphics.drawString(this.font, label.text(), label.x(), label.y(), isSidebarUi() ? ModernUi.TEXT_MUTED : ALT_COLOR, false);
+        }
         if (!this.nbtFeedback.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, 130, this.nbtFeedbackGood ? GOOD_GREEN : BAD_RED);
+            guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, this.height - 44, this.nbtFeedbackGood ? GOOD_GREEN : BAD_RED);
         }
     }
 

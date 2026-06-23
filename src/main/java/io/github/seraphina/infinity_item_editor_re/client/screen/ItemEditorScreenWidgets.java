@@ -66,7 +66,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-abstract class ItemEditorScreenWidgets extends ItemEditorScreenActions {
+abstract class ItemEditorScreenWidgets extends ItemEditorScreenComponents {
     protected ItemEditorScreenWidgets(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
@@ -616,18 +616,7 @@ protected void addItemPanel() {
     }
 
     protected void addComponentsPanel() {
-        int boxWidth = nbtEditorWidth();
-        this.componentNbtBox = addTrackedBox(legacyTextBox(nbtEditorX(), nbtEditorBoxY(), boxWidth, FIELD_HEIGHT,
-                Component.translatable(key("components"))));
-        this.componentNbtBox.setMaxLength(30000);
-        this.componentNbtBox.setTextColor(MAIN_COLOR);
-        this.componentNbtBox.setValue(this.componentNbtValue == null ? getInitialComponentsNbt(this.previewStack) : this.componentNbtValue);
-        this.componentNbtBox.setResponder(value -> this.componentNbtValue = value);
-
-        int buttonWidth = nbtEditorButtonWidth();
-        addRenderableWidget(new InfinityEditorButton(nbtEditorButtonX(buttonWidth), nbtEditorButtonY(), buttonWidth, SIDEBAR_BUTTON_HEIGHT,
-                Component.translatable(key("components.update")), button -> updateComponentNbt()));
-        addFormatButtons();
+        addComponentEditorPanel();
     }
 
     protected void addNbtAdvancedPanel() {
