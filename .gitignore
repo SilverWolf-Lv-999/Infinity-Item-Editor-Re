@@ -1,0 +1,15 @@
+build/
+.gradle/
+.gradle-local/
+.gradle-user-home/
+runs/
+.idea/
+checkstyleidea.tmp/
+out/
+tmp/
+bin/
+.vscode/
+run/
+SRG/
+run-data/
+build_temp/

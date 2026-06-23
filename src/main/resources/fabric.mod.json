@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "infinity_item_editor_re",
+  "version": "${version}",
+  "name": "Inifnity Item Editor Re",
+  "description": "Customized GUIs for nearly all items. Usable on any Creative Server!",
+  "authors": [],
+  "contact": {},
+  "license": "GPL-3.0",
+  "icon": "assets/infinity_item_editor_re/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "io.github.seraphina.infinity_item_editor_re.client.Infinity_item_editor_reDataGenerator"
+    ],
+    "client": [
+      "io.github.seraphina.infinity_item_editor_re.client.Infinity_item_editor_reClient"
+    ],
+    "main": [
+      "io.github.seraphina.infinity_item_editor_re.Infinity_item_editor_re"
+    ]
+  },
+  "mixins": [
+    "infinity_item_editor_re.mixins.json",
+    {
+      "config": "infinity_item_editor_re.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
