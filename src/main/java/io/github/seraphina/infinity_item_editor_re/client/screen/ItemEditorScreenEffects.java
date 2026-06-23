@@ -1,8 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
-import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
-
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
@@ -73,7 +72,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
 
-protected void updateRawNbt() {
+    protected void updateRawNbt() {
         String raw = this.rawNbtBox == null ? this.rawNbtValue : this.rawNbtBox.getValue();
         try {
             CompoundTag tag = parseNbt(raw);
@@ -82,13 +81,46 @@ protected void updateRawNbt() {
                 ItemStackNbt.set(this.previewStack, null);
             }
             readMainFieldsFromStack(this.previewStack);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             this.nbtFeedbackGood = true;
             this.nbtFeedback = "Looks good";
         } catch (CommandSyntaxException exception) {
             this.nbtFeedbackGood = false;
             this.nbtFeedback = exception.getMessage();
         }
+    }
+
+    protected void updateComponentNbt() {
+        String raw = this.componentNbtBox == null ? this.componentNbtValue : this.componentNbtBox.getValue();
+        try {
+            CompoundTag components = parseNbt(raw);
+            this.previewStack = parseStackWithComponents(this.previewStack, components == null ? new CompoundTag() : components);
+            readMainFieldsFromStack(this.previewStack);
+            syncNbtEditorValuesFromStack();
+            this.nbtFeedbackGood = true;
+            this.nbtFeedback = "Looks good";
+        } catch (CommandSyntaxException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage();
+        } catch (RuntimeException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+        }
+    }
+
+    protected ItemStack parseStackWithComponents(ItemStack current, CompoundTag components) {
+        CompoundTag stackTag = new CompoundTag();
+        ResourceLocation id = CompatRegistries.ITEMS.getKey(current.getItem());
+        stackTag.putString("id", id == null ? "minecraft:air" : id.toString());
+        stackTag.putInt("count", Math.max(1, current.getCount()));
+        if (components != null && !components.isEmpty()) {
+            stackTag.put("components", components.copy());
+        }
+        ItemStack parsed = ItemStackNbt.parseStrict(stackTag);
+        if (parsed.isEmpty() && !current.is(Items.AIR)) {
+            throw new IllegalArgumentException("Invalid components");
+        }
+        return parsed;
     }
 
     protected void toggleUnbreakable() {
@@ -100,7 +132,7 @@ protected void updateRawNbt() {
             tag.putBoolean("Unbreakable", true);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         rebuildWidgets();
     }
 
@@ -124,7 +156,7 @@ protected void updateRawNbt() {
             tag.putInt(HIDE_FLAGS_TAG, value);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected Component getHideFlagText(HideFlag flag) {
@@ -277,7 +309,7 @@ protected void updateRawNbt() {
         } else {
             enchantments.add(enchantmentTag);
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected boolean removeEnchantmentAtIndex(int index) {
@@ -297,7 +329,7 @@ protected void updateRawNbt() {
             tag.remove(key);
             cleanupEmptyTag();
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         return true;
     }
 
@@ -442,7 +474,7 @@ protected void updateRawNbt() {
         effects.removeIf(existing -> existing.getEffect().is(holder));
         effects.add(instance);
         PotionCompat.setCustomEffects(this.previewStack, effects);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_potion_added"), effect.getDisplayName(), level);
         return true;
     }
@@ -462,7 +494,7 @@ protected void updateRawNbt() {
         } else {
             PotionCompat.setCustomEffects(this.previewStack, effects);
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_potion_removed"), removed.getEffect().value().getDisplayName());
     }
 
@@ -637,7 +669,7 @@ protected void updateRawNbt() {
         }
 
         getOrCreateAttributeModifiersTag().add(modifierTag);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_attribute_added"), Component.translatable(attribute.getDescriptionId()));
     }
 
@@ -725,7 +757,7 @@ protected void updateRawNbt() {
             tag.remove(ATTRIBUTE_MODIFIERS_TAG);
             cleanupEmptyTag();
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected String formatAttributeEntry(AttributeEntry entry) {

@@ -35,6 +35,54 @@ import java.util.UUID;
 
 public final class ItemStackNbt {
     private static final Set<String> FULL_STACK_KEYS = Set.of("id", "item", "Item", "count", "Count", "components", "tag", "nbt");
+    private static final Set<String> LEGACY_COMPONENT_KEYS = Set.of(
+            "minecraft:custom_data",
+            "minecraft:damage",
+            "minecraft:repair_cost",
+            "minecraft:custom_model_data",
+            "minecraft:block_state",
+            "minecraft:entity_data",
+            "minecraft:block_entity_data",
+            "minecraft:unbreakable",
+            "minecraft:enchantments",
+            "minecraft:stored_enchantments",
+            "minecraft:enchantment_glint_override",
+            "minecraft:custom_name",
+            "minecraft:item_name",
+            "minecraft:lore",
+            "minecraft:dyed_color",
+            "minecraft:map_color",
+            "minecraft:can_break",
+            "minecraft:can_place_on",
+            "minecraft:attribute_modifiers",
+            "minecraft:trim",
+            "minecraft:tooltip_display",
+            "minecraft:hide_additional_tooltip",
+            "minecraft:charged_projectiles",
+            "minecraft:bundle_contents",
+            "minecraft:map_id",
+            "minecraft:map_decorations",
+            "minecraft:potion_contents",
+            "minecraft:writable_book_content",
+            "minecraft:written_book_content",
+            "minecraft:suspicious_stew_effects",
+            "minecraft:debug_stick_state",
+            "minecraft:bucket_entity_data",
+            "minecraft:instrument",
+            "minecraft:recipes",
+            "minecraft:lodestone_tracker",
+            "minecraft:fireworks",
+            "minecraft:firework_explosion",
+            "minecraft:profile",
+            "minecraft:note_block_sound",
+            "minecraft:banner_patterns",
+            "minecraft:base_color",
+            "minecraft:container",
+            "minecraft:bees",
+            "minecraft:lock",
+            "minecraft:container_loot",
+            "minecraft:pot_decorations"
+    );
     private static final Map<String, String> BANNER_HASH_TO_PATTERN = Map.ofEntries(
             Map.entry("bl", "square_bottom_left"),
             Map.entry("br", "square_bottom_right"),
@@ -180,6 +228,16 @@ public final class ItemStackNbt {
         return stack;
     }
 
+    public static ItemStack parseStrict(CompoundTag tag) {
+        return parseStrict(tag, provider());
+    }
+
+    public static ItemStack parseStrict(CompoundTag tag, HolderLookup.Provider provider) {
+        return ItemStack.OPTIONAL_CODEC
+                .parse(provider.createSerializationContext(NbtOps.INSTANCE), normalizeStackTag(tag))
+                .getOrThrow();
+    }
+
     public static ItemStack rebind(ItemStack stack, HolderLookup.Provider targetProvider) {
         ItemStack rebound = parse(save(stack), targetProvider);
         return rebound.isEmpty() && !stack.isEmpty() ? stack.copy() : rebound;
@@ -272,16 +330,13 @@ public final class ItemStackNbt {
             return;
         }
 
-        if (tag == null || tag.isEmpty()) {
-            applyLegacyComponentsFrom(stack, new ItemStack(stack.getItem(), stack.getCount()));
-            return;
-        }
-
-        CompoundTag stackTag = stackTagFromLegacy(stack, tag);
+        CompoundTag stackTag = stackTagFromLegacy(stack, tag == null ? new CompoundTag() : tag);
         ItemStack parsed = parseStackTag(stackTag);
         if (parsed.isEmpty() && !stack.is(Items.AIR)) {
             ItemStack fallback = new ItemStack(stack.getItem(), stack.getCount());
-            fallback.set(DataComponents.CUSTOM_DATA, CustomData.of(tag.copy()));
+            if (tag != null && !tag.isEmpty()) {
+                fallback.set(DataComponents.CUSTOM_DATA, CustomData.of(tag.copy()));
+            }
             applyLegacyComponentsFrom(stack, fallback);
             return;
         }
@@ -290,54 +345,22 @@ public final class ItemStackNbt {
     }
 
     private static void applyLegacyComponentsFrom(ItemStack stack, ItemStack source) {
-        copyDataComponent(source, stack, DataComponents.CUSTOM_DATA);
-        copyDataComponent(source, stack, DataComponents.DAMAGE);
-        copyDataComponent(source, stack, DataComponents.REPAIR_COST);
-        copyDataComponent(source, stack, DataComponents.CUSTOM_MODEL_DATA);
-        copyDataComponent(source, stack, DataComponents.ENTITY_DATA);
-        copyDataComponent(source, stack, DataComponents.BLOCK_ENTITY_DATA);
-        copyDataComponent(source, stack, DataComponents.UNBREAKABLE);
-        copyDataComponent(source, stack, DataComponents.ENCHANTMENTS);
-        copyDataComponent(source, stack, DataComponents.STORED_ENCHANTMENTS);
-        copyDataComponent(source, stack, DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
-        copyDataComponent(source, stack, DataComponents.CUSTOM_NAME);
-        copyDataComponent(source, stack, DataComponents.ITEM_NAME);
-        copyDataComponent(source, stack, DataComponents.LORE);
-        copyDataComponent(source, stack, DataComponents.DYED_COLOR);
-        copyDataComponent(source, stack, DataComponents.MAP_COLOR);
-        copyDataComponent(source, stack, DataComponents.CAN_BREAK);
-        copyDataComponent(source, stack, DataComponents.CAN_PLACE_ON);
-        copyDataComponent(source, stack, DataComponents.ATTRIBUTE_MODIFIERS);
-        copyDataComponent(source, stack, DataComponents.TRIM);
-        copyDataComponent(source, stack, DataComponents.TOOLTIP_DISPLAY);
-        copyDataComponent(source, stack, DataComponents.CHARGED_PROJECTILES);
-        copyDataComponent(source, stack, DataComponents.BUNDLE_CONTENTS);
-        copyDataComponent(source, stack, DataComponents.MAP_ID);
-        copyDataComponent(source, stack, DataComponents.MAP_DECORATIONS);
-        copyDataComponent(source, stack, DataComponents.POTION_CONTENTS);
-        copyDataComponent(source, stack, DataComponents.WRITABLE_BOOK_CONTENT);
-        copyDataComponent(source, stack, DataComponents.WRITTEN_BOOK_CONTENT);
-        copyDataComponent(source, stack, DataComponents.SUSPICIOUS_STEW_EFFECTS);
-        copyDataComponent(source, stack, DataComponents.DEBUG_STICK_STATE);
-        copyDataComponent(source, stack, DataComponents.BUCKET_ENTITY_DATA);
-        copyDataComponent(source, stack, DataComponents.INSTRUMENT);
-        copyDataComponent(source, stack, DataComponents.RECIPES);
-        copyDataComponent(source, stack, DataComponents.LODESTONE_TRACKER);
-        copyDataComponent(source, stack, DataComponents.FIREWORKS);
-        copyDataComponent(source, stack, DataComponents.FIREWORK_EXPLOSION);
-        copyDataComponent(source, stack, DataComponents.PROFILE);
-        copyDataComponent(source, stack, DataComponents.NOTE_BLOCK_SOUND);
-        copyDataComponent(source, stack, DataComponents.BANNER_PATTERNS);
-        copyDataComponent(source, stack, DataComponents.BASE_COLOR);
-        copyDataComponent(source, stack, DataComponents.CONTAINER);
-        copyDataComponent(source, stack, DataComponents.BEES);
-        copyDataComponent(source, stack, DataComponents.LOCK);
-        copyDataComponent(source, stack, DataComponents.CONTAINER_LOOT);
-        copyDataComponent(source, stack, DataComponents.POT_DECORATIONS);
+        for (String key : LEGACY_COMPONENT_KEYS) {
+            ResourceLocation id = ResourceLocation.tryParse(key);
+            DataComponentType<?> component = id == null ? null : BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(id);
+            if (component != null) {
+                copyDataComponent(source, stack, component);
+            }
+        }
     }
 
     private static <T> void copyDataComponent(ItemStack source, ItemStack target, DataComponentType<T> component) {
-        target.set(component, source.get(component));
+        T value = source.get(component);
+        if (value == null) {
+            target.remove(component);
+        } else {
+            target.set(component, value);
+        }
     }
 
     private static ItemStack parseStackTag(CompoundTag tag) {
@@ -353,16 +376,24 @@ public final class ItemStackNbt {
 
     private static CompoundTag stackTagFromLegacy(ItemStack stack, CompoundTag legacyTag) {
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return stackTagFromLegacy(itemId == null ? "minecraft:air" : itemId.toString(), Math.max(1, stack.getCount()), legacyTag);
+        CompoundTag components = NbtCompat.getCompound(save(stack), "components").copy();
+        for (String key : LEGACY_COMPONENT_KEYS) {
+            components.remove(key);
+        }
+        return stackTagFromLegacy(itemId == null ? "minecraft:air" : itemId.toString(), Math.max(1, stack.getCount()), legacyTag, components);
     }
 
     private static CompoundTag stackTagFromLegacy(String itemId, int count, CompoundTag legacyTag) {
+        return stackTagFromLegacy(itemId, count, legacyTag, new CompoundTag());
+    }
+
+    private static CompoundTag stackTagFromLegacy(String itemId, int count, CompoundTag legacyTag, CompoundTag baseComponents) {
         CompoundTag stackTag = new CompoundTag();
         stackTag.putString("id", itemId);
         stackTag.putInt("count", Math.max(1, count));
 
         CompoundTag customData = legacyTag.copy();
-        CompoundTag components = new CompoundTag();
+        CompoundTag components = baseComponents == null ? new CompoundTag() : baseComponents.copy();
         int hideFlags = removeInt(customData, "HideFlags");
 
         moveComponent(customData, "Damage", components, "minecraft:damage");

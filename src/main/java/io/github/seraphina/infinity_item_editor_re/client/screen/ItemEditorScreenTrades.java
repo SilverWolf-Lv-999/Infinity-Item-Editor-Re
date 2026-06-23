@@ -93,7 +93,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
         entityTag.put(OFFERS_TAG, offers);
         tag.put(ENTITY_TAG, entityTag);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         readTradeFieldsFromStack(this.previewStack);
     }
 
@@ -413,7 +413,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         offers.put(RECIPES_TAG, recipes);
         entityTag.put(OFFERS_TAG, offers);
         tag.put(ENTITY_TAG, entityTag);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected CompoundTag createDefaultTradeTag() {

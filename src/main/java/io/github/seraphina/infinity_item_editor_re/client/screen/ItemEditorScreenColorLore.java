@@ -154,7 +154,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         } else if (this.previewStack.is(ItemTags.DYEABLE)) {
             this.previewStack.set(DataComponents.DYED_COLOR, new DyedItemColor(color));
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void addDyeToColor(DyeColor dyeColor) {
@@ -319,7 +319,7 @@ protected void applyColorFromHex(boolean updateStatus) {
             this.loreValues.add(buildLorePainterRow(row));
         }
         applyLoreToStack();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_lore_painted"));
     }
 

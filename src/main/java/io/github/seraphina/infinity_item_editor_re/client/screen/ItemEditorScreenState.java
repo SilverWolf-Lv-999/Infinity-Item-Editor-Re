@@ -245,6 +245,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String damageValue;
     protected String nameValue;
     protected String rawNbtValue;
+    protected String componentNbtValue;
     protected String enchantFilterValue = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
@@ -336,6 +337,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected EditBox damageBox;
     protected EditBox nameBox;
     protected EditBox rawNbtBox;
+    protected EditBox componentNbtBox;
     protected EditBox enchantFilterBox;
     protected EditBox enchantLevelBox;
     protected EditBox potionFilterBox;
@@ -415,6 +417,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
 
     protected abstract void addNbtPanel();
 
+    protected abstract void addComponentsPanel();
+
     protected abstract void addNbtAdvancedPanel();
 
     protected abstract void addHideFlagsPanel();
@@ -471,6 +475,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected abstract void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
     protected abstract void renderNbtPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
+
+    protected abstract void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
     protected abstract void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
@@ -1023,6 +1029,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected abstract int getHoveredTradeSlot(int mouseX, int mouseY);
 
     protected abstract void updateRawNbt();
+
+    protected abstract void updateComponentNbt();
 
     protected abstract void toggleUnbreakable();
 

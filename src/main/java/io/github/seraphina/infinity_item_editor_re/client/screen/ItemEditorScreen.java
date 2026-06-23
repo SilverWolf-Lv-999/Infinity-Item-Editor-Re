@@ -24,7 +24,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.expandedNbtPaths.add("tag");
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.colorHexValue = formatColorHex(getEditorColor());
         ensureLorePainterRows();
     }
@@ -45,6 +45,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.damageBox = null;
         this.nameBox = null;
         this.rawNbtBox = null;
+        this.componentNbtBox = null;
         this.enchantFilterBox = null;
         this.enchantLevelBox = null;
         this.potionFilterBox = null;
@@ -90,6 +91,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         switch (this.activePanel) {
             case ITEM -> addItemPanel();
             case NBT -> addNbtPanel();
+            case COMPONENTS -> addComponentsPanel();
             case NBT_ADVANCED -> addNbtAdvancedPanel();
             case HIDE_FLAGS -> addHideFlagsPanel();
             case ENCHANTMENTS -> addEnchantmentsPanel();
@@ -139,6 +141,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         switch (this.activePanel) {
             case ITEM -> renderItemPanel(guiGraphics, mouseX, mouseY);
             case NBT -> renderNbtPanel(guiGraphics, mouseX, mouseY);
+            case COMPONENTS -> renderComponentsPanel(guiGraphics, mouseX, mouseY);
             case HIDE_FLAGS -> renderHideFlagsPanel(guiGraphics);
             case ENCHANTMENTS -> renderEnchantmentsPanel(guiGraphics, mouseX, mouseY, partialTick);
             case POTION -> renderPotionPanel(guiGraphics, mouseX, mouseY, partialTick);
@@ -191,6 +194,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             }
             if (this.activePanel == Panel.NBT) {
                 updateRawNbt();
+                return true;
+            }
+            if (this.activePanel == Panel.COMPONENTS) {
+                updateComponentNbt();
                 return true;
             }
             if (this.activePanel == Panel.COLOR) {

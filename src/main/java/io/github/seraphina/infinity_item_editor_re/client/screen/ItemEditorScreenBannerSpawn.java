@@ -106,7 +106,7 @@ protected void addSelectedBannerPattern() {
         bannerPatterns.add(patternTag);
         blockEntity.put(BANNER_PATTERNS_TAG, bannerPatterns);
         cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_banner_pattern_added"), getBannerPatternName(entry, color));
         rebuildWidgets();
     }
@@ -134,7 +134,7 @@ protected void addSelectedBannerPattern() {
             blockEntity.put(BANNER_PATTERNS_TAG, patterns);
         }
         cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_banner_pattern_removed"));
         rebuildWidgets();
     }
@@ -152,7 +152,7 @@ protected void addSelectedBannerPattern() {
 
         blockEntity.remove(BANNER_PATTERNS_TAG);
         cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_banner_patterns_cleared"));
         rebuildWidgets();
     }
@@ -290,7 +290,7 @@ protected void addSelectedBannerPattern() {
         }
 
         this.bannerBaseColor = getBannerBaseColor().getId();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_banner_swapped"));
         rebuildWidgets();
     }
@@ -306,7 +306,7 @@ protected void addSelectedBannerPattern() {
             replacePreviewItem(BannerPatternCatalog.ITEMS_BY_DYE[color.getId()]);
             removeBannerBaseColorTag();
         }
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void replacePreviewItem(Item item) {
@@ -421,7 +421,7 @@ protected void addSelectedBannerPattern() {
         }
 
         this.previewStack.set(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_decorated_pot_cleared"));
         readDecoratedPotFieldsFromStack(this.previewStack);
         rebuildWidgets();
@@ -584,7 +584,7 @@ protected void addSelectedBannerPattern() {
         ordered[normalizeDecoratedPotSide(side)] = item == null ? Items.BRICK : item;
         PotDecorations decorations = new PotDecorations(ordered[0], ordered[1], ordered[2], ordered[3]);
         this.previewStack.set(DataComponents.POT_DECORATIONS, decorations);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected Item getDecoratedPotSideItem(int side) {
@@ -651,7 +651,7 @@ protected void addSelectedBannerPattern() {
         replacePreviewItem(eggItem);
         writeSpawnEggEntityId(entry);
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_spawn_egg_synced"), getSpawnEggEntityName(entry));
         rebuildWidgets();
     }
@@ -682,7 +682,7 @@ protected void addSelectedBannerPattern() {
         this.spawnEggCustomNameValue = "";
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey(getSpawnEditorTagClearedMessageKey()));
         readSpawnEggFieldsFromStack(this.previewStack);
         rebuildWidgets();
@@ -849,7 +849,7 @@ protected void addSelectedBannerPattern() {
             tag.put(ENTITY_TAG, entityTag);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected CompoundTag getOrCreateSpawnerEntityTag() {
@@ -915,7 +915,7 @@ protected void addSelectedBannerPattern() {
                 blockEntity.putString(ENTITY_ID_TAG, TRIAL_SPAWNER_BLOCK_ENTITY_ID);
             }
             cleanupSpawnerBlockEntityTag(blockEntity);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
@@ -933,7 +933,7 @@ protected void addSelectedBannerPattern() {
             blockEntity.putString(ENTITY_ID_TAG, SPAWNER_BLOCK_ENTITY_ID);
         }
         cleanupSpawnerBlockEntityTag(blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void clearSpawnerSpawnData() {
@@ -946,14 +946,14 @@ protected void addSelectedBannerPattern() {
         if (isTrialSpawnerItem(this.previewStack)) {
             clearTrialSpawnerEntityData(blockEntity);
             cleanupSpawnerBlockEntityTag(blockEntity);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
         blockEntity.remove(SPAWNER_SPAWN_DATA_TAG);
         blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
         cleanupSpawnerBlockEntityTag(blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void clearSpawnerSpawnPotentials() {
@@ -966,13 +966,13 @@ protected void addSelectedBannerPattern() {
         if (isTrialSpawnerItem(this.previewStack)) {
             clearTrialSpawnerSpawnPotentials(blockEntity);
             cleanupSpawnerBlockEntityTag(blockEntity);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
         blockEntity.remove(SPAWNER_SPAWN_POTENTIALS_TAG);
         cleanupSpawnerBlockEntityTag(blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void cleanupSpawnerBlockEntityTag(CompoundTag blockEntity) {

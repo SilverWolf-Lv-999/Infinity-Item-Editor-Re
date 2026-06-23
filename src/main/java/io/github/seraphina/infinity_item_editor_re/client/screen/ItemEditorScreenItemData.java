@@ -90,7 +90,7 @@ protected void applySignToStack() {
             blockEntity.remove(SIGN_FRONT_TEXT_TAG);
             removeLegacySignText(blockEntity);
             cleanupBlockEntityTag(tag, blockEntity);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
@@ -112,7 +112,7 @@ protected void applySignToStack() {
         blockEntity.put(SIGN_FRONT_TEXT_TAG, frontText);
         removeLegacySignText(blockEntity);
         cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void applyBookMetadataToStack() {
@@ -124,7 +124,7 @@ protected void applySignToStack() {
         tag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
         tag.putString(BOOK_AUTHOR_TAG, this.bookAuthorValue == null ? "" : this.bookAuthorValue);
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void cycleBookGeneration() {
@@ -141,7 +141,7 @@ protected void applySignToStack() {
             tag.putInt(BOOK_GENERATION_TAG, next);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_book_generation_updated"), next);
         rebuildWidgets();
     }
@@ -158,7 +158,7 @@ protected void applySignToStack() {
             tag.putBoolean(BOOK_RESOLVED_TAG, true);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_book_resolved_updated"));
         rebuildWidgets();
     }
@@ -194,7 +194,7 @@ protected void applySignToStack() {
         readMainFieldsFromStack(this.previewStack);
         this.bookTitleValue = NbtCompat.getString(this.rememberedSignedBookData, BOOK_TITLE_TAG);
         this.bookAuthorValue = NbtCompat.getString(this.rememberedSignedBookData, BOOK_AUTHOR_TAG);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_book_unsigned"));
         rebuildWidgets();
     }
@@ -231,7 +231,7 @@ protected void applySignToStack() {
         this.previewStack = writtenBook;
         this.rememberedSignedBookData = null;
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_book_signed"));
         rebuildWidgets();
     }
@@ -290,13 +290,13 @@ protected void applySignToStack() {
         if (ownerName.isEmpty() && uuidText.isEmpty() && textureValue.isEmpty()) {
             tag.remove(SKULL_OWNER_TAG);
             cleanupEmptyTag();
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
         if (textureValue.isEmpty() && uuid == null && !ownerName.isEmpty()) {
             tag.putString(SKULL_OWNER_TAG, ownerName);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
@@ -321,7 +321,7 @@ protected void applySignToStack() {
         }
 
         tag.put(SKULL_OWNER_TAG, skullOwner);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void clearHeadOwner() {
@@ -392,7 +392,7 @@ protected void applySignToStack() {
             tag.put(ENTITY_TAG, clearedEntityTag);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_armor_stand_cleared"));
         rebuildWidgets();
     }
@@ -416,7 +416,7 @@ protected void applySignToStack() {
             tag.put(ENTITY_TAG, entityTag);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected Component getArmorStandToggleText(String translationSuffix, String tagKey) {
@@ -570,7 +570,7 @@ protected void applySignToStack() {
             tag.remove(FIREWORK_EXPLOSION_TAG);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         readFireworkFieldsFromStack(this.previewStack);
         this.status = Component.translatable(messageKey("editor_firework_cleared"));
         rebuildWidgets();
@@ -579,7 +579,7 @@ protected void applySignToStack() {
     protected void applyFireworkControlsToStack() {
         if (this.previewStack.is(Items.FIREWORK_STAR)) {
             ItemStackNbt.getOrCreate(this.previewStack).put(FIREWORK_EXPLOSION_TAG, createFireworkExplosionTag());
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return;
         }
 
@@ -637,7 +637,7 @@ protected void applySignToStack() {
             tag.put(FIREWORKS_TAG, fireworks);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected void cycleContainerSlot(int direction) {
@@ -784,7 +784,7 @@ protected void applySignToStack() {
             blockEntity.put(CONTAINER_ITEMS_TAG, items);
         }
         cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected ItemStack getContainerSlotItem(int slot) {
@@ -866,7 +866,7 @@ protected void applySignToStack() {
             tag.put(CONTAINER_ITEMS_TAG, updatedItems);
         }
         cleanupEmptyTag();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
     }
 
     protected ItemStack getBundleSlotItem(int slot) {
