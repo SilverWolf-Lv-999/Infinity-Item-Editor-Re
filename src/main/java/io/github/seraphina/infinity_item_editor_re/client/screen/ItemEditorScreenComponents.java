@@ -13,12 +13,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
-    private static final int COMPONENT_TAB_BASIC = 0;
-    private static final int COMPONENT_TAB_FOOD = 1;
-    private static final int COMPONENT_TAB_TOOL = 2;
-    private static final int COMPONENT_TAB_EQUIPMENT = 3;
-    private static final int COMPONENT_TAB_ADVANCED = 4;
+    private static final int COMPONENT_TAB_QUICK = 0;
+    private static final int COMPONENT_TAB_BASIC = 1;
+    private static final int COMPONENT_TAB_FOOD = 2;
+    private static final int COMPONENT_TAB_TOOL = 3;
+    private static final int COMPONENT_TAB_EQUIPMENT = 4;
+    private static final int COMPONENT_TAB_ADVANCED = 5;
     private static final String[] COMPONENT_TAB_KEYS = {
+            "components.tab.quick",
             "components.tab.basic",
             "components.tab.food",
             "components.tab.tool",
@@ -42,14 +44,15 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         int width = componentEditorWidth();
         int formTop = addComponentTabButtons(left, top, width);
         switch (this.componentEditorTab) {
+            case COMPONENT_TAB_QUICK -> addQuickComponentPanel(left, formTop, width);
             case COMPONENT_TAB_BASIC -> addBasicComponentPanel(left, formTop, width);
             case COMPONENT_TAB_FOOD -> addFoodComponentPanel(left, formTop, width);
             case COMPONENT_TAB_TOOL -> addToolComponentPanel(left, formTop, width);
             case COMPONENT_TAB_EQUIPMENT -> addEquipmentComponentPanel(left, formTop, width);
             case COMPONENT_TAB_ADVANCED -> addRawComponentPanel(left, formTop, width);
             default -> {
-                this.componentEditorTab = COMPONENT_TAB_BASIC;
-                addBasicComponentPanel(left, formTop, width);
+                this.componentEditorTab = COMPONENT_TAB_QUICK;
+                addQuickComponentPanel(left, formTop, width);
             }
         }
     }
@@ -61,6 +64,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         }
 
         switch (this.componentEditorTab) {
+            case COMPONENT_TAB_QUICK -> applyQuickDurability();
             case COMPONENT_TAB_BASIC -> applyBasicComponents();
             case COMPONENT_TAB_FOOD -> applyFoodComponents();
             case COMPONENT_TAB_TOOL -> applyToolComponents();
@@ -92,6 +96,39 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         }
         int rows = (COMPONENT_TAB_KEYS.length + columns - 1) / columns;
         return top + rows * (buttonHeight + gap) + 8;
+    }
+
+    private void addQuickComponentPanel(int left, int top, int width) {
+        CompoundTag components = currentComponents();
+        CompoundTag food = componentCompound(components, "minecraft:food");
+        CompoundTag tool = componentCompound(components, "minecraft:tool");
+        CompoundTag firstRule = firstToolRule(tool);
+        CompoundTag repairable = componentCompound(components, "minecraft:repairable");
+
+        addComponentField(left, top, width, 0, "component.quick.durability", "quick.durability",
+                numericComponentValue(components, "minecraft:max_damage", "1000"));
+        addComponentField(left, top, width, 1, "component.quick.food_points", "quick.food_points",
+                food.isEmpty() ? "4" : Integer.toString(NbtCompat.getInt(food, "nutrition")));
+        addComponentField(left, top, width, 2, "component.quick.mining_speed", "quick.mining_speed",
+                firstRule.isEmpty() ? "6.0" : Float.toString(NbtCompat.getFloat(firstRule, "speed")));
+        addComponentField(left, top, width, 3, "component.quick.repair_item", "quick.repair_item",
+                componentString(repairable, "items", "iron_ingot"));
+
+        int y = componentFieldsBottom(top, width, 4) + 8;
+        int columns = 4;
+        addComponentActionButton(left, y, width, 0, columns, Component.translatable(key("components.quick.durable")), button -> applyQuickDurability());
+        addComponentActionButton(left, y, width, 1, columns, Component.translatable(key("components.quick.food")), button -> applyQuickFood(false, false));
+        addComponentActionButton(left, y, width, 2, columns, Component.translatable(key("components.quick.drink")), button -> applyQuickFood(false, true));
+        addComponentActionButton(left, y, width, 3, columns, Component.translatable(key("components.quick.tool")), button -> applyQuickTool("#minecraft:mineable/pickaxe"));
+        addComponentActionButton(left, y, width, 4, columns, Component.translatable(key("components.quick.weapon")), button -> applyQuickWeapon());
+        addComponentActionButton(left, y, width, 5, columns, Component.translatable(key("components.quick.head")), button -> applyQuickEquipment("head", false));
+        addComponentActionButton(left, y, width, 6, columns, Component.translatable(key("components.quick.chest")), button -> applyQuickEquipment("chest", false));
+        addComponentActionButton(left, y, width, 7, columns, Component.translatable(key("components.quick.feet")), button -> applyQuickEquipment("feet", false));
+        addComponentActionButton(left, y, width, 8, columns, Component.translatable(key("components.quick.glider")), button -> applyQuickEquipment("chest", true));
+        addComponentActionButton(left, y, width, 9, columns, getMarkerText("minecraft:unbreakable", "components.quick.unbreakable"), button -> toggleMarkerComponent("minecraft:unbreakable"));
+        addComponentActionButton(left, y, width, 10, columns, getGlintText(components), button -> cycleGlintOverride());
+        addComponentActionButton(left, y, width, 11, columns, getMarkerText("minecraft:death_protection", "components.quick.death_protection"), button -> toggleMarkerComponent("minecraft:death_protection"));
+        addComponentActionButton(left, y, width, 12, columns, Component.translatable(key("components.quick.clear")), button -> clearQuickComponents());
     }
 
     private void addBasicComponentPanel(int left, int top, int width) {
@@ -290,6 +327,100 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         return top + rows * 34;
     }
 
+    private void applyQuickDurability() {
+        try {
+            CompoundTag components = currentComponents();
+            applyDurabilityFields(components);
+            applyComponentsAndRefresh(components, "editor_components_quick_durable");
+        } catch (IllegalArgumentException exception) {
+            showComponentError(exception);
+        }
+    }
+
+    private void applyQuickFood(boolean alwaysEat, boolean drink) {
+        try {
+            CompoundTag components = currentComponents();
+            int nutrition = parseIntField("quick.food_points", "4", 0, 1000);
+
+            CompoundTag food = new CompoundTag();
+            food.putInt("nutrition", nutrition);
+            food.putFloat("saturation", Math.max(0.1F, nutrition * 0.3F));
+            if (alwaysEat) {
+                food.putBoolean("can_always_eat", true);
+            }
+            components.put("minecraft:food", food);
+
+            CompoundTag consumable = new CompoundTag();
+            if (drink) {
+                consumable.putString("animation", "drink");
+                consumable.putString("sound", "minecraft:entity.generic.drink");
+            } else {
+                consumable.putString("sound", "minecraft:entity.generic.eat");
+            }
+            components.put("minecraft:consumable", consumable);
+            applyComponentsAndRefresh(components, drink ? "editor_components_quick_drink" : "editor_components_quick_food");
+        } catch (IllegalArgumentException exception) {
+            showComponentError(exception);
+        }
+    }
+
+    private void applyQuickTool(String blocks) {
+        try {
+            CompoundTag components = currentComponents();
+            applyDurabilityFields(components);
+
+            CompoundTag tool = new CompoundTag();
+            ListTag rules = new ListTag();
+            CompoundTag rule = new CompoundTag();
+            rule.putString("blocks", blocks);
+            rule.putFloat("speed", parseFloatField("quick.mining_speed", "6.0", 0.01F, 100000.0F));
+            rule.putBoolean("correct_for_drops", true);
+            rules.add(rule);
+            tool.put("rules", rules);
+            components.put("minecraft:tool", tool);
+            putHolderSetComponentValue(components, "minecraft:repairable", "items", componentFieldValue("quick.repair_item", "iron_ingot"));
+            applyComponentsAndRefresh(components, "editor_components_quick_tool");
+        } catch (IllegalArgumentException exception) {
+            showComponentError(exception);
+        }
+    }
+
+    private void applyQuickWeapon() {
+        try {
+            CompoundTag components = currentComponents();
+            applyDurabilityFields(components);
+
+            CompoundTag weapon = new CompoundTag();
+            weapon.putInt("item_damage_per_attack", 1);
+            components.put("minecraft:weapon", weapon);
+            putHolderSetComponentValue(components, "minecraft:repairable", "items", componentFieldValue("quick.repair_item", "iron_ingot"));
+            applyComponentsAndRefresh(components, "editor_components_quick_weapon");
+        } catch (IllegalArgumentException exception) {
+            showComponentError(exception);
+        }
+    }
+
+    private void applyQuickEquipment(String slot, boolean glider) {
+        try {
+            CompoundTag components = currentComponents();
+            applyDurabilityFields(components);
+
+            CompoundTag equippable = new CompoundTag();
+            equippable.putString("slot", slot);
+            equippable.putString("equip_sound", "minecraft:item.armor.equip_generic");
+            components.put("minecraft:equippable", equippable);
+            if (glider) {
+                components.put("minecraft:glider", new CompoundTag());
+            } else {
+                components.remove("minecraft:glider");
+            }
+            putHolderSetComponentValue(components, "minecraft:repairable", "items", componentFieldValue("quick.repair_item", "iron_ingot"));
+            applyComponentsAndRefresh(components, glider ? "editor_components_quick_glider" : "editor_components_quick_equipment");
+        } catch (IllegalArgumentException exception) {
+            showComponentError(exception);
+        }
+    }
+
     private void applyBasicComponents() {
         try {
             CompoundTag components = currentComponents();
@@ -411,6 +542,19 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
                 "minecraft:unbreakable", "minecraft:glider", "minecraft:enchantment_glint_override");
     }
 
+    private void clearQuickComponents() {
+        CompoundTag components = currentComponents();
+        String[] quickComponents = {
+                "minecraft:max_stack_size", "minecraft:max_damage", "minecraft:damage", "minecraft:food", "minecraft:consumable",
+                "minecraft:use_cooldown", "minecraft:tool", "minecraft:weapon", "minecraft:repairable", "minecraft:equippable",
+                "minecraft:glider", "minecraft:unbreakable", "minecraft:death_protection", "minecraft:enchantment_glint_override"
+        };
+        for (String componentKey : quickComponents) {
+            components.remove(componentKey);
+        }
+        applyComponentsAndRefresh(components, "editor_components_quick_cleared");
+    }
+
     private void removeComponents(String... componentKeys) {
         CompoundTag components = currentComponents();
         for (String componentKey : componentKeys) {
@@ -443,12 +587,16 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private void applyComponentsAndRefresh(CompoundTag components) {
+        applyComponentsAndRefresh(components, "editor_components_applied");
+    }
+
+    private void applyComponentsAndRefresh(CompoundTag components, String feedbackMessageKey) {
         try {
             this.previewStack = parseStackWithComponents(this.previewStack, components);
             readMainFieldsFromStack(this.previewStack);
             syncNbtEditorValuesFromStack();
             this.nbtFeedbackGood = true;
-            this.nbtFeedback = Component.translatable(messageKey("editor_components_applied")).getString();
+            this.nbtFeedback = Component.translatable(messageKey(feedbackMessageKey)).getString();
             rebuildWidgets();
         } catch (RuntimeException exception) {
             showComponentError(exception);
@@ -521,8 +669,19 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         components.put("minecraft:enchantable", enchantable);
     }
 
+    private void applyDurabilityFields(CompoundTag components) {
+        int maxDamage = parseIntField("quick.durability", "1000", 1, 999999);
+        components.putInt("minecraft:max_stack_size", 1);
+        components.putInt("minecraft:max_damage", maxDamage);
+        components.putInt("minecraft:damage", 0);
+    }
+
     private void putHolderSetComponent(CompoundTag components, String componentKey, String valueKey, String fieldKey) {
-        String value = normalizeHolderSetInput(componentFieldValue(fieldKey, ""));
+        putHolderSetComponentValue(components, componentKey, valueKey, componentFieldValue(fieldKey, ""));
+    }
+
+    private void putHolderSetComponentValue(CompoundTag components, String componentKey, String valueKey, String input) {
+        String value = normalizeHolderSetInput(input);
         if (value.isEmpty()) {
             components.remove(componentKey);
             return;
