@@ -283,15 +283,36 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     private boolean applySingleplayerInventoryStack(int containerSlot, ItemStack stack) {
         IntegratedServer server = this.minecraft.getSingleplayerServer();
-        if (server == null || !PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, stack)) {
+        if (server == null) {
+            return false;
+        }
+
+        CompoundTag serializedStack;
+        try {
+            serializedStack = ItemStackNbt.save(stack);
+        } catch (RuntimeException | LinkageError exception) {
+            return false;
+        }
+
+        if (serializedStack.isEmpty() || !PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, stack)) {
             return false;
         }
 
         UUID playerId = this.minecraft.player.getUUID();
-        ItemStack serverStack = stack.copy();
         server.execute(() -> {
             ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
-            if (serverPlayer == null || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
+            if (serverPlayer == null) {
+                return;
+            }
+
+            ItemStack serverStack;
+            try {
+                serverStack = ItemStack.parseOptional(serverPlayer.level().registryAccess(), serializedStack.copy());
+            } catch (RuntimeException | LinkageError exception) {
+                return;
+            }
+
+            if (serverStack.isEmpty() || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
                 return;
             }
 
