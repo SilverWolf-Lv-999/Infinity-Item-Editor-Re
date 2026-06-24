@@ -47,6 +47,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.damageBox = null;
         this.nameBox = null;
         this.rawNbtBox = null;
+        this.componentFilterBox = null;
         this.componentNbtBox = null;
         this.enchantFilterBox = null;
         this.enchantLevelBox = null;
@@ -198,10 +199,6 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
                 updateRawNbt();
                 return true;
             }
-            if (this.activePanel == Panel.COMPONENTS) {
-                applyComponentEditor();
-                return true;
-            }
             if (this.activePanel == Panel.COLOR) {
                 applyColorFromHex(true);
                 return true;
@@ -237,6 +234,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.SPAWN_EGG && this.spawnEggEntityFilterBox != null && this.spawnEggEntityFilterBox.isFocused()) {
             return this.spawnEggEntityFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
+        if (this.activePanel == Panel.COMPONENTS && this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
+        }
         return super.charTyped(codePoint, modifiers);
     }
 
@@ -261,6 +261,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case ENCHANTMENTS -> handleEnchantingClick(mouseX, mouseY);
             case POTION -> handlePotionClick(mouseX, mouseY);
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
+            case COMPONENTS -> handleComponentListClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
@@ -290,6 +291,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.CONTAINER && isBundleEditableItem(this.previewStack)) {
             cycleContainerSlot(-(int) Math.signum(scrollY));
             return true;
+        }
+
+        if (this.activePanel == Panel.COMPONENTS) {
+            return scrollComponentList(scrollY);
         }
 
         if (this.activePanel == Panel.BANNER) {

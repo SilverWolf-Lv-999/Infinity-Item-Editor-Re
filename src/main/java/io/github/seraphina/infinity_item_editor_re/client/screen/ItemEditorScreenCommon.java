@@ -541,6 +541,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.rawNbtBox != null && this.rawNbtBox.isFocused()) {
             return this.rawNbtBox;
         }
+        if (this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox;
+        }
         if (this.componentNbtBox != null && this.componentNbtBox.isFocused()) {
             return this.componentNbtBox;
         }
@@ -859,6 +862,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         if (this.rawNbtBox != null) {
             this.rawNbtValue = this.rawNbtBox.getValue();
+        }
+        if (this.componentFilterBox != null) {
+            this.componentFilterValue = this.componentFilterBox.getValue();
         }
         if (this.componentNbtBox != null) {
             this.componentNbtValue = this.componentNbtBox.getValue();
