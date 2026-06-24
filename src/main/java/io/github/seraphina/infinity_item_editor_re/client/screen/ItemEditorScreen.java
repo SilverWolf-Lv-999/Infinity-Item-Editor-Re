@@ -324,6 +324,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (this.activePanel == Panel.COMPONENTS && this.draggingComponentListScroll) {
+            return dragComponentListScrollbar(mouseY);
+        }
         if (this.activePanel == Panel.LORE && this.draggingLoreScroll) {
             updateLoreScrollFromMouse(mouseY);
             return true;
@@ -337,6 +340,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        this.draggingComponentListScroll = false;
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
         return super.mouseReleased(mouseX, mouseY, button);

@@ -319,6 +319,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected int componentEditorTab;
     protected int lorePainterWidth = 3;
     protected int lorePainterHeight = 3;
+    protected boolean draggingComponentListScroll;
     protected boolean draggingLoreScroll;
     protected boolean fireworkFlicker;
     protected boolean fireworkTrail;
