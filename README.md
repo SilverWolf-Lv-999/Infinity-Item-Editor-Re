@@ -1,6 +1,6 @@
 # Infinity Item Editor Re
 
-Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。
+Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。
 
 这个仓库不是原作者的官方更新版，而是基于旧版功能思路重新适配到新版 Minecraft 的移植/复刻项目。当前仍处于开发阶段，部分面板和细节可能还会继续补全或调整。
 
@@ -8,10 +8,10 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 
 | 项目 | 内容 |
 | --- | --- |
-| 多分支支持版本 | Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
+| 多分支支持版本 | Fabric 1.20.1；Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
 | 当前工作区 | NeoForge 1.21.10 |
 | 当前工作区 NeoForge | 21.10.64 |
-| Java | Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
+| Java | Fabric/Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
 | Mod ID | `infinity_item_editor_re` |
 | 当前工作区版本 | `1.21.10-1.0.0-B` |
 | 许可证 | GNU GPL 3.0 |
@@ -86,7 +86,7 @@ Infinity Item Editor Re 是一个面向 **Minecraft Forge / NeoForge 多版本**
 
 ## 使用说明
 
-1. 安装目标 Minecraft 版本对应的 Forge 或 NeoForge。
+1. 安装目标 Minecraft 版本对应的 Fabric、Forge 或 NeoForge。
 2. 下载或自行构建与目标版本和加载器匹配的 jar。
 3. 将 jar 放入客户端 `.minecraft/mods` 目录。
 4. 启动游戏后进入创造模式，手持一个物品并按 `U` 打开编辑器。
@@ -116,7 +116,7 @@ Mod 会在客户端游戏目录下创建数据目录：
 - `thiefTab`
 - `fireworkTab`
 
-配置文件由 Forge/NeoForge 生成，通常位于客户端 `config` 目录。
+配置文件通常位于客户端 `config` 目录。
 
 ## 从源码构建
 
@@ -148,7 +148,7 @@ build/libs/
 
 ## 当前状态
 
-本项目是旧版 Mod 的 Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前支持 Forge 1.20.1，以及 NeoForge 1.21.1、1.21.4、1.21.10、1.21.11。常用物品编辑面板、数据组件编辑、JSON 编辑器、命令方块编辑器、书本页面编辑器、收纳袋、陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
+本项目是旧版 Mod 的 Fabric/Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前支持 Fabric 1.20.1、Forge 1.20.1，以及 NeoForge 1.21.1、1.21.4、1.21.10、1.21.11。常用物品编辑面板、数据组件编辑、JSON 编辑器、命令方块编辑器、书本页面编辑器、收纳袋、陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
 
 ## 原项目与参考
 
