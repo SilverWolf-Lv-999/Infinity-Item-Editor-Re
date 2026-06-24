@@ -85,13 +85,46 @@ protected void updateRawNbt() {
                 ItemStackNbt.set(this.previewStack, null);
             }
             readMainFieldsFromStack(this.previewStack);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             this.nbtFeedbackGood = true;
             this.nbtFeedback = "Looks good";
         } catch (CommandSyntaxException exception) {
             this.nbtFeedbackGood = false;
             this.nbtFeedback = exception.getMessage();
         }
+    }
+
+    protected void updateComponentNbt() {
+        String raw = this.componentNbtBox == null ? this.componentNbtValue : this.componentNbtBox.getValue();
+        try {
+            CompoundTag components = parseNbt(raw);
+            this.previewStack = parseStackWithComponents(this.previewStack, components == null ? new CompoundTag() : components);
+            readMainFieldsFromStack(this.previewStack);
+            syncNbtEditorValuesFromStack();
+            this.nbtFeedbackGood = true;
+            this.nbtFeedback = "Looks good";
+        } catch (CommandSyntaxException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage();
+        } catch (RuntimeException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+        }
+    }
+
+    protected ItemStack parseStackWithComponents(ItemStack current, CompoundTag components) {
+        CompoundTag stackTag = new CompoundTag();
+        ResourceLocation id = CompatRegistries.ITEMS.getKey(current.getItem());
+        stackTag.putString("id", id == null ? "minecraft:air" : id.toString());
+        stackTag.putInt("count", Math.max(1, current.getCount()));
+        if (components != null && !components.isEmpty()) {
+            stackTag.put("components", components.copy());
+        }
+        ItemStack parsed = ItemStackNbt.parse(stackTag);
+        if (parsed.isEmpty() && !current.is(Items.AIR)) {
+            throw new IllegalArgumentException("Invalid components");
+        }
+        return parsed;
     }
 
     protected void toggleUnbreakable() {

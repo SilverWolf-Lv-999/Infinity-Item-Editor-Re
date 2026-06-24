@@ -102,7 +102,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
@@ -114,7 +114,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -126,7 +126,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -138,7 +138,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -159,7 +159,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         syncItemPanelFieldsFromStack();
     }
@@ -181,14 +181,14 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     void refreshAfterContainerEdit() {
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.containerSlotNbtValue = getContainerSelectedSlotNbt();
         this.nbtFeedback = "";
     }
 
     void refreshAfterBookEdit() {
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
     }
 
@@ -198,7 +198,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
     }
@@ -209,7 +209,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_command_block_applied"));
     }
@@ -233,7 +233,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
         this.activePanel = Panel.ITEM;
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         rebuildWidgets();
     }
 
@@ -362,13 +362,15 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        if (this.activePanel == Panel.NBT) {
+        if (this.activePanel == Panel.COMPONENTS) {
+            this.previewStack = parseStackWithComponents(this.previewStack, new CompoundTag());
+        } else if (this.activePanel == Panel.NBT) {
             ItemStackNbt.set(this.previewStack, new CompoundTag());
         } else {
             ItemStackNbt.set(this.previewStack, null);
         }
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         rebuildWidgets();
     }
@@ -410,7 +412,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             if (this.activePanel == Panel.DECORATED_POT) {
                 readDecoratedPotFieldsFromStack(this.previewStack);
             }
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             return true;
         } catch (IllegalArgumentException exception) {
             if (updateStatus) {

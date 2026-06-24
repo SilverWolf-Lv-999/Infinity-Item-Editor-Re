@@ -87,7 +87,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.expandedNbtPaths.add("tag");
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.colorHexValue = formatColorHex(getEditorColor());
         ensureLorePainterRows();
     }
@@ -108,6 +108,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.damageBox = null;
         this.nameBox = null;
         this.rawNbtBox = null;
+        this.componentFilterBox = null;
+        this.componentNbtBox = null;
         this.enchantFilterBox = null;
         this.enchantLevelBox = null;
         this.potionFilterBox = null;
@@ -153,6 +155,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         switch (this.activePanel) {
             case ITEM -> addItemPanel();
             case NBT -> addNbtPanel();
+            case COMPONENTS -> addComponentsPanel();
             case NBT_ADVANCED -> addNbtAdvancedPanel();
             case HIDE_FLAGS -> addHideFlagsPanel();
             case ENCHANTMENTS -> addEnchantmentsPanel();
@@ -202,6 +205,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         switch (this.activePanel) {
             case ITEM -> renderItemPanel(guiGraphics, mouseX, mouseY);
             case NBT -> renderNbtPanel(guiGraphics, mouseX, mouseY);
+            case COMPONENTS -> renderComponentsPanel(guiGraphics, mouseX, mouseY);
             case HIDE_FLAGS -> renderHideFlagsPanel(guiGraphics);
             case ENCHANTMENTS -> renderEnchantmentsPanel(guiGraphics, mouseX, mouseY, partialTick);
             case POTION -> renderPotionPanel(guiGraphics, mouseX, mouseY, partialTick);
@@ -282,6 +286,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.POTION && this.potionFilterBox != null && this.potionFilterBox.isFocused()) {
             return this.potionFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
+        if (this.activePanel == Panel.COMPONENTS && this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
         if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
             return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
@@ -315,6 +322,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case ENCHANTMENTS -> handleEnchantingClick(mouseX, mouseY);
             case POTION -> handlePotionClick(mouseX, mouseY);
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
+            case COMPONENTS -> handleComponentListClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
@@ -339,6 +347,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.LORE) {
             setLoreScroll(this.loreScroll - (int) Math.signum(scrollY));
             return true;
+        }
+
+        if (this.activePanel == Panel.COMPONENTS) {
+            return scrollComponentList(scrollY);
         }
 
         if (this.activePanel == Panel.BANNER) {

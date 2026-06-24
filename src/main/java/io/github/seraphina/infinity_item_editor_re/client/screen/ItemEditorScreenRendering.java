@@ -133,6 +133,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         return switch (this.activePanel) {
             case ITEM -> Component.translatable(key("item"));
             case NBT -> Component.translatable(key("nbt"));
+            case COMPONENTS -> Component.translatable(key("components"));
             case NBT_ADVANCED -> Component.translatable(key("nbtadv"));
             case HIDE_FLAGS -> Component.translatable(key("hideflags"));
             case ENCHANTMENTS -> Component.translatable(key("enchanting"));
@@ -289,6 +290,13 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (!this.nbtFeedback.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, 130, this.nbtFeedbackGood ? GOOD_GREEN : BAD_RED);
         }
+    }
+
+    protected void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        renderItemTooltipPreview(guiGraphics);
+        renderSmallItem(guiGraphics, this.midX, 38);
+        drawPanelTitle(guiGraphics, Component.translatable(key("components")));
+        renderComponentEditorPanel(guiGraphics, mouseX, mouseY);
     }
 
     protected void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
