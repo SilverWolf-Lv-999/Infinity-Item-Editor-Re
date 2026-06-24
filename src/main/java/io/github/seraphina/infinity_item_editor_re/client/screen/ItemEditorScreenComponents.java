@@ -25,6 +25,9 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     private static final int COMPONENT_ROW_HEIGHT = 14;
     private static final int COMPONENT_PANEL_GAP = 12;
     private static final int COMPONENT_DOUBLE_CLICK_MS = 350;
+    private static final int COMPONENT_SCROLLBAR_WIDTH = 8;
+    private static final int COMPONENT_SCROLLBAR_MIN_THUMB = 18;
+    private static final int COMPONENT_ACTION_GAP = 4;
     private static final String VANILLA_NAMESPACE = "minecraft";
     private static final String MOD_GROUP_PREFIX = "mod:";
 
@@ -56,6 +59,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             new VanillaComponentCategory("advanced", Set.of("custom_data", "intangible_projectile"))
     );
     private static final Map<String, String> VANILLA_CATEGORY_BY_PATH = createVanillaCategoryMap();
+    private static final Map<String, List<ComponentPreset>> VANILLA_COMPONENT_PRESETS = createVanillaComponentPresets();
     private static final Set<String> MARKER_COMPONENTS = Set.of(
             "minecraft:unbreakable",
             "minecraft:creative_slot_lock",
@@ -149,7 +153,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
                 Component.translatable(key("components.raw_value"))));
         this.componentNbtBox.setMaxLength(30000);
         this.componentNbtBox.setTextColor(componentInputTextColor());
-        this.componentNbtBox.active = hasSelectedComponent();
+        this.componentNbtBox.active = canEditSelectedComponentRawValue();
         setComponentBoxValue(selectedComponentValue());
         this.componentNbtBox.setResponder(value -> {
             this.componentNbtValue = value;
@@ -167,6 +171,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         int listWidth = componentListWidth(width);
         int valueLeft = left + listWidth + COMPONENT_PANEL_GAP;
         int valueRight = left + width;
+        int valueWidth = Math.max(120, width - listWidth - COMPONENT_PANEL_GAP);
 
         if (isSidebarUi()) {
             ModernUi.fillToolDrawer(guiGraphics, left - 8, top, left + width + 8, bottom, false);
@@ -183,10 +188,10 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         int labelColor = componentLabelColor();
         guiGraphics.drawString(this.font, Component.translatable(key("components.search")), left, componentFilterY() - 10, labelColor, false);
         guiGraphics.drawString(this.font, Component.translatable(key("components.available")), left, componentListY() - 10, labelColor, false);
-        guiGraphics.drawString(this.font, Component.translatable(key("components.raw_value")), valueLeft, componentValueBoxY() - 10, labelColor, false);
+        guiGraphics.drawString(this.font, componentValueBoxLabel(), valueLeft, componentValueBoxY() - 10, labelColor, false);
 
         renderComponentList(guiGraphics, mouseX, mouseY, left, listWidth);
-        renderSelectedComponentSummary(guiGraphics, valueLeft, valueRight, componentActionButtonY() + FIELD_HEIGHT + 10);
+        renderSelectedComponentSummary(guiGraphics, valueLeft, valueRight, componentSummaryY(valueWidth));
 
         if (!this.nbtFeedback.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, this.height - 44,
@@ -204,6 +209,17 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         }
 
         List<ComponentRow> rows = getComponentRows();
+        if (isComponentScrollbarHit(mouseX, mouseY, left, width, rows.size())) {
+            this.draggingComponentListScroll = true;
+            updateComponentListScrollFromMouse(mouseY);
+            return true;
+        }
+
+        int contentWidth = componentListContentWidth(width, rows.size());
+        if (!isMouseIn(mouseX, mouseY, left, top, contentWidth, height)) {
+            return false;
+        }
+
         int rowIndex = ((int) mouseY - top) / COMPONENT_ROW_HEIGHT;
         int index = this.componentListScroll + rowIndex;
         if (rowIndex < 0 || rowIndex >= componentVisibleRows() || index < 0 || index >= rows.size()) {
@@ -230,32 +246,54 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private void addDirectComponentButtons(int left, int y, int width) {
-        if (!hasSelectedComponent()) {
+        List<ComponentAction> actions = selectedComponentActions();
+        if (actions.isEmpty()) {
             return;
         }
 
-        ComponentValueKind kind = selectedComponentValueKind();
-        int gap = 4;
-        int columns = width >= 360 ? 4 : 2;
-        int buttonWidth = Math.max(44, (width - gap * (columns - 1)) / columns);
+        int columns = componentActionColumns(width);
+        int buttonWidth = Math.max(44, (width - COMPONENT_ACTION_GAP * (columns - 1)) / columns);
         int buttonHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
-        addComponentActionButton(left, y, buttonWidth, buttonHeight, 0, columns, gap,
-                Component.translatable(key(kind == ComponentValueKind.MARKER ? "components.action.enable" : "components.action.default")),
-                button -> applyDefaultComponentValue());
-        addComponentActionButton(left, y, buttonWidth, buttonHeight, 1, columns, gap,
-                Component.translatable(key("components.action.remove")), button -> removeSelectedComponent());
 
-        if (kind == ComponentValueKind.BOOLEAN) {
-            addComponentActionButton(left, y, buttonWidth, buttonHeight, 2, columns, gap,
-                    Component.translatable(key("components.action.true")), button -> setSelectedComponentRaw("true", true));
-            addComponentActionButton(left, y, buttonWidth, buttonHeight, 3, columns, gap,
-                    Component.translatable(key("components.action.false")), button -> setSelectedComponentRaw("false", true));
-        } else if (kind == ComponentValueKind.NUMBER) {
-            addComponentActionButton(left, y, buttonWidth, buttonHeight, 2, columns, gap,
-                    Component.literal("-1"), button -> stepSelectedNumericComponent(-1));
-            addComponentActionButton(left, y, buttonWidth, buttonHeight, 3, columns, gap,
-                    Component.literal("+1"), button -> stepSelectedNumericComponent(1));
+        for (int i = 0; i < actions.size(); i++) {
+            ComponentAction action = actions.get(i);
+            addComponentActionButton(left, y, buttonWidth, buttonHeight, i, columns, COMPONENT_ACTION_GAP,
+                    action.label(), button -> setSelectedComponentRaw(action.value(), true));
         }
+    }
+
+    private List<ComponentAction> selectedComponentActions() {
+        if (!hasSelectedComponent()) {
+            return List.of();
+        }
+
+        List<ComponentAction> actions = new ArrayList<>();
+        ComponentValueKind kind = selectedComponentValueKind();
+        if (isVanillaComponent(this.selectedComponentKey)) {
+            actions.add(new ComponentAction(Component.translatable(key(kind == ComponentValueKind.MARKER
+                    ? "components.action.enable"
+                    : "components.action.default")), defaultComponentValue(this.selectedComponentKey, kind)));
+            actions.add(new ComponentAction(Component.translatable(key("components.action.remove")), ""));
+            if (kind == ComponentValueKind.BOOLEAN) {
+                actions.add(new ComponentAction(Component.translatable(key("components.action.true")), "true"));
+                actions.add(new ComponentAction(Component.translatable(key("components.action.false")), "false"));
+            } else if (kind == ComponentValueKind.NUMBER) {
+                actions.add(new ComponentAction(Component.literal("-10"), steppedNumericComponentValue(-10)));
+                actions.add(new ComponentAction(Component.literal("-1"), steppedNumericComponentValue(-1)));
+                actions.add(new ComponentAction(Component.literal("+1"), steppedNumericComponentValue(1)));
+                actions.add(new ComponentAction(Component.literal("+10"), steppedNumericComponentValue(10)));
+            }
+            for (ComponentPreset preset : VANILLA_COMPONENT_PRESETS.getOrDefault(this.selectedComponentKey, List.of())) {
+                Component label = preset.translatable()
+                        ? Component.translatable(key("components.preset." + preset.label()))
+                        : Component.literal(preset.label());
+                actions.add(new ComponentAction(label, preset.value()));
+            }
+            return actions;
+        }
+
+        actions.add(new ComponentAction(Component.translatable(key("components.action.remove")), ""));
+        return actions;
     }
 
     private void addComponentActionButton(int left, int y, int width, int height, int index, int columns, int gap,
@@ -268,11 +306,12 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
 
     private void renderComponentList(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int width) {
         List<ComponentRow> rows = getComponentRows();
-        clampComponentListScroll();
+        clampComponentListScroll(rows);
 
         int top = componentListY();
         int height = componentListHeight();
         int bottom = top + height;
+        int contentWidth = componentListContentWidth(width, rows.size());
         int fill = isSidebarUi() ? ModernUi.SURFACE_SOFT : 0x80323232;
         int border = isSidebarUi() ? ModernUi.BORDER : MAIN_COLOR;
         if (isSidebarUi()) {
@@ -298,22 +337,24 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             ComponentRow row = rows.get(i);
             int y = top + (i - this.componentListScroll) * COMPONENT_ROW_HEIGHT;
             boolean selected = row.type() == ComponentRowType.COMPONENT && row.componentKey().equals(this.selectedComponentKey);
-            boolean hovered = isMouseIn(mouseX, mouseY, left, y, width, COMPONENT_ROW_HEIGHT);
+            boolean hovered = isMouseIn(mouseX, mouseY, left, y, contentWidth, COMPONENT_ROW_HEIGHT);
             if (isSidebarUi()) {
                 if (selected || hovered) {
-                    ModernUi.fillSelection(guiGraphics, left + 2, y + 1, left + width - 2, y + COMPONENT_ROW_HEIGHT - 1, 4, selected);
+                    ModernUi.fillSelection(guiGraphics, left + 2, y + 1, left + contentWidth - 2, y + COMPONENT_ROW_HEIGHT - 1, 4, selected);
                 }
             } else if (selected || hovered) {
-                guiGraphics.fill(left + 1, y, left + width - 1, y + COMPONENT_ROW_HEIGHT, selected ? 0x8032CC64 : 0x55323232);
+                guiGraphics.fill(left + 1, y, left + contentWidth - 1, y + COMPONENT_ROW_HEIGHT, selected ? 0x8032CC64 : 0x55323232);
             }
 
             int textX = left + 5 + row.depth() * 10;
             int textColor = rowColor(row, selected);
             String marker = rowMarker(row, components);
             String label = marker + rowLabel(row);
-            String clipped = this.font.plainSubstrByWidth(label, Math.max(20, width - (textX - left) - 8));
+            String clipped = this.font.plainSubstrByWidth(label, Math.max(20, contentWidth - (textX - left) - 8));
             guiGraphics.drawString(this.font, clipped, textX, y + 3, textColor, false);
         }
+
+        renderComponentScrollbar(guiGraphics, left, top, width, height, rows.size());
     }
 
     private void renderSelectedComponentSummary(GuiGraphics guiGraphics, int left, int right, int y) {
@@ -342,7 +383,9 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
 
         int directY = y + 78;
         guiGraphics.drawString(this.font, Component.translatable(key("components.direct")), left, directY, componentLabelColor(), false);
-        String hint = Component.translatable(key("components.direct_hint")).getString();
+        String hint = Component.translatable(key(isVanillaComponent(this.selectedComponentKey)
+                ? "components.direct_hint"
+                : "components.direct_hint_modded")).getString();
         guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(hint, textWidth), left, directY + 14, muted, false);
 
         if (!defaultValue.isBlank()) {
@@ -460,10 +503,16 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private void selectComponent(String componentKey) {
+        if (!componentKey.equals(this.selectedComponentKey)) {
+            this.selectedComponentKey = componentKey;
+            this.componentNbtValue = selectedComponentValue();
+            rebuildWidgets();
+            return;
+        }
         this.selectedComponentKey = componentKey;
         setComponentBoxValue(selectedComponentValue());
         if (this.componentNbtBox != null) {
-            this.componentNbtBox.active = true;
+            this.componentNbtBox.active = canEditSelectedComponentRawValue();
             this.componentNbtBox.setCursorPosition(0);
         }
     }
@@ -505,15 +554,18 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         if (!hasSelectedComponent()) {
             return;
         }
+        setSelectedComponentRaw(steppedNumericComponentValue(delta), true);
+    }
+
+    private String steppedNumericComponentValue(int delta) {
         String raw = selectedComponentValue();
         if (raw.isBlank()) {
             raw = defaultComponentValue(this.selectedComponentKey, ComponentValueKind.NUMBER);
         }
         double value = parseLooseNumber(raw);
-        String next = raw.contains(".") || raw.endsWith("f") || raw.endsWith("d")
-                ? String.format(Locale.ROOT, "%.1ff", value + delta)
+        return raw.contains(".") || raw.endsWith("f") || raw.endsWith("d")
+                ? String.format(Locale.ROOT, "%.1ff", Math.max(0.0D, value + delta))
                 : Integer.toString((int) Math.max(0, Math.round(value + delta)));
-        setSelectedComponentRaw(next, true);
     }
 
     private void setSelectedComponentRaw(String raw, boolean apply) {
@@ -635,6 +687,17 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         return this.selectedComponentKey != null && !this.selectedComponentKey.isBlank();
     }
 
+    private boolean canEditSelectedComponentRawValue() {
+        return hasSelectedComponent() && !isVanillaComponent(this.selectedComponentKey);
+    }
+
+    private Component componentValueBoxLabel() {
+        if (hasSelectedComponent() && isVanillaComponent(this.selectedComponentKey)) {
+            return Component.translatable(key("components.current_value"));
+        }
+        return Component.translatable(key("components.raw_value"));
+    }
+
     private String normalizedComponentFilter() {
         return this.componentFilterValue == null ? "" : this.componentFilterValue.trim().toLowerCase(Locale.ROOT);
     }
@@ -754,11 +817,109 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private void clampComponentListScroll() {
-        this.componentListScroll = Mth.clamp(this.componentListScroll, 0, maxComponentListScroll());
+        clampComponentListScroll(getComponentRows());
+    }
+
+    private void clampComponentListScroll(List<ComponentRow> rows) {
+        this.componentListScroll = Mth.clamp(this.componentListScroll, 0, maxComponentListScroll(rows));
     }
 
     private int maxComponentListScroll() {
-        return Math.max(0, getComponentRows().size() - componentVisibleRows());
+        return maxComponentListScroll(getComponentRows());
+    }
+
+    private int maxComponentListScroll(List<ComponentRow> rows) {
+        return Math.max(0, rows.size() - componentVisibleRows());
+    }
+
+    protected boolean dragComponentListScrollbar(double mouseY) {
+        if (!this.draggingComponentListScroll) {
+            return false;
+        }
+        updateComponentListScrollFromMouse(mouseY);
+        return true;
+    }
+
+    private void updateComponentListScrollFromMouse(double mouseY) {
+        List<ComponentRow> rows = getComponentRows();
+        int maxScroll = maxComponentListScroll(rows);
+        if (maxScroll <= 0) {
+            this.componentListScroll = 0;
+            return;
+        }
+
+        int top = componentListY() + 2;
+        int trackHeight = Math.max(1, componentListHeight() - 4);
+        int thumbHeight = componentScrollbarThumbHeight(rows.size(), trackHeight);
+        int movable = Math.max(1, trackHeight - thumbHeight);
+        double position = Mth.clamp(mouseY - top - thumbHeight / 2.0D, 0.0D, movable);
+        this.componentListScroll = Mth.clamp((int) Math.round(position / movable * maxScroll), 0, maxScroll);
+    }
+
+    private void renderComponentScrollbar(GuiGraphics guiGraphics, int left, int top, int width, int height, int rowCount) {
+        if (rowCount <= componentVisibleRows()) {
+            return;
+        }
+
+        int trackX = componentScrollbarX(left, width);
+        int trackTop = top + 2;
+        int trackBottom = top + height - 2;
+        int trackHeight = Math.max(1, trackBottom - trackTop);
+        int thumbHeight = componentScrollbarThumbHeight(rowCount, trackHeight);
+        int maxScroll = Math.max(1, rowCount - componentVisibleRows());
+        int thumbY = trackTop + Math.round((trackHeight - thumbHeight) * (this.componentListScroll / (float) maxScroll));
+        int trackColor = isSidebarUi() ? 0x88333A3D : 0x8832144B;
+        int thumbColor = isSidebarUi() ? ModernUi.ACCENT_HOVER : MAIN_COLOR;
+
+        guiGraphics.fill(trackX, trackTop, trackX + COMPONENT_SCROLLBAR_WIDTH - 1, trackBottom, trackColor);
+        guiGraphics.fill(trackX + 1, thumbY, trackX + COMPONENT_SCROLLBAR_WIDTH - 2, thumbY + thumbHeight, thumbColor);
+        guiGraphics.fill(trackX + 2, thumbY + 1, trackX + COMPONENT_SCROLLBAR_WIDTH - 3, Math.min(thumbY + thumbHeight, thumbY + 3), 0x66FFFFFF);
+    }
+
+    private int componentScrollbarThumbHeight(int rowCount, int trackHeight) {
+        return Mth.clamp(trackHeight * componentVisibleRows() / Math.max(1, rowCount), COMPONENT_SCROLLBAR_MIN_THUMB, trackHeight);
+    }
+
+    private boolean isComponentScrollbarHit(double mouseX, double mouseY, int left, int width, int rowCount) {
+        return rowCount > componentVisibleRows()
+                && isMouseIn(mouseX, mouseY, componentScrollbarX(left, width), componentListY(), COMPONENT_SCROLLBAR_WIDTH, componentListHeight());
+    }
+
+    private int componentScrollbarX(int left, int width) {
+        return left + width - COMPONENT_SCROLLBAR_WIDTH - 1;
+    }
+
+    private int componentListContentWidth(int width, int rowCount) {
+        return rowCount > componentVisibleRows() ? Math.max(20, width - COMPONENT_SCROLLBAR_WIDTH - 3) : width;
+    }
+
+    private int componentActionColumns(int width) {
+        if (width >= 520) {
+            return 6;
+        }
+        if (width >= 360) {
+            return 4;
+        }
+        return 2;
+    }
+
+    private int componentActionRows(int width) {
+        int columns = componentActionColumns(width);
+        int actions = selectedComponentActions().size();
+        return actions <= 0 ? 0 : (actions + columns - 1) / columns;
+    }
+
+    private int componentActionAreaHeight(int width) {
+        int rows = componentActionRows(width);
+        if (rows <= 0) {
+            return 0;
+        }
+        int buttonHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
+        return rows * buttonHeight + (rows - 1) * COMPONENT_ACTION_GAP;
+    }
+
+    private int componentSummaryY(int valueWidth) {
+        return componentActionButtonY() + componentActionAreaHeight(valueWidth) + 10;
     }
 
     private int componentPanelLeft() {
@@ -812,7 +973,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private int componentLabelColor() {
-        return isSidebarUi() ? ModernUi.TEXT_MUTED : MAIN_COLOR;
+        return isSidebarUi() ? ModernUi.TEXT_PRIMARY : 0xFFFFD073;
     }
 
     private int componentPrimaryTextColor() {
@@ -824,7 +985,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private int componentSecondaryTextColor() {
-        return isSidebarUi() ? ModernUi.TEXT_SECONDARY : ALT_COLOR;
+        return isSidebarUi() ? 0xFFE6ECE6 : 0xFFE6D8FF;
     }
 
     private static Map<String, String> createVanillaCategoryMap() {
@@ -835,6 +996,356 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             }
         }
         return categories;
+    }
+
+    private static Map<String, List<ComponentPreset>> createVanillaComponentPresets() {
+        Map<String, List<ComponentPreset>> values = new HashMap<>();
+        List<ComponentPreset> dyeColors = dyeColorPresets();
+        List<ComponentPreset> temperateVariants = options(
+                option("temperate", "\"minecraft:temperate\""),
+                option("warm", "\"minecraft:warm\""),
+                option("cold", "\"minecraft:cold\"")
+        );
+
+        values.put("minecraft:max_stack_size", options(literalPreset("1", "1"), literalPreset("16", "16"), literalPreset("64", "64")));
+        values.put("minecraft:max_damage", options(literalPreset("100", "100"), literalPreset("250", "250"), literalPreset("500", "500"), literalPreset("1000", "1000")));
+        values.put("minecraft:damage", options(literalPreset("0", "0"), literalPreset("25", "25"), literalPreset("50", "50"), literalPreset("100", "100")));
+        values.put("minecraft:repair_cost", options(literalPreset("0", "0"), literalPreset("1", "1"), literalPreset("5", "5"), literalPreset("39", "39")));
+        values.put("minecraft:potion_duration_scale", options(literalPreset("0.5x", "0.5f"), literalPreset("1x", "1.0f"), literalPreset("2x", "2.0f"), literalPreset("10x", "10.0f")));
+        values.put("minecraft:ominous_bottle_amplifier", options(literalPreset("0", "0"), literalPreset("1", "1"), literalPreset("2", "2"), literalPreset("4", "4")));
+        values.put("minecraft:map_id", options(literalPreset("0", "0"), literalPreset("1", "1"), literalPreset("100", "100")));
+
+        values.put("minecraft:custom_name", options(
+                option("name_custom", "'{\"text\":\"Custom Name\"}'"),
+                option("name_legendary", "'{\"text\":\"Legendary\",\"color\":\"gold\",\"bold\":true}'"),
+                option("name_hidden", "'{\"text\":\"Hidden Name\",\"italic\":false}'")
+        ));
+        values.put("minecraft:item_name", options(
+                option("name_item", "'{\"text\":\"Item Name\"}'"),
+                option("name_treasure", "'{\"text\":\"Treasure\",\"color\":\"aqua\"}'")
+        ));
+        values.put("minecraft:lore", options(
+                option("lore_one", "['{\"text\":\"Lore line\"}']"),
+                option("lore_two", "['{\"text\":\"Line 1\"}','{\"text\":\"Line 2\"}']"),
+                option("lore_warning", "['{\"text\":\"Handle with care\",\"color\":\"red\"}']")
+        ));
+        values.put("minecraft:rarity", options(
+                option("common", "\"common\""),
+                option("uncommon", "\"uncommon\""),
+                option("rare", "\"rare\""),
+                option("epic", "\"epic\"")
+        ));
+        values.put("minecraft:item_model", options(
+                option("stone", "\"minecraft:stone\""),
+                option("stick", "\"minecraft:stick\""),
+                option("diamond", "\"minecraft:diamond\""),
+                option("nether_star", "\"minecraft:nether_star\"")
+        ));
+        values.put("minecraft:tooltip_style", options(
+                option("default", "\"minecraft:default\"")
+        ));
+        values.put("minecraft:map_post_processing", options(
+                option("lock", "\"lock\""),
+                option("scale", "\"scale\"")
+        ));
+        values.put("minecraft:instrument", options(
+                option("ponder", "\"minecraft:ponder_goat_horn\""),
+                option("sing", "\"minecraft:sing_goat_horn\""),
+                option("seek", "\"minecraft:seek_goat_horn\"")
+        ));
+        values.put("minecraft:provides_banner_patterns", options(
+                option("flower", "\"minecraft:pattern_item/flower\""),
+                option("creeper", "\"minecraft:pattern_item/creeper\""),
+                option("skull", "\"minecraft:pattern_item/skull\"")
+        ));
+        values.put("minecraft:note_block_sound", options(
+                option("harp", "\"minecraft:block.note_block.harp\""),
+                option("bass", "\"minecraft:block.note_block.bass\""),
+                option("bell", "\"minecraft:block.note_block.bell\""),
+                option("chime", "\"minecraft:block.note_block.chime\"")
+        ));
+        values.put("minecraft:break_sound", options(
+                option("stone", "\"minecraft:block.stone.break\""),
+                option("wood", "\"minecraft:block.wood.break\""),
+                option("glass", "\"minecraft:block.glass.break\"")
+        ));
+
+        values.put("minecraft:enchantments", options(
+                option("sharpness", "{levels:{\"minecraft:sharpness\":5}}"),
+                option("efficiency", "{levels:{\"minecraft:efficiency\":5}}"),
+                option("protection", "{levels:{\"minecraft:protection\":4}}")
+        ));
+        values.put("minecraft:stored_enchantments", options(
+                option("sharpness", "{levels:{\"minecraft:sharpness\":5}}"),
+                option("efficiency", "{levels:{\"minecraft:efficiency\":5}}"),
+                option("protection", "{levels:{\"minecraft:protection\":4}}")
+        ));
+        values.put("minecraft:can_place_on", options(
+                option("stone", "{predicates:[{blocks:\"minecraft:stone\"}]}"),
+                option("dirt", "{predicates:[{blocks:\"minecraft:dirt\"}]}"),
+                option("logs", "{predicates:[{blocks:\"#minecraft:logs\"}]}")
+        ));
+        values.put("minecraft:can_break", options(
+                option("stone", "{predicates:[{blocks:\"minecraft:stone\"}]}"),
+                option("dirt", "{predicates:[{blocks:\"minecraft:dirt\"}]}"),
+                option("logs", "{predicates:[{blocks:\"#minecraft:logs\"}]}")
+        ));
+        values.put("minecraft:custom_model_data", options(literalPreset("1", "{floats:[1.0f]}"), literalPreset("2", "{floats:[2.0f]}")));
+        values.put("minecraft:food", options(
+                option("snack", "{nutrition:2,saturation:0.4f}"),
+                option("meal", "{nutrition:8,saturation:0.8f}"),
+                option("feast", "{nutrition:20,saturation:1.0f}")
+        ));
+        values.put("minecraft:consumable", options(
+                option("eat", "{consume_seconds:1.6f,animation:\"eat\",sound:\"minecraft:entity.generic.eat\"}"),
+                option("drink", "{consume_seconds:1.6f,animation:\"drink\",sound:\"minecraft:entity.generic.drink\"}"),
+                option("instant", "{consume_seconds:0.1f,animation:\"none\",sound:\"minecraft:item.bundle.insert\"}")
+        ));
+        values.put("minecraft:use_remainder", options(
+                option("bowl", "{id:\"minecraft:bowl\",count:1}"),
+                option("bucket", "{id:\"minecraft:bucket\",count:1}"),
+                option("glass_bottle", "{id:\"minecraft:glass_bottle\",count:1}")
+        ));
+        values.put("minecraft:use_cooldown", options(literalPreset("1s", "{seconds:1.0f}"), literalPreset("5s", "{seconds:5.0f}"), literalPreset("30s", "{seconds:30.0f}")));
+        values.put("minecraft:damage_resistant", options(
+                option("fire", "{types:\"#minecraft:is_fire\"}"),
+                option("explosion", "{types:\"#minecraft:is_explosion\"}"),
+                option("fall", "{types:\"#minecraft:is_fall\"}")
+        ));
+        values.put("minecraft:tool", options(
+                option("pickaxe", "{rules:[{blocks:\"#minecraft:mineable/pickaxe\",speed:6.0f,correct_for_drops:true}],default_mining_speed:1.0f,damage_per_block:1}"),
+                option("axe", "{rules:[{blocks:\"#minecraft:mineable/axe\",speed:6.0f,correct_for_drops:true}],default_mining_speed:1.0f,damage_per_block:1}"),
+                option("shovel", "{rules:[{blocks:\"#minecraft:mineable/shovel\",speed:6.0f,correct_for_drops:true}],default_mining_speed:1.0f,damage_per_block:1}")
+        ));
+        values.put("minecraft:weapon", options(literalPreset("1", "{item_damage_per_attack:1}"), literalPreset("2", "{item_damage_per_attack:2}"), literalPreset("5", "{item_damage_per_attack:5}")));
+        values.put("minecraft:enchantable", options(literalPreset("1", "{value:1}"), literalPreset("10", "{value:10}"), literalPreset("30", "{value:30}")));
+        values.put("minecraft:equippable", options(
+                option("head", "{slot:\"head\",equip_sound:\"minecraft:item.armor.equip_generic\"}"),
+                option("chest", "{slot:\"chest\",equip_sound:\"minecraft:item.armor.equip_generic\"}"),
+                option("legs", "{slot:\"legs\",equip_sound:\"minecraft:item.armor.equip_generic\"}"),
+                option("feet", "{slot:\"feet\",equip_sound:\"minecraft:item.armor.equip_generic\"}")
+        ));
+        values.put("minecraft:repairable", options(
+                option("iron", "{items:\"minecraft:iron_ingot\"}"),
+                option("gold", "{items:\"minecraft:gold_ingot\"}"),
+                option("diamond", "{items:\"minecraft:diamond\"}")
+        ));
+        values.put("minecraft:dyed_color", rgbPresets());
+        values.put("minecraft:map_color", rgbPresets());
+
+        values.put("minecraft:potion_contents", options(
+                option("water", "{potion:\"minecraft:water\"}"),
+                option("healing", "{potion:\"minecraft:healing\"}"),
+                option("swiftness", "{potion:\"minecraft:swiftness\"}"),
+                option("strength", "{potion:\"minecraft:strength\"}")
+        ));
+        values.put("minecraft:suspicious_stew_effects", options(
+                option("night_vision", "[{id:\"minecraft:night_vision\",duration:160}]"),
+                option("jump_boost", "[{id:\"minecraft:jump_boost\",duration:160}]"),
+                option("blindness", "[{id:\"minecraft:blindness\",duration:120}]")
+        ));
+        values.put("minecraft:writable_book_content", options(
+                option("blank_book", "{pages:[]}"),
+                option("one_page", "{pages:['{\"text\":\"Page 1\"}']}")
+        ));
+        values.put("minecraft:written_book_content", options(
+                option("signed_book", "{title:\"Title\",author:\"Player\",pages:['{\"text\":\"Page 1\"}']}"),
+                option("guide_book", "{title:\"Guide\",author:\"Infinity\",pages:['{\"text\":\"Hello\"}']}")
+        ));
+        values.put("minecraft:trim", options(
+                option("iron_sentry", "{material:\"minecraft:iron\",pattern:\"minecraft:sentry\"}"),
+                option("diamond_eye", "{material:\"minecraft:diamond\",pattern:\"minecraft:eye\"}"),
+                option("netherite_silence", "{material:\"minecraft:netherite\",pattern:\"minecraft:silence\"}")
+        ));
+        values.put("minecraft:entity_data", entityPresets());
+        values.put("minecraft:bucket_entity_data", entityPresets());
+        values.put("minecraft:jukebox_playable", options(
+                option("music_13", "{song:\"minecraft:music_disc.13\"}"),
+                option("music_cat", "{song:\"minecraft:music_disc.cat\"}"),
+                option("music_pigstep", "{song:\"minecraft:music_disc.pigstep\"}")
+        ));
+        values.put("minecraft:recipes", options(
+                option("crafting_table", "[\"minecraft:crafting_table\"]"),
+                option("furnace", "[\"minecraft:furnace\"]"),
+                option("campfire", "[\"minecraft:campfire\"]")
+        ));
+        values.put("minecraft:lodestone_tracker", options(
+                option("tracked", "{tracked:true}"),
+                option("untracked", "{tracked:false}")
+        ));
+        values.put("minecraft:firework_explosion", options(
+                option("small_ball", "{shape:\"small_ball\",colors:[I;16711680]}"),
+                option("large_ball", "{shape:\"large_ball\",colors:[I;16776960]}"),
+                option("star", "{shape:\"star\",colors:[I;65535]}")
+        ));
+        values.put("minecraft:fireworks", options(
+                option("short_flight", "{flight_duration:1,explosions:[]}"),
+                option("long_flight", "{flight_duration:3,explosions:[]}"),
+                option("red_burst", "{flight_duration:1,explosions:[{shape:\"burst\",colors:[I;16711680]}]}")
+        ));
+        values.put("minecraft:profile", options(
+                option("steve", "{name:\"Steve\"}"),
+                option("alex", "{name:\"Alex\"}")
+        ));
+        values.put("minecraft:base_color", dyeColors);
+        values.put("minecraft:banner_patterns", options(
+                option("empty", "[]"),
+                option("stripe", "[{pattern:\"minecraft:stripe_bottom\",color:\"white\"}]"),
+                option("border", "[{pattern:\"minecraft:border\",color:\"black\"}]")
+        ));
+        values.put("minecraft:pot_decorations", options(
+                option("brick", "[\"minecraft:brick\",\"minecraft:brick\",\"minecraft:brick\",\"minecraft:brick\"]"),
+                option("arms_up", "[\"minecraft:arms_up_pottery_sherd\",\"minecraft:arms_up_pottery_sherd\",\"minecraft:arms_up_pottery_sherd\",\"minecraft:arms_up_pottery_sherd\"]")
+        ));
+        values.put("minecraft:block_state", options(
+                option("empty", "{}"),
+                option("lit", "{properties:{lit:\"true\"}}"),
+                option("facing_north", "{properties:{facing:\"north\"}}")
+        ));
+        values.put("minecraft:lock", options(option("empty", "\"\""), option("locked", "\"Locked\"")));
+        values.put("minecraft:container_loot", options(
+                option("simple_dungeon", "{loot_table:\"minecraft:chests/simple_dungeon\"}"),
+                option("village_house", "{loot_table:\"minecraft:chests/village/village_armorer\"}")
+        ));
+
+        values.put("minecraft:villager/variant", options(
+                option("plains", "\"minecraft:plains\""),
+                option("desert", "\"minecraft:desert\""),
+                option("jungle", "\"minecraft:jungle\""),
+                option("savanna", "\"minecraft:savanna\""),
+                option("snow", "\"minecraft:snow\""),
+                option("swamp", "\"minecraft:swamp\""),
+                option("taiga", "\"minecraft:taiga\"")
+        ));
+        values.put("minecraft:wolf/variant", options(
+                option("ashen", "\"minecraft:ashen\""),
+                option("black", "\"minecraft:black\""),
+                option("chestnut", "\"minecraft:chestnut\""),
+                option("pale", "\"minecraft:pale\""),
+                option("snowy", "\"minecraft:snowy\"")
+        ));
+        values.put("minecraft:wolf/sound_variant", options(
+                option("classic", "\"minecraft:classic\""),
+                option("big", "\"minecraft:big\""),
+                option("cute", "\"minecraft:cute\""),
+                option("grumpy", "\"minecraft:grumpy\"")
+        ));
+        values.put("minecraft:wolf/collar", dyeColors);
+        values.put("minecraft:fox/variant", options(option("red", "\"red\""), option("snow", "\"snow\"")));
+        values.put("minecraft:salmon/size", options(option("small", "\"small\""), option("medium", "\"medium\""), option("large", "\"large\"")));
+        values.put("minecraft:parrot/variant", options(
+                option("red_blue", "\"red_blue\""),
+                option("blue", "\"blue\""),
+                option("green", "\"green\""),
+                option("yellow_blue", "\"yellow_blue\""),
+                option("gray", "\"gray\"")
+        ));
+        values.put("minecraft:tropical_fish/pattern", options(
+                option("kob", "\"kob\""),
+                option("sunstreak", "\"sunstreak\""),
+                option("snooper", "\"snooper\""),
+                option("dasher", "\"dasher\""),
+                option("flopper", "\"flopper\""),
+                option("betty", "\"betty\"")
+        ));
+        values.put("minecraft:tropical_fish/base_color", dyeColors);
+        values.put("minecraft:tropical_fish/pattern_color", dyeColors);
+        values.put("minecraft:mooshroom/variant", options(option("red", "\"red\""), option("brown", "\"brown\"")));
+        values.put("minecraft:rabbit/variant", options(
+                option("brown", "\"brown\""),
+                option("white", "\"white\""),
+                option("black", "\"black\""),
+                option("gold", "\"gold\""),
+                option("salt", "\"salt\""),
+                option("evil", "\"evil\"")
+        ));
+        values.put("minecraft:pig/variant", temperateVariants);
+        values.put("minecraft:cow/variant", temperateVariants);
+        values.put("minecraft:chicken/variant", temperateVariants);
+        values.put("minecraft:frog/variant", temperateVariants);
+        values.put("minecraft:horse/variant", options(
+                option("white", "\"white\""),
+                option("creamy", "\"creamy\""),
+                option("chestnut", "\"chestnut\""),
+                option("brown", "\"brown\""),
+                option("black", "\"black\""),
+                option("gray", "\"gray\""),
+                option("dark_brown", "\"dark_brown\"")
+        ));
+        values.put("minecraft:painting/variant", options(
+                option("kebab", "\"minecraft:kebab\""),
+                option("aztec", "\"minecraft:aztec\""),
+                option("alban", "\"minecraft:alban\"")
+        ));
+        values.put("minecraft:llama/variant", options(option("creamy", "\"creamy\""), option("white", "\"white\""), option("brown", "\"brown\""), option("gray", "\"gray\"")));
+        values.put("minecraft:axolotl/variant", options(option("lucy", "\"lucy\""), option("wild", "\"wild\""), option("gold", "\"gold\""), option("cyan", "\"cyan\""), option("blue", "\"blue\"")));
+        values.put("minecraft:cat/variant", options(
+                option("tabby", "\"minecraft:tabby\""),
+                option("black", "\"minecraft:black\""),
+                option("red", "\"minecraft:red\""),
+                option("siamese", "\"minecraft:siamese\""),
+                option("calico", "\"minecraft:calico\""),
+                option("jellie", "\"minecraft:jellie\"")
+        ));
+        values.put("minecraft:cat/collar", dyeColors);
+        values.put("minecraft:sheep/color", dyeColors);
+        values.put("minecraft:shulker/color", dyeColors);
+        return values;
+    }
+
+    private static List<ComponentPreset> dyeColorPresets() {
+        return options(
+                option("white", "\"white\""),
+                option("orange", "\"orange\""),
+                option("magenta", "\"magenta\""),
+                option("light_blue", "\"light_blue\""),
+                option("yellow", "\"yellow\""),
+                option("lime", "\"lime\""),
+                option("pink", "\"pink\""),
+                option("gray", "\"gray\""),
+                option("light_gray", "\"light_gray\""),
+                option("cyan", "\"cyan\""),
+                option("purple", "\"purple\""),
+                option("blue", "\"blue\""),
+                option("brown", "\"brown\""),
+                option("green", "\"green\""),
+                option("red", "\"red\""),
+                option("black", "\"black\"")
+        );
+    }
+
+    private static List<ComponentPreset> rgbPresets() {
+        return options(
+                option("white", "{rgb:16777215}"),
+                option("red", "{rgb:16711680}"),
+                option("green", "{rgb:65280}"),
+                option("blue", "{rgb:255}"),
+                option("yellow", "{rgb:16776960}"),
+                option("purple", "{rgb:10494192}"),
+                option("black", "{rgb:0}")
+        );
+    }
+
+    private static List<ComponentPreset> entityPresets() {
+        return options(
+                option("pig", "{id:\"minecraft:pig\"}"),
+                option("cow", "{id:\"minecraft:cow\"}"),
+                option("sheep", "{id:\"minecraft:sheep\"}"),
+                option("chicken", "{id:\"minecraft:chicken\"}"),
+                option("zombie", "{id:\"minecraft:zombie\"}")
+        );
+    }
+
+    private static List<ComponentPreset> options(ComponentPreset... presets) {
+        return List.of(presets);
+    }
+
+    private static ComponentPreset option(String label, String value) {
+        return new ComponentPreset(label, value, true);
+    }
+
+    private static ComponentPreset literalPreset(String label, String value) {
+        return new ComponentPreset(label, value, false);
     }
 
     private static Map<String, String> createDefaultComponentValues() {
@@ -967,6 +1478,12 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private record VanillaComponentCategory(String key, Set<String> paths) {
+    }
+
+    private record ComponentPreset(String label, String value, boolean translatable) {
+    }
+
+    private record ComponentAction(Component label, String value) {
     }
 
     private record ComponentRow(ComponentRowType type, String id, String componentKey, String selectedKey,
