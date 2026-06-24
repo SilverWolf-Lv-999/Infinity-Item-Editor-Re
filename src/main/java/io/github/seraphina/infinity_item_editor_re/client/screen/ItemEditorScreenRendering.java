@@ -290,8 +290,6 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        renderItemTooltipPreview(guiGraphics);
-        renderSmallItem(guiGraphics, this.midX, 38);
         drawPanelTitle(guiGraphics, Component.translatable(key("components")));
         renderComponentEditorPanel(guiGraphics, mouseX, mouseY);
     }

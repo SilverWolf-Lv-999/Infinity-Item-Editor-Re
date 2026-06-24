@@ -328,6 +328,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             updateLoreScrollFromMouse(mouseY);
             return true;
         }
+        if (this.activePanel == Panel.COMPONENTS && this.draggingComponentListScroll) {
+            dragComponentListScrollbar(mouseY);
+            return true;
+        }
         if (this.activePanel == Panel.LORE_PAINTER && this.lorePainterDragging) {
             paintLorePainterAt(mouseX, mouseY);
             return true;
@@ -339,6 +343,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
+        this.draggingComponentListScroll = false;
         return super.mouseReleased(mouseX, mouseY, button);
     }
 

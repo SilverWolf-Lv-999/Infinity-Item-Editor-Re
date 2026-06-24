@@ -339,6 +339,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected final ItemStack potionIcon = new ItemStack(Items.POTION);
     protected final ItemStack attributeIcon = new ItemStack(Items.PAPER);
     protected final LorePixel currentLorePixel = new LorePixel();
+    protected boolean draggingComponentListScroll;
     protected String lastComponentGroupClick = "";
     protected long lastComponentGroupClickMs;
 
