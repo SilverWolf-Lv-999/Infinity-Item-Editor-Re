@@ -543,6 +543,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.rawNbtBox != null && this.rawNbtBox.isFocused()) {
             return this.rawNbtBox;
         }
+        if (this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox;
+        }
+        if (this.componentNbtBox != null && this.componentNbtBox.isFocused()) {
+            return this.componentNbtBox;
+        }
         return null;
     }
 
@@ -857,6 +863,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.rawNbtBox != null) {
             this.rawNbtValue = this.rawNbtBox.getValue();
         }
+        if (this.componentFilterBox != null) {
+            this.componentFilterValue = this.componentFilterBox.getValue();
+        }
+        if (this.componentNbtBox != null) {
+            this.componentNbtValue = this.componentNbtBox.getValue();
+        }
         if (this.enchantFilterBox != null) {
             this.enchantFilterValue = this.enchantFilterBox.getValue();
         }
@@ -1021,6 +1033,16 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected static String getInitialNbt(ItemStack stack) {
         CompoundTag tag = ItemStackNbt.get(stack);
         return tag == null || tag.isEmpty() ? "{}" : tag.toString();
+    }
+
+    protected static String getInitialComponentsNbt(ItemStack stack) {
+        CompoundTag components = ItemStackNbt.save(stack).getCompound("components");
+        return components.isEmpty() ? "{}" : components.toString();
+    }
+
+    protected void syncNbtEditorValuesFromStack() {
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.componentNbtValue = getInitialComponentsNbt(this.previewStack);
     }
 
     protected static boolean isColorApplicable(ItemStack stack) {

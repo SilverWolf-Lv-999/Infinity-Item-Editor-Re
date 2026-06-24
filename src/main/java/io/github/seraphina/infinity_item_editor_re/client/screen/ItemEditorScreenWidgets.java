@@ -71,7 +71,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @OnlyIn(Dist.CLIENT)
-abstract class ItemEditorScreenWidgets extends ItemEditorScreenActions {
+abstract class ItemEditorScreenWidgets extends ItemEditorScreenComponents {
     protected ItemEditorScreenWidgets(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
@@ -110,11 +110,16 @@ protected void addItemPanel() {
             tryApplyDamage(false);
         });
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 124, 145, 80, FIELD_HEIGHT,
+        int editorButtonWidth = 72;
+        int editorButtonGap = 4;
+        int editorButtonLeft = this.midX - (editorButtonWidth * 4 + editorButtonGap * 3) / 2;
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
-        addRenderableWidget(new InfinityEditorButton(this.midX - 40, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + editorButtonWidth + editorButtonGap, 145, editorButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("components")), button -> switchPanel(Panel.COMPONENTS)));
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 2, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 44, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 3, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("json")), button -> openJsonEditor()));
         addRenderableWidget(new InfinityEditorButton(this.width - 75, 74, 70, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
@@ -168,6 +173,9 @@ protected void addItemPanel() {
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("components")), button -> switchPanel(Panel.COMPONENTS)));
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
@@ -610,6 +618,10 @@ protected void addItemPanel() {
         addRenderableWidget(new InfinityEditorButton(nbtEditorButtonX(buttonWidth), nbtEditorButtonY(), buttonWidth, SIDEBAR_BUTTON_HEIGHT,
                 Component.translatable(key("nbt.update")), button -> updateRawNbt()));
         addFormatButtons();
+    }
+
+    protected void addComponentsPanel() {
+        addComponentEditorPanel();
     }
 
     protected void addNbtAdvancedPanel() {

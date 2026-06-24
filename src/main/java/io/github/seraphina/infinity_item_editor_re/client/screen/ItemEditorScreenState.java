@@ -250,6 +250,9 @@ abstract class ItemEditorScreenState extends Screen {
     protected String damageValue;
     protected String nameValue;
     protected String rawNbtValue;
+    protected String componentNbtValue = "";
+    protected String componentFilterValue = "";
+    protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
@@ -286,6 +289,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected boolean attributeInfinity;
     protected boolean attributeNegative;
     protected boolean syncingColorControls;
+    protected boolean syncingComponentValue;
     protected boolean lorePainterDragging;
     protected boolean lorePainterPreview;
     protected boolean tradeRewardExp = true;
@@ -315,6 +319,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected int selectedTradeIndex;
     protected int selectedTradeSlot;
     protected int tradeScroll;
+    protected int componentListScroll;
     protected int lorePainterWidth = 3;
     protected int lorePainterHeight = 3;
     protected boolean draggingLoreScroll;
@@ -340,6 +345,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected EditBox damageBox;
     protected EditBox nameBox;
     protected EditBox rawNbtBox;
+    protected EditBox componentFilterBox;
+    protected EditBox componentNbtBox;
     protected EditBox enchantFilterBox;
     protected EditBox enchantLevelBox;
     protected EditBox potionFilterBox;
@@ -418,6 +425,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void addNbtPanel();
 
+    protected abstract void addComponentsPanel();
+
     protected abstract void addNbtAdvancedPanel();
 
     protected abstract void addHideFlagsPanel();
@@ -474,6 +483,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract void renderItemPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
     protected abstract void renderNbtPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
+
+    protected abstract void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
     protected abstract void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
@@ -532,6 +543,10 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract boolean handlePotionClick(double mouseX, double mouseY);
 
     protected abstract boolean handleAttributesClick(double mouseX, double mouseY);
+
+    protected abstract boolean handleComponentListClick(double mouseX, double mouseY);
+
+    protected abstract boolean scrollComponentList(double scrollY);
 
     protected abstract boolean handleColorClick(double mouseX, double mouseY);
 
@@ -1026,6 +1041,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract int getHoveredTradeSlot(int mouseX, int mouseY);
 
     protected abstract void updateRawNbt();
+
+    protected abstract void updateComponentNbt();
 
     protected abstract void toggleUnbreakable();
 
