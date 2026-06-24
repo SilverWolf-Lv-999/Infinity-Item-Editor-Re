@@ -246,6 +246,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String nameValue;
     protected String rawNbtValue;
     protected String componentNbtValue;
+    protected String componentFilterValue = "";
+    protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
@@ -283,6 +285,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected boolean attributeInfinity;
     protected boolean attributeNegative;
     protected boolean syncingColorControls;
+    protected boolean syncingComponentValue;
     protected boolean lorePainterDragging;
     protected boolean lorePainterPreview;
     protected boolean tradeRewardExp = true;
@@ -312,6 +315,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected int selectedTradeIndex;
     protected int selectedTradeSlot;
     protected int tradeScroll;
+    protected int componentListScroll;
     protected int componentEditorTab;
     protected int lorePainterWidth = 3;
     protected int lorePainterHeight = 3;
@@ -340,6 +344,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected EditBox damageBox;
     protected EditBox nameBox;
     protected EditBox rawNbtBox;
+    protected EditBox componentFilterBox;
     protected EditBox componentNbtBox;
     protected EditBox enchantFilterBox;
     protected EditBox enchantLevelBox;
@@ -561,6 +566,10 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected abstract boolean handleLorePainterClick(double mouseX, double mouseY);
 
     protected abstract boolean handleNbtAdvancedClick(double mouseX, double mouseY);
+
+    protected abstract boolean handleComponentListClick(double mouseX, double mouseY);
+
+    protected abstract boolean scrollComponentList(double scrollY);
 
     protected abstract void switchPanel(Panel panel);
 
