@@ -333,11 +333,14 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected final List<ComponentEditorLabel> componentEditorLabels = new ArrayList<>();
     protected final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
     protected final Map<String, String> spawnEggNumberValueOverrides = new HashMap<>();
+    protected final Set<String> expandedComponentGroups = new HashSet<>();
     protected final Set<String> expandedNbtPaths = new HashSet<>();
     protected final ItemStack enchantBook = new ItemStack(Items.ENCHANTED_BOOK);
     protected final ItemStack potionIcon = new ItemStack(Items.POTION);
     protected final ItemStack attributeIcon = new ItemStack(Items.PAPER);
     protected final LorePixel currentLorePixel = new LorePixel();
+    protected String lastComponentGroupClick = "";
+    protected long lastComponentGroupClickMs;
 
     protected EditBox itemIdBox;
     protected EditBox countBox;
