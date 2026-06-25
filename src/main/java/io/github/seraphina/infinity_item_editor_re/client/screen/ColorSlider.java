@@ -22,7 +22,7 @@ class ColorSlider extends AbstractSliderButton {
         updateMessage();
     }
 
-    private int getIntValue() {
+    int getIntValue() {
         return Mth.clamp((int) Math.round(this.value * 255.0D), 0, 255);
     }
 

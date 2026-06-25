@@ -30,6 +30,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     private static final int COMPONENT_ACTION_GAP = 4;
     private static final int COMPONENT_CONTROL_LABEL_HEIGHT = 12;
     private static final int COMPONENT_CONTROL_GROUP_GAP = 10;
+    private static final int COMPONENT_REGISTRY_ROW_HEIGHT = 14;
+    private static final int COMPONENT_REGISTRY_VISIBLE_ROWS = 6;
     private static final String VANILLA_NAMESPACE = "minecraft";
     private static final String MOD_GROUP_PREFIX = "mod:";
 
@@ -71,6 +73,13 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     private static final Set<String> BOOLEAN_COMPONENTS = Set.of(
             "minecraft:enchantment_glint_override"
     );
+    private static final Set<String> COLOR_COMPONENTS = Set.of(
+            "minecraft:dyed_color",
+            "minecraft:map_color"
+    );
+    private static final Set<String> REGISTRY_VALUE_COMPONENTS = Set.of(
+            "minecraft:item_model"
+    );
     private static final Set<String> NUMBER_COMPONENTS = Set.of(
             "minecraft:max_stack_size",
             "minecraft:max_damage",
@@ -78,7 +87,9 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             "minecraft:repair_cost",
             "minecraft:potion_duration_scale",
             "minecraft:ominous_bottle_amplifier",
-            "minecraft:map_id"
+            "minecraft:map_id",
+            "minecraft:dyed_color",
+            "minecraft:map_color"
     );
     private static final Set<String> STRING_COMPONENTS = Set.of(
             "minecraft:custom_name",
@@ -166,7 +177,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             this.componentNbtBox = null;
         }
 
-        addDirectComponentButtons(valueLeft, componentActionButtonY(), valueWidth);
+        addSelectedComponentValueControls(valueLeft, componentActionButtonY(), valueWidth);
+        addDirectComponentButtons(valueLeft, componentActionGroupY(valueWidth), valueWidth);
     }
 
     protected void renderComponentEditorPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -200,7 +212,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         if (!canEditSelectedComponentRawValue()) {
             renderComponentValuePreview(guiGraphics, valueLeft, componentValueBoxY(), valueWidth);
         }
-        renderSelectedComponentControls(guiGraphics, valueLeft, componentActionButtonY(), valueWidth);
+        renderSelectedComponentValueControls(guiGraphics, mouseX, mouseY, valueLeft, componentActionButtonY(), valueWidth);
+        renderSelectedComponentControls(guiGraphics, valueLeft, componentActionGroupY(valueWidth), valueWidth);
         renderSelectedComponentSummary(guiGraphics, valueLeft, valueRight, componentSummaryY(valueWidth));
 
         if (!this.nbtFeedback.isEmpty()) {
@@ -210,6 +223,10 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     protected boolean handleComponentListClick(double mouseX, double mouseY) {
+        if (handleComponentValueClick(mouseX, mouseY)) {
+            return true;
+        }
+
         int left = componentPanelLeft();
         int width = componentListWidth(componentPanelWidth());
         int top = componentListY();
@@ -249,10 +266,82 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         return true;
     }
 
+    private boolean handleComponentValueClick(double mouseX, double mouseY) {
+        if (!hasSelectedComponent() || !isRegistryValueComponent(this.selectedComponentKey)) {
+            return false;
+        }
+
+        int left = componentPanelLeft();
+        int panelWidth = componentPanelWidth();
+        int listWidth = componentListWidth(panelWidth);
+        int valueLeft = left + listWidth + COMPONENT_PANEL_GAP;
+        int valueWidth = Math.max(120, panelWidth - listWidth - COMPONENT_PANEL_GAP);
+        int top = componentActionButtonY() + COMPONENT_CONTROL_LABEL_HEIGHT + FIELD_HEIGHT + COMPONENT_ACTION_GAP;
+        if (!isMouseIn(mouseX, mouseY, valueLeft, top, valueWidth,
+                COMPONENT_REGISTRY_VISIBLE_ROWS * COMPONENT_REGISTRY_ROW_HEIGHT)) {
+            return false;
+        }
+
+        int row = ((int) mouseY - top) / COMPONENT_REGISTRY_ROW_HEIGHT;
+        List<String> choices = componentRegistryChoices(this.selectedComponentKey);
+        if (row < 0 || row >= COMPONENT_REGISTRY_VISIBLE_ROWS || row >= choices.size()) {
+            return false;
+        }
+
+        setSelectedComponentRaw(quoteComponentStringValue(choices.get(row)), true);
+        return true;
+    }
+
     protected boolean scrollComponentList(double scrollY) {
         int previous = this.componentListScroll;
         this.componentListScroll = Mth.clamp(this.componentListScroll - (int) Math.signum(scrollY), 0, maxComponentListScroll());
         return previous != this.componentListScroll || maxComponentListScroll() > 0;
+    }
+
+    private void addSelectedComponentValueControls(int left, int y, int width) {
+        if (!hasSelectedComponent() || !isVanillaComponent(this.selectedComponentKey)) {
+            return;
+        }
+
+        if (isRegistryValueComponent(this.selectedComponentKey)) {
+            this.componentValueSearchBox = addTrackedBox(legacyTextBox(left, y + COMPONENT_CONTROL_LABEL_HEIGHT,
+                    width, FIELD_HEIGHT, Component.translatable(key("components.field.search_values"))));
+            this.componentValueSearchBox.setMaxLength(128);
+            this.componentValueSearchBox.setTextColor(componentInputTextColor());
+            this.componentValueSearchBox.setValue(this.componentValueFilterValue == null ? "" : this.componentValueFilterValue);
+            this.componentValueSearchBox.setResponder(value -> this.componentValueFilterValue = value == null ? "" : value.toLowerCase(Locale.ROOT));
+            return;
+        }
+
+        if (isColorComponent(this.selectedComponentKey)) {
+            int color = selectedComponentColorValue();
+            int sliderHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
+            int sliderY = y + COMPONENT_CONTROL_LABEL_HEIGHT;
+            this.componentRedSlider = addRenderableWidget(new ColorSlider(left, sliderY, width, sliderHeight,
+                    Component.translatable(key("components.rgb.red")), (color >> 16) & 0xFF,
+                    value -> updateSelectedComponentColor(value, componentGreenValue(), componentBlueValue())));
+            this.componentGreenSlider = addRenderableWidget(new ColorSlider(left, sliderY + sliderHeight + COMPONENT_ACTION_GAP, width, sliderHeight,
+                    Component.translatable(key("components.rgb.green")), (color >> 8) & 0xFF,
+                    value -> updateSelectedComponentColor(componentRedValue(), value, componentBlueValue())));
+            this.componentBlueSlider = addRenderableWidget(new ColorSlider(left, sliderY + (sliderHeight + COMPONENT_ACTION_GAP) * 2, width, sliderHeight,
+                    Component.translatable(key("components.rgb.blue")), color & 0xFF,
+                    value -> updateSelectedComponentColor(componentRedValue(), componentGreenValue(), value)));
+            return;
+        }
+
+        if (isNumberInputComponent(this.selectedComponentKey)) {
+            this.componentNumberBox = addTrackedBox(legacyTextBox(left, y + COMPONENT_CONTROL_LABEL_HEIGHT,
+                    Math.min(width, 120), FIELD_HEIGHT, Component.translatable(key("components.field.number_value"))));
+            this.componentNumberBox.setMaxLength(20);
+            this.componentNumberBox.setTextColor(componentInputTextColor());
+            this.componentNumberBox.setFilter(value -> isAllowedComponentNumberInput(this.selectedComponentKey, value));
+            this.componentNumberBox.setValue(componentNumberBoxText(selectedComponentValue()));
+            this.componentNumberBox.setResponder(value -> {
+                if (!this.syncingComponentControls && isCompleteComponentNumberInput(this.selectedComponentKey, value)) {
+                    setSelectedComponentRaw(componentNumberRawValue(this.selectedComponentKey, value), true);
+                }
+            });
+        }
     }
 
     private void addDirectComponentButtons(int left, int y, int width) {
@@ -309,7 +398,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
 
             if (kind == ComponentValueKind.BOOLEAN) {
                 return groups;
-            } else if (kind == ComponentValueKind.NUMBER) {
+            } else if (kind == ComponentValueKind.NUMBER && isNumberInputComponent(this.selectedComponentKey)
+                    && !isColorComponent(this.selectedComponentKey)) {
                 groups.add(new ComponentControlGroup(Component.translatable(key("components.control.adjust")), List.of(
                         componentStepAction("-10", -10),
                         componentStepAction("-1", -1),
@@ -331,6 +421,10 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private List<ComponentAction> componentPresetActions(String componentKey) {
+        if (hasTypedComponentValueControl(componentKey)) {
+            return List.of();
+        }
+
         List<ComponentAction> actions = new ArrayList<>();
         for (ComponentPreset preset : VANILLA_COMPONENT_PRESETS.getOrDefault(componentKey, List.of())) {
             Component label = preset.translatable()
@@ -435,6 +529,98 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         int textColor = empty ? componentSecondaryTextColor() : componentPrimaryTextColor();
         String clipped = this.font.plainSubstrByWidth(value, Math.max(20, width - 8));
         guiGraphics.drawString(this.font, clipped, left + 4, y + 6, textColor, false);
+    }
+
+    private void renderSelectedComponentValueControls(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int y, int width) {
+        if (!hasSelectedComponent() || !isVanillaComponent(this.selectedComponentKey)) {
+            return;
+        }
+
+        if (isRegistryValueComponent(this.selectedComponentKey)) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.control.registry_options")),
+                    left, y, componentLabelColor(), false);
+            renderComponentRegistryChoices(guiGraphics, mouseX, mouseY, left,
+                    y + COMPONENT_CONTROL_LABEL_HEIGHT + FIELD_HEIGHT + COMPONENT_ACTION_GAP, width);
+            return;
+        }
+
+        if (isColorComponent(this.selectedComponentKey)) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.control.rgb")),
+                    left, y, componentLabelColor(), false);
+            renderComponentColorPreview(guiGraphics, left, y + componentRgbSliderAreaHeight() + COMPONENT_CONTROL_LABEL_HEIGHT + 4, width);
+            return;
+        }
+
+        if (isNumberInputComponent(this.selectedComponentKey)) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.control.number")),
+                    left, y, componentLabelColor(), false);
+            guiGraphics.drawString(this.font, Component.translatable(key("components.number_hint")),
+                    left + Math.min(width, 120) + 8, y + COMPONENT_CONTROL_LABEL_HEIGHT + 6,
+                    componentSecondaryTextColor(), false);
+        }
+    }
+
+    private void renderComponentRegistryChoices(GuiGraphics guiGraphics, int mouseX, int mouseY, int left, int top, int width) {
+        List<String> choices = componentRegistryChoices(this.selectedComponentKey);
+        int rows = Math.min(COMPONENT_REGISTRY_VISIBLE_ROWS, choices.size());
+        int bottom = top + COMPONENT_REGISTRY_VISIBLE_ROWS * COMPONENT_REGISTRY_ROW_HEIGHT;
+        int border = isSidebarUi() ? ModernUi.BORDER : MAIN_COLOR;
+        if (isSidebarUi()) {
+            ModernUi.fillInset(guiGraphics, left, top, left + width, bottom, 4, false, true);
+        } else {
+            guiGraphics.fill(left, top, left + width, bottom, 0x80323232);
+            guiGraphics.fill(left, top, left + width, top + 1, border);
+            guiGraphics.fill(left, bottom - 1, left + width, bottom, border);
+            guiGraphics.fill(left, top, left + 1, bottom, border);
+            guiGraphics.fill(left + width - 1, top, left + width, bottom, border);
+        }
+
+        if (choices.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.no_match")),
+                    left + 6, top + 5, componentSecondaryTextColor(), false);
+            return;
+        }
+
+        String current = unquoteComponentStringValue(selectedComponentValue());
+        for (int i = 0; i < rows; i++) {
+            String value = choices.get(i);
+            int rowY = top + i * COMPONENT_REGISTRY_ROW_HEIGHT;
+            boolean selected = value.equals(current);
+            boolean hovered = isMouseIn(mouseX, mouseY, left, rowY, width, COMPONENT_REGISTRY_ROW_HEIGHT);
+            if (isSidebarUi()) {
+                if (selected || hovered) {
+                    ModernUi.fillSelection(guiGraphics, left + 2, rowY + 1, left + width - 2,
+                            rowY + COMPONENT_REGISTRY_ROW_HEIGHT - 1, 4, selected);
+                }
+            } else if (selected || hovered) {
+                guiGraphics.fill(left + 1, rowY, left + width - 1, rowY + COMPONENT_REGISTRY_ROW_HEIGHT,
+                        selected ? 0x8032CC64 : 0x55323232);
+            }
+
+            String label = shortRegistryChoiceName(value);
+            String clipped = this.font.plainSubstrByWidth(label, Math.max(20, width - 10));
+            guiGraphics.drawString(this.font, clipped, left + 5, rowY + 3,
+                    selected ? componentSelectedTextColor() : componentPrimaryTextColor(), false);
+        }
+
+        if (choices.size() > rows) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.registry_more"), choices.size() - rows),
+                    left, bottom + 4, componentSecondaryTextColor(), false);
+        }
+    }
+
+    private void renderComponentColorPreview(GuiGraphics guiGraphics, int left, int y, int width) {
+        int color = selectedComponentColorValue();
+        int swatchSize = Math.min(22, FIELD_HEIGHT + 4);
+        int border = isSidebarUi() ? ModernUi.BORDER : MAIN_COLOR;
+        guiGraphics.fill(left, y, left + swatchSize, y + swatchSize, border);
+        guiGraphics.fill(left + 2, y + 2, left + swatchSize - 2, y + swatchSize - 2, 0xFF000000 | color);
+
+        String value = String.format(Locale.ROOT, "#%06X  (%d)", color, color);
+        String clipped = this.font.plainSubstrByWidth(value, Math.max(20, width - swatchSize - 8));
+        guiGraphics.drawString(this.font, Component.translatable(key("components.rgb.preview")),
+                left + swatchSize + 8, y, componentLabelColor(), false);
+        guiGraphics.drawString(this.font, clipped, left + swatchSize + 8, y + 12, componentSecondaryTextColor(), false);
     }
 
     private void renderSelectedComponentControls(GuiGraphics guiGraphics, int left, int y, int width) {
@@ -595,6 +781,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         if (!componentKey.equals(this.selectedComponentKey)) {
             this.selectedComponentKey = componentKey;
             this.componentNbtValue = selectedComponentValue();
+            this.componentValueFilterValue = "";
             rebuildWidgets();
             return;
         }
@@ -671,6 +858,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         if (this.componentNbtBox != null) {
             this.componentNbtBox.setValue(this.componentNbtValue);
         }
+        syncComponentTypedControls(this.componentNbtValue);
         this.syncingComponentValue = false;
     }
 
@@ -785,6 +973,177 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             return Component.translatable(key("components.current_value"));
         }
         return Component.translatable(key("components.raw_value"));
+    }
+
+    private boolean hasTypedComponentValueControl(String componentKey) {
+        return isRegistryValueComponent(componentKey) || isColorComponent(componentKey) || isNumberInputComponent(componentKey);
+    }
+
+    private boolean isRegistryValueComponent(String componentKey) {
+        return REGISTRY_VALUE_COMPONENTS.contains(componentKey);
+    }
+
+    private boolean isColorComponent(String componentKey) {
+        return COLOR_COMPONENTS.contains(componentKey);
+    }
+
+    private boolean isNumberInputComponent(String componentKey) {
+        return NUMBER_COMPONENTS.contains(componentKey) && !isColorComponent(componentKey);
+    }
+
+    private boolean isFloatNumberComponent(String componentKey) {
+        return "minecraft:potion_duration_scale".equals(componentKey);
+    }
+
+    private List<String> componentRegistryChoices(String componentKey) {
+        if ("minecraft:item_model".equals(componentKey)) {
+            String filter = normalizedComponentValueFilter();
+            return BuiltInRegistries.ITEM.keySet().stream()
+                    .map(ResourceLocation::toString)
+                    .filter(value -> componentRegistryChoiceMatches(value, filter))
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    private boolean componentRegistryChoiceMatches(String value, String filter) {
+        if (filter.isBlank()) {
+            return true;
+        }
+        String lower = value.toLowerCase(Locale.ROOT);
+        return lower.contains(filter) || shortRegistryChoiceName(lower).contains(filter);
+    }
+
+    private String normalizedComponentValueFilter() {
+        return this.componentValueFilterValue == null ? "" : this.componentValueFilterValue.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String shortRegistryChoiceName(String value) {
+        return value.startsWith("minecraft:") ? value.substring("minecraft:".length()) : value;
+    }
+
+    private String quoteComponentStringValue(String value) {
+        String escaped = value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return "\"" + escaped + "\"";
+    }
+
+    private String unquoteComponentStringValue(String value) {
+        String raw = value == null ? "" : value.trim();
+        if (raw.length() >= 2 && raw.startsWith("\"") && raw.endsWith("\"")) {
+            return raw.substring(1, raw.length() - 1);
+        }
+        return raw;
+    }
+
+    private int selectedComponentColorValue() {
+        String raw = selectedComponentValue();
+        if (raw.isBlank()) {
+            raw = defaultComponentValue(this.selectedComponentKey, ComponentValueKind.NUMBER);
+        }
+        return parseComponentColorValue(raw);
+    }
+
+    private int parseComponentColorValue(String raw) {
+        String value = raw == null ? "" : raw.trim();
+        if (value.startsWith("#")) {
+            value = value.substring(1);
+        }
+        if (value.startsWith("{")) {
+            int rgb = value.indexOf("rgb:");
+            if (rgb >= 0) {
+                value = value.substring(rgb + 4).replaceAll("[^0-9-].*$", "");
+            }
+        }
+        try {
+            return Mth.clamp(Integer.parseInt(value), 0, 0xFFFFFF);
+        } catch (NumberFormatException ignored) {
+            try {
+                return Mth.clamp(Integer.parseInt(value, 16), 0, 0xFFFFFF);
+            } catch (NumberFormatException ignoredAgain) {
+                return 0xFFFFFF;
+            }
+        }
+    }
+
+    private int componentRedValue() {
+        return this.componentRedSlider == null ? (selectedComponentColorValue() >> 16) & 0xFF : this.componentRedSlider.getIntValue();
+    }
+
+    private int componentGreenValue() {
+        return this.componentGreenSlider == null ? (selectedComponentColorValue() >> 8) & 0xFF : this.componentGreenSlider.getIntValue();
+    }
+
+    private int componentBlueValue() {
+        return this.componentBlueSlider == null ? selectedComponentColorValue() & 0xFF : this.componentBlueSlider.getIntValue();
+    }
+
+    private void updateSelectedComponentColor(int red, int green, int blue) {
+        if (this.syncingComponentControls) {
+            return;
+        }
+        int rgb = (Mth.clamp(red, 0, 255) << 16) | (Mth.clamp(green, 0, 255) << 8) | Mth.clamp(blue, 0, 255);
+        setSelectedComponentRaw(Integer.toString(rgb), true);
+    }
+
+    private boolean isAllowedComponentNumberInput(String componentKey, String value) {
+        if (value == null || value.isEmpty()) {
+            return true;
+        }
+        if (isFloatNumberComponent(componentKey)) {
+            return value.matches("[0-9]{0,7}(\\.[0-9]{0,3})?");
+        }
+        return value.matches("[0-9]{0,10}");
+    }
+
+    private boolean isCompleteComponentNumberInput(String componentKey, String value) {
+        if (value == null || value.isBlank() || ".".equals(value)) {
+            return false;
+        }
+        return isAllowedComponentNumberInput(componentKey, value) && value.chars().anyMatch(Character::isDigit);
+    }
+
+    private String componentNumberRawValue(String componentKey, String value) {
+        String raw = value == null ? "" : value.trim();
+        if (!isFloatNumberComponent(componentKey)) {
+            return raw.isEmpty() ? "0" : raw;
+        }
+        if (raw.isEmpty()) {
+            return "0.0f";
+        }
+        return (raw.contains(".") ? raw : raw + ".0") + "f";
+    }
+
+    private String componentNumberBoxText(String raw) {
+        String value = raw == null || raw.isBlank()
+                ? defaultComponentValue(this.selectedComponentKey, ComponentValueKind.NUMBER)
+                : raw.trim();
+        if (value.endsWith("f") || value.endsWith("F") || value.endsWith("d") || value.endsWith("D")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
+    }
+
+    private void syncComponentTypedControls(String raw) {
+        this.syncingComponentControls = true;
+        if (this.componentNumberBox != null) {
+            this.componentNumberBox.setValue(componentNumberBoxText(raw));
+        }
+        if (this.componentRedSlider != null || this.componentGreenSlider != null || this.componentBlueSlider != null) {
+            int color = parseComponentColorValue(raw == null || raw.isBlank()
+                    ? defaultComponentValue(this.selectedComponentKey, ComponentValueKind.NUMBER)
+                    : raw);
+            if (this.componentRedSlider != null) {
+                this.componentRedSlider.setIntValue((color >> 16) & 0xFF);
+            }
+            if (this.componentGreenSlider != null) {
+                this.componentGreenSlider.setIntValue((color >> 8) & 0xFF);
+            }
+            if (this.componentBlueSlider != null) {
+                this.componentBlueSlider.setIntValue(color & 0xFF);
+            }
+        }
+        this.syncingComponentControls = false;
     }
 
     private String normalizedComponentFilter() {
@@ -1032,8 +1391,35 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         return COMPONENT_CONTROL_LABEL_HEIGHT + rows * buttonHeight + Math.max(0, rows - 1) * COMPONENT_ACTION_GAP;
     }
 
+    private int componentTypedControlAreaHeight(int width) {
+        if (!hasSelectedComponent() || !isVanillaComponent(this.selectedComponentKey)) {
+            return 0;
+        }
+        if (isRegistryValueComponent(this.selectedComponentKey)) {
+            return COMPONENT_CONTROL_LABEL_HEIGHT + FIELD_HEIGHT + COMPONENT_ACTION_GAP
+                    + COMPONENT_REGISTRY_VISIBLE_ROWS * COMPONENT_REGISTRY_ROW_HEIGHT + 14;
+        }
+        if (isColorComponent(this.selectedComponentKey)) {
+            return COMPONENT_CONTROL_LABEL_HEIGHT + componentRgbSliderAreaHeight() + 4 + 24;
+        }
+        if (isNumberInputComponent(this.selectedComponentKey)) {
+            return COMPONENT_CONTROL_LABEL_HEIGHT + FIELD_HEIGHT;
+        }
+        return 0;
+    }
+
+    private int componentRgbSliderAreaHeight() {
+        int sliderHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
+        return sliderHeight * 3 + COMPONENT_ACTION_GAP * 2;
+    }
+
+    private int componentActionGroupY(int width) {
+        int typedHeight = componentTypedControlAreaHeight(width);
+        return componentActionButtonY() + typedHeight + (typedHeight > 0 ? COMPONENT_CONTROL_GROUP_GAP : 0);
+    }
+
     private int componentSummaryY(int valueWidth) {
-        return componentActionButtonY() + componentActionAreaHeight(valueWidth) + 10;
+        return componentActionGroupY(valueWidth) + componentActionAreaHeight(valueWidth) + 10;
     }
 
     private int componentPanelLeft() {
@@ -1149,12 +1535,6 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
                 option("rare", "\"rare\""),
                 option("epic", "\"epic\"")
         ));
-        values.put("minecraft:item_model", options(
-                option("stone", "\"minecraft:stone\""),
-                option("stick", "\"minecraft:stick\""),
-                option("diamond", "\"minecraft:diamond\""),
-                option("nether_star", "\"minecraft:nether_star\"")
-        ));
         values.put("minecraft:tooltip_style", options(
                 option("default", "\"minecraft:default\"")
         ));
@@ -1244,9 +1624,6 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
                 option("gold", "{items:\"minecraft:gold_ingot\"}"),
                 option("diamond", "{items:\"minecraft:diamond\"}")
         ));
-        values.put("minecraft:dyed_color", rgbPresets());
-        values.put("minecraft:map_color", rgbPresets());
-
         values.put("minecraft:potion_contents", options(
                 option("water", "{potion:\"minecraft:water\"}"),
                 option("healing", "{potion:\"minecraft:healing\"}"),
@@ -1428,18 +1805,6 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         );
     }
 
-    private static List<ComponentPreset> rgbPresets() {
-        return options(
-                option("white", "{rgb:16777215}"),
-                option("red", "{rgb:16711680}"),
-                option("green", "{rgb:65280}"),
-                option("blue", "{rgb:255}"),
-                option("yellow", "{rgb:16776960}"),
-                option("purple", "{rgb:10494192}"),
-                option("black", "{rgb:0}")
-        );
-    }
-
     private static List<ComponentPreset> entityPresets() {
         return options(
                 option("pig", "{id:\"minecraft:pig\"}"),
@@ -1499,8 +1864,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         values.put("minecraft:death_protection", "{}");
         values.put("minecraft:blocks_attacks", "{}");
         values.put("minecraft:stored_enchantments", "{levels:{\"minecraft:sharpness\":1}}");
-        values.put("minecraft:dyed_color", "{rgb:16777215}");
-        values.put("minecraft:map_color", "{rgb:16777215}");
+        values.put("minecraft:dyed_color", "16777215");
+        values.put("minecraft:map_color", "16777215");
         values.put("minecraft:map_id", "0");
         values.put("minecraft:map_decorations", "{}");
         values.put("minecraft:map_post_processing", "\"lock\"");
