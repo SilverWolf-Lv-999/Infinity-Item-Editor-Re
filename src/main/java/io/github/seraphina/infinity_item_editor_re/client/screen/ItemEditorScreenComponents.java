@@ -29,6 +29,8 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     private static final int COMPONENT_SCROLLBAR_WIDTH = 8;
     private static final int COMPONENT_SCROLLBAR_MIN_THUMB = 18;
     private static final int COMPONENT_ACTION_GAP = 4;
+    private static final int COMPONENT_CONTROL_LABEL_HEIGHT = 12;
+    private static final int COMPONENT_CONTROL_GROUP_GAP = 10;
     private static final String VANILLA_NAMESPACE = "minecraft";
     private static final String MOD_GROUP_PREFIX = "mod:";
 
@@ -150,16 +152,20 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
             clampComponentListScroll();
         });
 
-        this.componentNbtBox = addTrackedBox(legacyTextBox(valueLeft, componentValueBoxY(), valueWidth, FIELD_HEIGHT,
-                Component.translatable(key("components.raw_value"))));
-        this.componentNbtBox.setMaxLength(30000);
-        this.componentNbtBox.setTextColor(componentInputTextColor());
-        this.componentNbtBox.active = canEditSelectedComponentRawValue();
-        setComponentBoxValue(selectedComponentValue());
-        this.componentNbtBox.setResponder(value -> {
-            this.componentNbtValue = value;
-            applySelectedComponentValue(value);
-        });
+        this.componentNbtValue = selectedComponentValue();
+        if (canEditSelectedComponentRawValue()) {
+            this.componentNbtBox = addTrackedBox(legacyTextBox(valueLeft, componentValueBoxY(), valueWidth, FIELD_HEIGHT,
+                    Component.translatable(key("components.raw_value"))));
+            this.componentNbtBox.setMaxLength(30000);
+            this.componentNbtBox.setTextColor(componentInputTextColor());
+            setComponentBoxValue(this.componentNbtValue);
+            this.componentNbtBox.setResponder(value -> {
+                this.componentNbtValue = value;
+                applySelectedComponentValue(value);
+            });
+        } else {
+            this.componentNbtBox = null;
+        }
 
         addDirectComponentButtons(valueLeft, componentActionButtonY(), valueWidth);
     }
@@ -192,6 +198,10 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         guiGraphics.drawString(this.font, componentValueBoxLabel(), valueLeft, componentValueBoxY() - 10, labelColor, false);
 
         renderComponentList(guiGraphics, mouseX, mouseY, left, listWidth);
+        if (!canEditSelectedComponentRawValue()) {
+            renderComponentValuePreview(guiGraphics, valueLeft, componentValueBoxY(), valueWidth);
+        }
+        renderSelectedComponentControls(guiGraphics, valueLeft, componentActionButtonY(), valueWidth);
         renderSelectedComponentSummary(guiGraphics, valueLeft, valueRight, componentSummaryY(valueWidth));
 
         if (!this.nbtFeedback.isEmpty()) {
@@ -247,54 +257,105 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private void addDirectComponentButtons(int left, int y, int width) {
-        List<ComponentAction> actions = selectedComponentActions();
-        if (actions.isEmpty()) {
+        List<ComponentControlGroup> groups = selectedComponentGroups();
+        if (groups.isEmpty()) {
             return;
         }
 
-        int columns = componentActionColumns(width);
-        int buttonWidth = Math.max(44, (width - COMPONENT_ACTION_GAP * (columns - 1)) / columns);
         int buttonHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
-
-        for (int i = 0; i < actions.size(); i++) {
-            ComponentAction action = actions.get(i);
-            addComponentActionButton(left, y, buttonWidth, buttonHeight, i, columns, COMPONENT_ACTION_GAP,
-                    action.label(), button -> setSelectedComponentRaw(action.value(), true));
+        int groupY = y;
+        for (ComponentControlGroup group : groups) {
+            List<ComponentAction> actions = group.actions();
+            int columns = componentActionColumns(width, actions.size());
+            int buttonWidth = Math.max(44, (width - COMPONENT_ACTION_GAP * (columns - 1)) / columns);
+            int buttonY = groupY + COMPONENT_CONTROL_LABEL_HEIGHT;
+            for (int i = 0; i < actions.size(); i++) {
+                ComponentAction action = actions.get(i);
+                addComponentActionButton(left, buttonY, buttonWidth, buttonHeight, i, columns, COMPONENT_ACTION_GAP,
+                        action.label(), action.action());
+            }
+            groupY += componentControlGroupHeight(width, group) + COMPONENT_CONTROL_GROUP_GAP;
         }
     }
 
     private List<ComponentAction> selectedComponentActions() {
+        List<ComponentAction> actions = new ArrayList<>();
+        for (ComponentControlGroup group : selectedComponentGroups()) {
+            actions.addAll(group.actions());
+        }
+        return actions;
+    }
+
+    private List<ComponentControlGroup> selectedComponentGroups() {
         if (!hasSelectedComponent()) {
             return List.of();
         }
 
-        List<ComponentAction> actions = new ArrayList<>();
+        List<ComponentControlGroup> groups = new ArrayList<>();
+        List<ComponentAction> stateActions = new ArrayList<>();
         ComponentValueKind kind = selectedComponentValueKind();
         if (isVanillaComponent(this.selectedComponentKey)) {
-            actions.add(new ComponentAction(Component.translatable(key(kind == ComponentValueKind.MARKER
-                    ? "components.action.enable"
-                    : "components.action.default")), defaultComponentValue(this.selectedComponentKey, kind)));
-            actions.add(new ComponentAction(Component.translatable(key("components.action.remove")), ""));
+            if (kind == ComponentValueKind.MARKER) {
+                stateActions.add(componentRawAction(Component.translatable(key("components.action.enable")),
+                        defaultComponentValue(this.selectedComponentKey, kind)));
+            } else if (kind == ComponentValueKind.BOOLEAN) {
+                stateActions.add(componentRawAction(Component.translatable(key("components.action.true")), "true"));
+                stateActions.add(componentRawAction(Component.translatable(key("components.action.false")), "false"));
+            } else {
+                stateActions.add(componentRawAction(Component.translatable(key("components.action.default")),
+                        defaultComponentValue(this.selectedComponentKey, kind)));
+            }
+            stateActions.add(componentRawAction(Component.translatable(key("components.action.remove")), ""));
+            groups.add(new ComponentControlGroup(Component.translatable(key("components.control.state")), stateActions));
+
             if (kind == ComponentValueKind.BOOLEAN) {
-                actions.add(new ComponentAction(Component.translatable(key("components.action.true")), "true"));
-                actions.add(new ComponentAction(Component.translatable(key("components.action.false")), "false"));
+                return groups;
             } else if (kind == ComponentValueKind.NUMBER) {
-                actions.add(new ComponentAction(Component.literal("-10"), steppedNumericComponentValue(-10)));
-                actions.add(new ComponentAction(Component.literal("-1"), steppedNumericComponentValue(-1)));
-                actions.add(new ComponentAction(Component.literal("+1"), steppedNumericComponentValue(1)));
-                actions.add(new ComponentAction(Component.literal("+10"), steppedNumericComponentValue(10)));
+                groups.add(new ComponentControlGroup(Component.translatable(key("components.control.adjust")), List.of(
+                        componentStepAction("-10", -10),
+                        componentStepAction("-1", -1),
+                        componentStepAction("+1", 1),
+                        componentStepAction("+10", 10)
+                )));
             }
-            for (ComponentPreset preset : VANILLA_COMPONENT_PRESETS.getOrDefault(this.selectedComponentKey, List.of())) {
-                Component label = preset.translatable()
-                        ? Component.translatable(key("components.preset." + preset.label()))
-                        : Component.literal(preset.label());
-                actions.add(new ComponentAction(label, preset.value()));
+
+            List<ComponentAction> presetActions = componentPresetActions(this.selectedComponentKey);
+            if (!presetActions.isEmpty()) {
+                groups.add(new ComponentControlGroup(componentPresetGroupLabel(kind), presetActions));
             }
-            return actions;
+            return groups;
         }
 
-        actions.add(new ComponentAction(Component.translatable(key("components.action.remove")), ""));
+        groups.add(new ComponentControlGroup(Component.translatable(key("components.control.raw")),
+                List.of(componentRawAction(Component.translatable(key("components.action.remove")), ""))));
+        return groups;
+    }
+
+    private List<ComponentAction> componentPresetActions(String componentKey) {
+        List<ComponentAction> actions = new ArrayList<>();
+        for (ComponentPreset preset : VANILLA_COMPONENT_PRESETS.getOrDefault(componentKey, List.of())) {
+            Component label = preset.translatable()
+                    ? Component.translatable(key("components.preset." + preset.label()))
+                    : Component.literal(preset.label());
+            actions.add(componentRawAction(label, preset.value()));
+        }
         return actions;
+    }
+
+    private Component componentPresetGroupLabel(ComponentValueKind kind) {
+        return Component.translatable(key(switch (kind) {
+            case NUMBER -> "components.control.common_values";
+            case COMPOUND, LIST, EMPTY, OTHER -> "components.control.templates";
+            default -> "components.control.options";
+        }));
+    }
+
+    private ComponentAction componentRawAction(Component label, String value) {
+        return new ComponentAction(label, button -> setSelectedComponentRaw(value, true));
+    }
+
+    private ComponentAction componentStepAction(String label, int delta) {
+        return new ComponentAction(Component.literal(label), button -> stepSelectedNumericComponent(delta));
     }
 
     private void addComponentActionButton(int left, int y, int width, int height, int index, int columns, int gap,
@@ -358,6 +419,40 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         renderComponentScrollbar(guiGraphics, left, top, width, height, rows.size());
     }
 
+    private void renderComponentValuePreview(GuiGraphics guiGraphics, int left, int y, int width) {
+        boolean empty = selectedComponentValue().isBlank();
+        String value = empty
+                ? Component.translatable(key("components.current_value_empty")).getString()
+                : selectedComponentValue();
+        if (isSidebarUi()) {
+            ModernUi.fillInset(guiGraphics, left, y, left + width, y + FIELD_HEIGHT, 4, false, false);
+        } else {
+            guiGraphics.fill(left, y, left + width, y + FIELD_HEIGHT, 0x80323232);
+            guiGraphics.fill(left, y, left + width, y + 1, MAIN_COLOR);
+            guiGraphics.fill(left, y + FIELD_HEIGHT - 1, left + width, y + FIELD_HEIGHT, MAIN_COLOR);
+            guiGraphics.fill(left, y, left + 1, y + FIELD_HEIGHT, MAIN_COLOR);
+            guiGraphics.fill(left + width - 1, y, left + width, y + FIELD_HEIGHT, MAIN_COLOR);
+        }
+        int textColor = empty ? componentSecondaryTextColor() : componentPrimaryTextColor();
+        String clipped = this.font.plainSubstrByWidth(value, Math.max(20, width - 8));
+        guiGraphics.drawString(this.font, clipped, left + 4, y + 6, textColor, false);
+    }
+
+    private void renderSelectedComponentControls(GuiGraphics guiGraphics, int left, int y, int width) {
+        List<ComponentControlGroup> groups = selectedComponentGroups();
+        if (groups.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("components.control.no_controls")),
+                    left, y, componentSecondaryTextColor(), false);
+            return;
+        }
+
+        int groupY = y;
+        for (ComponentControlGroup group : groups) {
+            guiGraphics.drawString(this.font, group.label(), left, groupY, componentLabelColor(), false);
+            groupY += componentControlGroupHeight(width, group) + COMPONENT_CONTROL_GROUP_GAP;
+        }
+    }
+
     private void renderSelectedComponentSummary(GuiGraphics guiGraphics, int left, int right, int y) {
         if (!hasSelectedComponent()) {
             return;
@@ -382,21 +477,15 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         guiGraphics.drawString(this.font, Component.translatable(key("components.category_label"),
                 componentCategoryName(this.selectedComponentKey)), left, y + 58, muted, false);
 
-        int directY = y + 78;
-        guiGraphics.drawString(this.font, Component.translatable(key("components.direct")), left, directY, componentLabelColor(), false);
-        String hint = Component.translatable(key(isVanillaComponent(this.selectedComponentKey)
-                ? "components.direct_hint"
-                : "components.direct_hint_modded")).getString();
-        guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(hint, textWidth), left, directY + 14, muted, false);
-
+        int detailY = y + 78;
         if (!defaultValue.isBlank()) {
-            int defaultY = directY + 34;
-            guiGraphics.drawString(this.font, Component.translatable(key("components.default_value")), left, defaultY, componentLabelColor(), false);
-            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(defaultValue, textWidth), left, defaultY + 14, muted, false);
+            guiGraphics.drawString(this.font, Component.translatable(key("components.default_value")), left, detailY, componentLabelColor(), false);
+            guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(defaultValue, textWidth), left, detailY + 14, muted, false);
+            detailY += 34;
         }
 
         if (isVanillaComponent(this.selectedComponentKey) && !VANILLA_CATEGORY_BY_PATH.containsKey(path)) {
-            guiGraphics.drawString(this.font, Component.translatable(key("components.category.advanced")), left, y + 72, muted, false);
+            guiGraphics.drawString(this.font, Component.translatable(key("components.category.advanced")), left, detailY, muted, false);
         }
     }
 
@@ -896,6 +985,13 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private int componentActionColumns(int width) {
+        return componentActionColumns(width, selectedComponentActions().size());
+    }
+
+    private int componentActionColumns(int width, int actionCount) {
+        if (actionCount <= 2) {
+            return Math.max(1, Math.min(2, actionCount));
+        }
         if (width >= 520) {
             return 6;
         }
@@ -906,18 +1002,36 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private int componentActionRows(int width) {
-        int columns = componentActionColumns(width);
-        int actions = selectedComponentActions().size();
-        return actions <= 0 ? 0 : (actions + columns - 1) / columns;
+        return componentActionRows(width, selectedComponentActions().size());
+    }
+
+    private int componentActionRows(int width, int actionCount) {
+        if (actionCount <= 0) {
+            return 0;
+        }
+        int columns = componentActionColumns(width, actionCount);
+        return (actionCount + columns - 1) / columns;
     }
 
     private int componentActionAreaHeight(int width) {
-        int rows = componentActionRows(width);
-        if (rows <= 0) {
-            return 0;
+        List<ComponentControlGroup> groups = selectedComponentGroups();
+        if (groups.isEmpty()) {
+            return COMPONENT_CONTROL_LABEL_HEIGHT;
         }
+        int height = 0;
+        for (int i = 0; i < groups.size(); i++) {
+            height += componentControlGroupHeight(width, groups.get(i));
+            if (i < groups.size() - 1) {
+                height += COMPONENT_CONTROL_GROUP_GAP;
+            }
+        }
+        return height;
+    }
+
+    private int componentControlGroupHeight(int width, ComponentControlGroup group) {
+        int rows = componentActionRows(width, group.actions().size());
         int buttonHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : FIELD_HEIGHT;
-        return rows * buttonHeight + (rows - 1) * COMPONENT_ACTION_GAP;
+        return COMPONENT_CONTROL_LABEL_HEIGHT + rows * buttonHeight + Math.max(0, rows - 1) * COMPONENT_ACTION_GAP;
     }
 
     private int componentSummaryY(int valueWidth) {
@@ -1485,7 +1599,10 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     private record ComponentPreset(String label, String value, boolean translatable) {
     }
 
-    private record ComponentAction(Component label, String value) {
+    private record ComponentControlGroup(Component label, List<ComponentAction> actions) {
+    }
+
+    private record ComponentAction(Component label, InfinityEditorButton.PressAction action) {
     }
 
     private record ComponentRow(ComponentRowType type, String id, String componentKey, String selectedKey,
