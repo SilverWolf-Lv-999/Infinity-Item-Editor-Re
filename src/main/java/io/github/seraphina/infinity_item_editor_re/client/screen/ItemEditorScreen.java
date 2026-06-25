@@ -48,6 +48,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.nameBox = null;
         this.rawNbtBox = null;
         this.componentFilterBox = null;
+        this.componentValueSearchBox = null;
+        this.componentNumberBox = null;
         this.componentNbtBox = null;
         this.enchantFilterBox = null;
         this.enchantLevelBox = null;
@@ -89,6 +91,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.redSlider = null;
         this.greenSlider = null;
         this.blueSlider = null;
+        this.componentRedSlider = null;
+        this.componentGreenSlider = null;
+        this.componentBlueSlider = null;
         this.copyLoreButton = null;
 
         switch (this.activePanel) {
@@ -236,6 +241,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         }
         if (this.activePanel == Panel.COMPONENTS && this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
             return this.componentFilterBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
+        }
+        if (this.activePanel == Panel.COMPONENTS && this.componentValueSearchBox != null && this.componentValueSearchBox.isFocused()) {
+            return this.componentValueSearchBox.charTyped(new CharacterEvent(Character.toLowerCase(codePoint), modifiers));
         }
         return super.charTyped(codePoint, modifiers);
     }
