@@ -865,6 +865,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.componentFilterBox != null) {
             this.componentFilterValue = this.componentFilterBox.getValue();
         }
+        if (this.componentValueSearchBox != null) {
+            this.componentValueFilterValue = this.componentValueSearchBox.getValue();
+        }
         if (this.componentNbtBox != null) {
             this.componentNbtValue = this.componentNbtBox.getValue();
         }
