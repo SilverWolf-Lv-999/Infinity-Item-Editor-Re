@@ -247,6 +247,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String rawNbtValue;
     protected String componentNbtValue;
     protected String componentFilterValue = "";
+    protected String componentValueFilterValue = "";
     protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
     protected String enchantLevelValue = "1";
@@ -286,6 +287,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected boolean attributeNegative;
     protected boolean syncingColorControls;
     protected boolean syncingComponentValue;
+    protected boolean syncingComponentControls;
     protected boolean lorePainterDragging;
     protected boolean lorePainterPreview;
     protected boolean tradeRewardExp = true;
@@ -349,6 +351,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected EditBox nameBox;
     protected EditBox rawNbtBox;
     protected EditBox componentFilterBox;
+    protected EditBox componentValueSearchBox;
+    protected EditBox componentNumberBox;
     protected EditBox componentNbtBox;
     protected EditBox enchantFilterBox;
     protected EditBox enchantLevelBox;
@@ -392,6 +396,9 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected ColorSlider redSlider;
     protected ColorSlider greenSlider;
     protected ColorSlider blueSlider;
+    protected ColorSlider componentRedSlider;
+    protected ColorSlider componentGreenSlider;
+    protected ColorSlider componentBlueSlider;
 
     protected record ComponentEditorLabel(Component text, int x, int y) {
     }
