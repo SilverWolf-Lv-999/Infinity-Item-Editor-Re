@@ -1009,6 +1009,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.potionTimeBox != null) {
             this.potionTimeValue = this.potionTimeBox.getValue();
         }
+        if (this.attributeFilterBox != null) {
+            this.attributeFilterValue = this.attributeFilterBox.getValue();
+        }
         if (this.attributeAmountBox != null) {
             this.attributeAmountValue = this.attributeAmountBox.getValue();
         }

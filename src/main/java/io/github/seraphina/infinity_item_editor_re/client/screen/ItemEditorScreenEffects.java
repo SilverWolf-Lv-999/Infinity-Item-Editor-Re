@@ -131,6 +131,7 @@ protected void updateRawNbt() {
 
     protected void toggleEnchantmentsScope() {
         this.showAllEnchantments = !this.showAllEnchantments;
+        this.selectedEnchantmentNamespace = "";
         rebuildWidgets();
     }
 
@@ -173,7 +174,7 @@ protected void updateRawNbt() {
     }
 
     protected boolean tryAddRingEnchantment(double mouseX, double mouseY) {
-        List<Enchantment> filteredEnchantments = getFilteredEnchantments(this.previewStack);
+        List<Enchantment> filteredEnchantments = getVisibleEnchantments(this.previewStack);
         if (filteredEnchantments.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -213,7 +214,11 @@ protected void updateRawNbt() {
     }
 
     protected void addMatchingEnchantments() {
-        List<Enchantment> enchantments = getFilteredEnchantments(this.previewStack);
+        List<Enchantment> enchantments = getVisibleEnchantments(this.previewStack);
+        if (!getFoldedEnchantmentGroups(this.previewStack).isEmpty()) {
+            this.status = Component.translatable(messageKey("editor_select_enchantment_group"));
+            return;
+        }
         if (enchantments.isEmpty()) {
             this.status = Component.translatable(messageKey("editor_no_enchantment_match"));
             return;
@@ -328,6 +333,92 @@ protected void updateRawNbt() {
         enchantments.sort(Comparator.comparing(enchantment -> Component.translatable(enchantment.getDescriptionId()).getString(),
                 String.CASE_INSENSITIVE_ORDER));
         return enchantments;
+    }
+
+    protected List<Enchantment> getVisibleEnchantments(ItemStack stack) {
+        List<Enchantment> enchantments = getFilteredEnchantments(stack);
+        if (this.selectedEnchantmentNamespace.isBlank()) {
+            return enchantments;
+        }
+
+        List<Enchantment> visibleEnchantments = new ArrayList<>();
+        for (Enchantment enchantment : enchantments) {
+            ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
+            if (id != null && this.selectedEnchantmentNamespace.equals(id.getNamespace())) {
+                visibleEnchantments.add(enchantment);
+            }
+        }
+
+        if (visibleEnchantments.isEmpty()) {
+            this.selectedEnchantmentNamespace = "";
+            return enchantments;
+        }
+        return visibleEnchantments;
+    }
+
+    protected List<EnchantmentGroupEntry> getFoldedEnchantmentGroups(ItemStack stack) {
+        if (!this.selectedEnchantmentNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<Enchantment> enchantments = getFilteredEnchantments(stack);
+        Map<String, List<Enchantment>> groupedEnchantments = new HashMap<>();
+        for (Enchantment enchantment : enchantments) {
+            ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
+            if (id != null) {
+                groupedEnchantments.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(enchantment);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(enchantments.size(), groupedEnchantments)) {
+            return List.of();
+        }
+
+        List<EnchantmentGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<Enchantment>> entry : groupedEnchantments.entrySet()) {
+            groups.add(new EnchantmentGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(EnchantmentGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingEnchantmentGroup(double mouseX, double mouseY) {
+        List<EnchantmentGroupEntry> groups = getFoldedEnchantmentGroups(this.previewStack);
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        EnchantmentGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedEnchantmentNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_enchantment_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
+    }
+
+    protected boolean shouldFoldRegistryEntries(int entryCount, Map<String, ?> groupedEntries) {
+        if (entryCount <= FOLDED_REGISTRY_ENTRY_LIMIT || groupedEntries.isEmpty()) {
+            return false;
+        }
+        return groupedEntries.size() > 1 || !groupedEntries.containsKey("minecraft");
     }
 
     protected boolean canApplyEnchantment(ItemStack stack, Enchantment enchantment) {
@@ -569,7 +660,7 @@ protected void updateRawNbt() {
     }
 
     protected boolean tryAddRingAttribute(double mouseX, double mouseY) {
-        List<Attribute> attributes = getSharedAttributes();
+        List<Attribute> attributes = getVisibleAttributes();
         if (attributes.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -730,8 +821,108 @@ protected void updateRawNbt() {
     }
 
     protected List<Attribute> getSharedAttributes() {
-        return ForgeRegistries.ATTRIBUTES.getValues().stream()
-                .filter(Objects::nonNull)
-                .toList();
+        List<Attribute> attributes = new ArrayList<>();
+        String filter = this.attributeFilterValue == null ? "" : this.attributeFilterValue.trim().toLowerCase(Locale.ROOT);
+        for (Attribute attribute : ForgeRegistries.ATTRIBUTES.getValues()) {
+            if (attribute != null && matchesAttributeFilter(attribute, filter)) {
+                attributes.add(attribute);
+            }
+        }
+        attributes.sort(Comparator.comparing(attribute -> Component.translatable(attribute.getDescriptionId()).getString(),
+                String.CASE_INSENSITIVE_ORDER));
+        return attributes;
+    }
+
+    protected List<Attribute> getVisibleAttributes() {
+        List<Attribute> attributes = getSharedAttributes();
+        if (this.selectedAttributeNamespace.isBlank()) {
+            return attributes;
+        }
+
+        List<Attribute> visibleAttributes = new ArrayList<>();
+        for (Attribute attribute : attributes) {
+            ResourceLocation id = ForgeRegistries.ATTRIBUTES.getKey(attribute);
+            if (id != null && this.selectedAttributeNamespace.equals(id.getNamespace())) {
+                visibleAttributes.add(attribute);
+            }
+        }
+
+        if (visibleAttributes.isEmpty()) {
+            this.selectedAttributeNamespace = "";
+            return attributes;
+        }
+        return visibleAttributes;
+    }
+
+    protected List<AttributeGroupEntry> getFoldedAttributeGroups() {
+        if (!this.selectedAttributeNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<Attribute> attributes = getSharedAttributes();
+        Map<String, List<Attribute>> groupedAttributes = new HashMap<>();
+        for (Attribute attribute : attributes) {
+            ResourceLocation id = ForgeRegistries.ATTRIBUTES.getKey(attribute);
+            if (id != null) {
+                groupedAttributes.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(attribute);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(attributes.size(), groupedAttributes)) {
+            return List.of();
+        }
+
+        List<AttributeGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<Attribute>> entry : groupedAttributes.entrySet()) {
+            groups.add(new AttributeGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(AttributeGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingAttributeGroup(double mouseX, double mouseY) {
+        List<AttributeGroupEntry> groups = getFoldedAttributeGroups();
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        AttributeGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedAttributeNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_attribute_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
+    }
+
+    protected boolean matchesAttributeFilter(Attribute attribute, String filter) {
+        if (filter.isBlank()) {
+            return true;
+        }
+
+        ResourceLocation id = ForgeRegistries.ATTRIBUTES.getKey(attribute);
+        String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
+        String descriptionId = attribute.getDescriptionId().toLowerCase(Locale.ROOT);
+        String name = Component.translatable(attribute.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
+        return idString.contains(filter)
+                || descriptionId.contains(filter)
+                || name.contains(filter);
     }
 }

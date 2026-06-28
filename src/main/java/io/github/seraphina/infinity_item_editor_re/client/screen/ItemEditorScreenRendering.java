@@ -421,7 +421,25 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         updateMouseDistance(mouseX, mouseY);
         renderLargePreviewItem(guiGraphics);
 
-        List<Enchantment> filteredEnchantments = getFilteredEnchantments(this.previewStack);
+        List<Enchantment> filteredEnchantments = getVisibleEnchantments(this.previewStack);
+        List<EnchantmentGroupEntry> enchantmentGroups = getFoldedEnchantmentGroups(this.previewStack);
+        if (!enchantmentGroups.isEmpty()) {
+            int radius = getRingRadius();
+            double angle = (2.0D * Math.PI) / enchantmentGroups.size();
+            double rotation = (this.rotOff + (Math.abs(this.mouseDist - radius) >= RING_HOVER_WIDTH ? partialTick : 0.0D)) / 60.0D;
+            for (int i = 0; i < enchantmentGroups.size(); i++) {
+                EnchantmentGroupEntry group = enchantmentGroups.get(i);
+                double groupAngle = rotation + angle * i;
+                int x = (int) (centerX + radius * Math.cos(groupAngle));
+                int y = (int) (this.midY + radius * Math.sin(groupAngle));
+                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.enchantments().size()).getString();
+                guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
+                guiGraphics.renderItem(this.enchantBook, x - 8, y - 8);
+                guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
+            }
+            return;
+        }
+
         if (filteredEnchantments.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_enchantment_matches")),
                     centerX, this.midY + 34, panelAccentColor());
@@ -501,6 +519,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     protected void renderAttributesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int centerX = contentMidX();
         drawPanelTitle(guiGraphics, Component.translatable(key("attributes")));
+        drawCenteredLabel(guiGraphics, Component.translatable(key("enchanting.search")),
+                this.attributeFilterBox.getX() + this.attributeFilterBox.getWidth() / 2,
+                this.attributeFilterBox.getY() - 12);
         List<AttributeEntry> entries = getAttributeModifierEntries();
         int start = this.midY - 5 * entries.size();
         for (int i = 0; i < entries.size(); i++) {
@@ -516,7 +537,31 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         updateMouseDistance(mouseX, mouseY);
         renderLargePreviewItem(guiGraphics);
 
-        List<Attribute> attributes = getSharedAttributes();
+        List<Attribute> attributes = getVisibleAttributes();
+        List<AttributeGroupEntry> attributeGroups = getFoldedAttributeGroups();
+        if (!attributeGroups.isEmpty()) {
+            int radius = getRingRadius();
+            double angle = (2.0D * Math.PI) / attributeGroups.size();
+            double rotation = (this.rotOff + (Math.abs(this.mouseDist - radius) >= RING_HOVER_WIDTH ? partialTick : 0.0D)) / 60.0D;
+            for (int i = 0; i < attributeGroups.size(); i++) {
+                AttributeGroupEntry group = attributeGroups.get(i);
+                double groupAngle = rotation + angle * i;
+                int x = (int) (centerX + radius * Math.cos(groupAngle));
+                int y = (int) (this.midY + radius * Math.sin(groupAngle));
+                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.attributes().size()).getString();
+                guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
+                guiGraphics.renderItem(this.attributeIcon, x - 8, y - 8);
+                guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
+            }
+            return;
+        }
+
+        if (attributes.isEmpty()) {
+            guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_attribute_matches")),
+                    centerX, this.midY + 34, panelAccentColor());
+            return;
+        }
+
         int radius = getRingRadius();
         double angle = (2.0D * Math.PI) / attributes.size();
         double rotation = (this.rotOff + (Math.abs(this.mouseDist - radius) >= RING_HOVER_WIDTH ? partialTick : 0.0D)) / 60.0D;
@@ -1163,6 +1208,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (tryRemoveActiveEnchantment(mouseX, mouseY)) {
             return true;
         }
+        if (trySelectRingEnchantmentGroup(mouseX, mouseY)) {
+            return true;
+        }
         if (isMouseOverCenter(mouseX, mouseY)) {
             addMatchingEnchantments();
             return true;
@@ -1183,6 +1231,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected boolean handleAttributesClick(double mouseX, double mouseY) {
         if (tryRemoveActiveAttributeModifier(mouseX, mouseY)) {
+            return true;
+        }
+        if (trySelectRingAttributeGroup(mouseX, mouseY)) {
             return true;
         }
         return tryAddRingAttribute(mouseX, mouseY);

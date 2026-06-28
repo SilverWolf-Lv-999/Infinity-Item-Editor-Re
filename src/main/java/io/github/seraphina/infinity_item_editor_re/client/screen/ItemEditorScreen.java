@@ -115,6 +115,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.potionFilterBox = null;
         this.potionLevelBox = null;
         this.potionTimeBox = null;
+        this.attributeFilterBox = null;
         this.attributeAmountBox = null;
         this.attributeDecimalBox = null;
         this.colorHexBox = null;
