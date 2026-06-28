@@ -79,6 +79,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected static final int ITEM_SIZE = 16;
     protected static final int RING_ICON_HIT_RADIUS = 10;
     protected static final int RING_HOVER_WIDTH = 16;
+    protected static final int FOLDED_REGISTRY_ENTRY_LIMIT = 48;
     protected static final int CENTER_HIT_RADIUS = 15;
     protected static final int MAIN_COLOR = InfinityEditorButton.MAIN_COLOR;
     protected static final int ALT_COLOR = InfinityEditorButton.ALT_COLOR;
@@ -250,11 +251,13 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String componentValueFilterValue = "";
     protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
+    protected String selectedEnchantmentNamespace = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
     protected String potionLevelValue = "1";
     protected String potionTimeValue = "1";
     protected String attributeFilterValue = "";
+    protected String selectedAttributeNamespace = "";
     protected String attributeAmountValue = "0";
     protected String attributeDecimalValue = "0";
     protected String colorHexValue;
