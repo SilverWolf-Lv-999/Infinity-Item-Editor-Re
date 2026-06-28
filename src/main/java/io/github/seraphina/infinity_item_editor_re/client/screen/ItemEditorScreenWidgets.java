@@ -642,15 +642,27 @@ protected void addItemPanel() {
     protected void addEnchantmentsPanel() {
         this.enchantFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("enchantment_filter"))));
-        this.enchantFilterBox.setMaxLength(20);
-        this.enchantFilterBox.setFilter(value -> value.matches("[a-z]*"));
+        this.enchantFilterBox.setMaxLength(48);
+        this.enchantFilterBox.setFilter(value -> value.matches("[a-z0-9_:.\\-]*"));
         this.enchantFilterBox.setTextColor(MAIN_COLOR);
         this.enchantFilterBox.setValue(this.enchantFilterValue);
         this.enchantFilterBox.setResponder(value -> {
-            this.enchantFilterValue = value.toLowerCase(Locale.ROOT);
+            String normalized = value.toLowerCase(Locale.ROOT);
+            if (!Objects.equals(this.enchantFilterValue, normalized)) {
+                this.selectedEnchantmentNamespace = "";
+            }
+            this.enchantFilterValue = normalized;
         });
 
         int controlLeft = editorControlLeft();
+        if (!this.selectedEnchantmentNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 93, 90, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all")), button -> {
+                this.selectedEnchantmentNamespace = "";
+                rebuildWidgets();
+            }));
+        }
+
         this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 5,
                 this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
         this.enchantLevelBox.setResponder(value -> this.enchantLevelValue = value);
@@ -1166,6 +1178,27 @@ protected void addItemPanel() {
 
     protected void addAttributesPanel() {
         int controlLeft = editorControlLeft();
+        this.attributeFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
+                Component.translatable(key("attribute_filter"))));
+        this.attributeFilterBox.setMaxLength(48);
+        this.attributeFilterBox.setTextColor(MAIN_COLOR);
+        this.attributeFilterBox.setValue(this.attributeFilterValue);
+        this.attributeFilterBox.setResponder(value -> {
+            String normalized = value.toLowerCase(Locale.ROOT);
+            if (!Objects.equals(this.attributeFilterValue, normalized)) {
+                this.selectedAttributeNamespace = "";
+            }
+            this.attributeFilterValue = normalized;
+        });
+
+        if (!this.selectedAttributeNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 153, 80, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all")), button -> {
+                this.selectedAttributeNamespace = "";
+                rebuildWidgets();
+            }));
+        }
+
         this.attributeInfinityButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 123, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.infinity." + (this.attributeInfinity ? 1 : 0))),
                 button -> toggleAttributeInfinity()));
