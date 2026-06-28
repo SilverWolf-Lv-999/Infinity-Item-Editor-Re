@@ -26,7 +26,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -53,7 +52,6 @@ import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
@@ -732,18 +730,8 @@ protected void updateRawNbt() {
     }
 
     protected List<Attribute> getSharedAttributes() {
-        List<Attribute> attributes = new ArrayList<>();
-        attributes.add(Attributes.MAX_HEALTH);
-        attributes.add(Attributes.FOLLOW_RANGE);
-        attributes.add(Attributes.KNOCKBACK_RESISTANCE);
-        attributes.add(Attributes.MOVEMENT_SPEED);
-        attributes.add(Attributes.ATTACK_DAMAGE);
-        attributes.add(Attributes.ATTACK_SPEED);
-        attributes.add(Attributes.ARMOR);
-        attributes.add(Attributes.ARMOR_TOUGHNESS);
-        attributes.add(Attributes.LUCK);
-        attributes.add(ForgeMod.BLOCK_REACH.get());
-        attributes.add(Attributes.FLYING_SPEED);
-        return attributes;
+        return ForgeRegistries.ATTRIBUTES.getValues().stream()
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
