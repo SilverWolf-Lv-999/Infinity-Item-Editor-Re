@@ -29,7 +29,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -780,18 +779,8 @@ protected void updateRawNbt() {
     }
 
     protected List<Attribute> getSharedAttributes() {
-        List<Attribute> attributes = new ArrayList<>();
-        attributes.add(Attributes.MAX_HEALTH.value());
-        attributes.add(Attributes.FOLLOW_RANGE.value());
-        attributes.add(Attributes.KNOCKBACK_RESISTANCE.value());
-        attributes.add(Attributes.MOVEMENT_SPEED.value());
-        attributes.add(Attributes.ATTACK_DAMAGE.value());
-        attributes.add(Attributes.ATTACK_SPEED.value());
-        attributes.add(Attributes.ARMOR.value());
-        attributes.add(Attributes.ARMOR_TOUGHNESS.value());
-        attributes.add(Attributes.LUCK.value());
-        attributes.add(Attributes.BLOCK_INTERACTION_RANGE.value());
-        attributes.add(Attributes.FLYING_SPEED.value());
-        return attributes;
+        return CompatRegistries.ATTRIBUTES.getValues().stream()
+                .filter(Objects::nonNull)
+                .toList();
     }
 }
