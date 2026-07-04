@@ -13,8 +13,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -27,15 +25,11 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -54,9 +48,6 @@ import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
-import net.minecraft.world.item.equipment.trim.TrimMaterial;
-import net.minecraft.world.item.equipment.trim.TrimPattern;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -153,7 +144,6 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             case FIREWORK -> Component.translatable(key("firework"));
             case CONTAINER -> Component.translatable(key(isBundleEditableItem(this.previewStack) ? "bundle" : "container"));
             case BANNER -> Component.translatable(key("banner"));
-            case ARMOR_TRIM -> Component.translatable(key("armortrim"));
             case DECORATED_POT -> Component.translatable(key("decorated_pot"));
             case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
             case TRADES -> Component.translatable(key("trades"));
@@ -773,125 +763,6 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 this.midX, this.height - 78, panelTitleColor());
 
         renderBannerPatternLayers(guiGraphics);
-    }
-
-    protected void renderArmorTrimPanel(GuiGraphics guiGraphics) {
-        renderItemTooltipPreview(guiGraphics);
-        drawPanelTitle(guiGraphics, Component.translatable(key("armortrim")));
-
-        int centerX = contentMidX();
-        int previewTop = isSidebarUi() ? 58 : 44;
-        int previewBottomLimit = isSidebarUi() ? safeBottom() - 92 : this.height - 102;
-        int previewHeight = Mth.clamp(previewBottomLimit - previewTop, 72, 132);
-        int previewBottom = previewTop + previewHeight;
-        int halfWidth = isSidebarUi() ? Math.min(72, Math.max(48, contentWidth() / 6)) : 72;
-        renderArmorTrimEntityPreview(guiGraphics, centerX - halfWidth, previewTop, centerX + halfWidth, previewBottom);
-
-        ArmorTrimMaterialEntry material = getSelectedArmorTrimMaterialEntry();
-        ArmorTrimPatternEntry pattern = getSelectedArmorTrimPatternEntry();
-        Component materialName = getArmorTrimMaterialName(material);
-        Component patternName = getArmorTrimPatternName(pattern, material);
-        int infoY = Math.min(previewBottom + 8, isSidebarUi() ? safeBottom() - 72 : this.height - 92);
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("armortrim.selected"), patternName, materialName),
-                centerX, infoY, panelTitleColor());
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("armortrim.count"), getArmorTrimCount()),
-                centerX, infoY + 12, panelSecondaryColor());
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("armortrim.preview"), getArmorTrimPreviewEntityName()),
-                centerX, infoY + 24, panelSecondaryColor());
-
-        if (material == null || pattern == null) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key(material == null
-                    ? "armortrim.no_materials"
-                    : "armortrim.no_patterns")), centerX, infoY + 38, BAD_RED);
-        }
-    }
-
-    private void renderArmorTrimEntityPreview(GuiGraphics guiGraphics, int left, int top, int right, int bottom) {
-        EquipmentSlot slot = getArmorTrimEquipmentSlot(this.previewStack);
-        if (slot == null || this.minecraft == null || this.minecraft.level == null) {
-            return;
-        }
-
-        ItemStack trimmed = this.previewStack.copyWithCount(1);
-        Holder<TrimMaterial> material = getSelectedArmorTrimMaterialHolder();
-        Holder<TrimPattern> pattern = getSelectedArmorTrimPatternHolder();
-        if (material != null && pattern != null) {
-            trimmed.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
-        }
-
-        if (this.armorTrimPreviewEntity == ARMOR_TRIM_PREVIEW_PLAYER) {
-            renderArmorTrimPlayerPreview(guiGraphics, left, top, right, bottom, slot, trimmed);
-            return;
-        }
-
-        LivingEntity entity = getArmorTrimPreviewEntity();
-        if (entity == null) {
-            return;
-        }
-
-        setArmorTrimPreviewEquipment(entity, slot, trimmed);
-        renderArmorTrimLivingEntity(guiGraphics, left, top, right, bottom, entity);
-    }
-
-    private void renderArmorTrimPlayerPreview(GuiGraphics guiGraphics, int left, int top, int right, int bottom,
-                                              EquipmentSlot slot, ItemStack trimmed) {
-        if (this.minecraft.player == null) {
-            return;
-        }
-
-        List<ItemStack> previousEquipment = new ArrayList<>();
-        for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
-            previousEquipment.add(this.minecraft.player.getItemBySlot(equipmentSlot));
-        }
-
-        try {
-            setArmorTrimPreviewEquipment(this.minecraft.player, slot, trimmed);
-            renderArmorTrimLivingEntity(guiGraphics, left, top, right, bottom, this.minecraft.player);
-        } finally {
-            for (int i = 0; i < EquipmentSlot.VALUES.size(); i++) {
-                this.minecraft.player.setItemSlot(EquipmentSlot.VALUES.get(i), previousEquipment.get(i));
-            }
-        }
-    }
-
-    private LivingEntity getArmorTrimPreviewEntity() {
-        if (this.minecraft == null || this.minecraft.level == null) {
-            return null;
-        }
-
-        if (this.armorTrimPreviewEntity == ARMOR_TRIM_PREVIEW_ZOMBIE) {
-            if (this.armorTrimZombiePreview == null || this.armorTrimZombiePreview.level() != this.minecraft.level) {
-                Zombie zombie = EntityType.ZOMBIE.create(this.minecraft.level, EntitySpawnReason.LOAD);
-                this.armorTrimZombiePreview = zombie;
-            }
-            return this.armorTrimZombiePreview;
-        }
-
-        if (this.armorTrimArmorStandPreview == null || this.armorTrimArmorStandPreview.level() != this.minecraft.level) {
-            ArmorStand armorStand = new ArmorStand(this.minecraft.level, 0.0D, 0.0D, 0.0D);
-            armorStand.setShowArms(true);
-            armorStand.setNoBasePlate(true);
-            armorStand.setInvisible(false);
-            this.armorTrimArmorStandPreview = armorStand;
-        }
-        return this.armorTrimArmorStandPreview;
-    }
-
-    private void setArmorTrimPreviewEquipment(LivingEntity entity, EquipmentSlot slot, ItemStack trimmed) {
-        for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
-            entity.setItemSlot(equipmentSlot, ItemStack.EMPTY);
-        }
-        entity.setItemSlot(slot, trimmed);
-    }
-
-    private void renderArmorTrimLivingEntity(GuiGraphics guiGraphics, int left, int top, int right, int bottom, LivingEntity entity) {
-        int height = Math.max(1, bottom - top);
-        int scale = this.armorTrimPreviewEntity == ARMOR_TRIM_PREVIEW_ARMOR_STAND
-                ? Mth.clamp(height / 3, 24, 38)
-                : Mth.clamp(height / 2, 34, 48);
-        float yOffset = this.armorTrimPreviewEntity == ARMOR_TRIM_PREVIEW_ARMOR_STAND ? 0.05F : 0.0F;
-        InventoryScreen.renderEntityInInventoryFollowsAngle(guiGraphics, left, top, right, bottom,
-                scale, yOffset, 0.25F, 0.0F, entity);
     }
 
     protected void renderDecoratedPotPanel(GuiGraphics guiGraphics) {

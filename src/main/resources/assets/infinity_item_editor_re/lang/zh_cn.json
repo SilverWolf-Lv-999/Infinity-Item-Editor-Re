@@ -888,6 +888,7 @@
   "message.infinity_item_editor_re.editor_armor_trim_removed": "已移除最后一个盔甲纹饰。",
   "message.infinity_item_editor_re.editor_armor_trim_cleared": "已清空盔甲纹饰。",
   "message.infinity_item_editor_re.editor_armor_trim_preview_updated": "预览实体已切换为%s。",
+  "message.infinity_item_editor_re.editor_armor_trim_applied": "盔甲纹饰编辑已应用。",
   "message.infinity_item_editor_re.editor_decorated_pot_side_updated": "已将%s更新为%s。",
   "message.infinity_item_editor_re.editor_decorated_pot_side_cleared": "已清空%s。",
   "message.infinity_item_editor_re.editor_decorated_pot_cleared": "已清空陶罐图案。",

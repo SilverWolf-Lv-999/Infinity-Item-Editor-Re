@@ -888,6 +888,7 @@
   "message.infinity_item_editor_re.editor_armor_trim_removed": "Removed the last armor trim.",
   "message.infinity_item_editor_re.editor_armor_trim_cleared": "Cleared armor trims.",
   "message.infinity_item_editor_re.editor_armor_trim_preview_updated": "Preview entity switched to %s.",
+  "message.infinity_item_editor_re.editor_armor_trim_applied": "Armor trim edits applied.",
   "message.infinity_item_editor_re.editor_decorated_pot_side_updated": "Updated %s to %s.",
   "message.infinity_item_editor_re.editor_decorated_pot_side_cleared": "Cleared %s.",
   "message.infinity_item_editor_re.editor_decorated_pot_cleared": "Cleared decorated pot patterns.",

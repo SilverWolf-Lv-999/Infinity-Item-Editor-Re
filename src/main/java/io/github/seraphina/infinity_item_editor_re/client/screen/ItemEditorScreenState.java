@@ -45,8 +45,6 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.entity.monster.zombie.Zombie;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.component.WrittenBookContent;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -136,12 +134,6 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected static final String BANNER_COLOR_TAG = "Color";
     protected static final String BANNER_BASE_TAG = "Base";
     protected static final int BANNER_PATTERN_ROWS = 8;
-    protected static final String ARMOR_TRIMS_CUSTOM_DATA_TAG = "InfinityItemEditorArmorTrims";
-    protected static final String ARMOR_TRIM_MATERIAL_TAG = "material";
-    protected static final String ARMOR_TRIM_PATTERN_TAG = "pattern";
-    protected static final int ARMOR_TRIM_PREVIEW_ARMOR_STAND = 0;
-    protected static final int ARMOR_TRIM_PREVIEW_PLAYER = 1;
-    protected static final int ARMOR_TRIM_PREVIEW_ZOMBIE = 2;
     protected static final String DECORATED_POT_SHERDS_TAG = "sherds";
     protected static final int DECORATED_POT_SIDE_BACK = 0;
     protected static final int DECORATED_POT_SIDE_LEFT = 1;
@@ -316,9 +308,6 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected int bannerPatternColor = DyeColor.BLACK.getId();
     protected int bannerPatternScroll;
     protected int selectedBannerPatternIndex;
-    protected int selectedArmorTrimMaterialIndex;
-    protected int selectedArmorTrimPatternIndex;
-    protected int armorTrimPreviewEntity = ARMOR_TRIM_PREVIEW_ARMOR_STAND;
     protected int potterySherdScroll;
     protected int selectedPotterySherdIndex;
     protected int selectedDecoratedPotSide = DECORATED_POT_SIDE_FRONT;
@@ -356,8 +345,6 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected final ItemStack potionIcon = new ItemStack(Items.POTION);
     protected final ItemStack attributeIcon = new ItemStack(Items.PAPER);
     protected final LorePixel currentLorePixel = new LorePixel();
-    protected ArmorStand armorTrimArmorStandPreview;
-    protected Zombie armorTrimZombiePreview;
     protected boolean draggingComponentListScroll;
     protected String lastComponentGroupClick = "";
     protected long lastComponentGroupClickMs;
@@ -605,9 +592,13 @@ abstract class ItemEditorScreenState extends CompatScreen {
 
     protected abstract void openBookItemEditor();
 
+    protected abstract void openArmorTrimEditor();
+
     abstract void refreshAfterContainerEdit();
 
     abstract void refreshAfterBookEdit();
+
+    abstract void applyArmorTrimEditedStack(ItemStack stack);
 
     protected abstract void goBack();
 

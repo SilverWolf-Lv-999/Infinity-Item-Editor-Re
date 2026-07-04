@@ -331,7 +331,7 @@ protected void addItemPanel() {
 
         if (isArmorTrimApplicable(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
-                    Component.translatable(key("armortrim")), button -> switchPanel(Panel.ARMOR_TRIM));
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor());
         }
 
         if (isFireworkEditableItem(this.previewStack)) {
@@ -490,7 +490,7 @@ protected void addItemPanel() {
 
         if (isArmorTrimApplicable(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
-                    Component.translatable(key("armortrim")), button -> switchPanel(Panel.ARMOR_TRIM)));
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor()));
             y += 30;
         }
 
@@ -1001,61 +1001,6 @@ protected void addItemPanel() {
                     Component.translatable(key("banner.add")), button -> addSelectedBannerPattern()));
             addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
                     Component.literal(">"), button -> cycleSelectedBannerPattern(1)));
-        }
-    }
-
-    protected void addArmorTrimPanel() {
-        List<ArmorTrimMaterialEntry> materials = getArmorTrimMaterials();
-        List<ArmorTrimPatternEntry> patterns = getArmorTrimPatterns();
-        clampArmorTrimSelection(materials, patterns);
-
-        int width = isSidebarUi() ? contentLimitedWidth(164, 118, 20) : 164;
-        int controlsX = rightControlsX(width, safeLeft(), 0);
-        int y = isSidebarUi() ? 52 : 50;
-
-        InfinityEditorButton material = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.material"), getSelectedArmorTrimMaterialName()),
-                button -> cycleArmorTrimMaterial(CompatScreen.hasShiftDown() ? -1 : 1)));
-        material.active = !materials.isEmpty();
-        y += 26;
-
-        InfinityEditorButton pattern = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.pattern"), getSelectedArmorTrimPatternName()),
-                button -> cycleArmorTrimPattern(CompatScreen.hasShiftDown() ? -1 : 1)));
-        pattern.active = !patterns.isEmpty();
-        y += 26;
-
-        addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.preview"), getArmorTrimPreviewEntityName()),
-                button -> cycleArmorTrimPreviewEntity()));
-        y += 26;
-
-        InfinityEditorButton apply = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.apply")), button -> applySelectedArmorTrim()));
-        apply.active = !materials.isEmpty() && !patterns.isEmpty();
-        y += 26;
-
-        InfinityEditorButton add = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.add")), button -> addSelectedArmorTrim()));
-        add.active = !materials.isEmpty() && !patterns.isEmpty();
-        y += 26;
-
-        InfinityEditorButton remove = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.remove_last")), button -> removeLastArmorTrim()));
-        remove.active = getArmorTrimCount() > 0;
-        y += 26;
-
-        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
-                Component.translatable(key("armortrim.clear")), button -> clearArmorTrims()));
-        clear.active = getArmorTrimCount() > 0 || this.previewStack.has(DataComponents.TRIM);
-
-        if (!isSidebarUi()) {
-            addRenderableWidget(new InfinityEditorButton(this.midX - 70, this.height - 64, 28, FIELD_HEIGHT,
-                    Component.literal("<"), button -> cycleArmorTrimPattern(-1)));
-            addRenderableWidget(new InfinityEditorButton(this.midX - 40, this.height - 64, 80, FIELD_HEIGHT,
-                    Component.translatable(key("armortrim.add")), button -> addSelectedArmorTrim()));
-            addRenderableWidget(new InfinityEditorButton(this.midX + 42, this.height - 64, 28, FIELD_HEIGHT,
-                    Component.literal(">"), button -> cycleArmorTrimPattern(1)));
         }
     }
 

@@ -16,7 +16,6 @@ enum Panel {
     FIREWORK,
     CONTAINER,
     BANNER,
-    ARMOR_TRIM,
     DECORATED_POT,
     SPAWN_EGG,
     TRADES,

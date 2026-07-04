@@ -60,9 +60,6 @@ import net.minecraft.world.item.component.FireworkExplosion;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
-import net.minecraft.world.item.equipment.trim.TrimMaterial;
-import net.minecraft.world.item.equipment.trim.TrimPattern;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -592,7 +589,6 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         readDecoratedPotFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
         readTradeFieldsFromStack(stack);
-        syncArmorTrimSelectionFromStack();
     }
 
     protected String readLoreLine(String raw) {
@@ -775,177 +771,6 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
         clampBannerPatternSelection(getFilteredBannerPatterns());
-    }
-
-    protected void syncArmorTrimSelectionFromStack() {
-        List<ArmorTrimMaterialEntry> materials = getArmorTrimMaterials();
-        List<ArmorTrimPatternEntry> patterns = getArmorTrimPatterns();
-        if (materials.isEmpty() || patterns.isEmpty()) {
-            this.selectedArmorTrimMaterialIndex = 0;
-            this.selectedArmorTrimPatternIndex = 0;
-            return;
-        }
-
-        Identifier materialId = null;
-        Identifier patternId = null;
-        ArmorTrim trim = this.previewStack.get(DataComponents.TRIM);
-        if (trim != null) {
-            materialId = CompatRegistries.TRIM_MATERIALS.getKey(trim.material().value());
-            patternId = CompatRegistries.TRIM_PATTERNS.getKey(trim.pattern().value());
-        }
-        if (materialId == null || patternId == null) {
-            ArmorTrimEntry entry = getLastArmorTrimEntry();
-            if (entry != null) {
-                materialId = entry.materialId();
-                patternId = entry.patternId();
-            }
-        }
-
-        this.selectedArmorTrimMaterialIndex = findArmorTrimMaterialIndex(materials, materialId);
-        this.selectedArmorTrimPatternIndex = findArmorTrimPatternIndex(patterns, patternId);
-        clampArmorTrimSelection(materials, patterns);
-    }
-
-    protected List<ArmorTrimMaterialEntry> getArmorTrimMaterials() {
-        List<ArmorTrimMaterialEntry> entries = new ArrayList<>();
-        for (var holder : CompatRegistries.TRIM_MATERIALS.getHolders()) {
-            Identifier id = CompatRegistries.TRIM_MATERIALS.getKey(holder.value());
-            if (id != null) {
-                entries.add(new ArmorTrimMaterialEntry(id, holder));
-            }
-        }
-        entries.sort(Comparator.comparing(entry -> entry.id().toString()));
-        return entries;
-    }
-
-    protected List<ArmorTrimPatternEntry> getArmorTrimPatterns() {
-        List<ArmorTrimPatternEntry> entries = new ArrayList<>();
-        for (var holder : CompatRegistries.TRIM_PATTERNS.getHolders()) {
-            Identifier id = CompatRegistries.TRIM_PATTERNS.getKey(holder.value());
-            if (id != null) {
-                entries.add(new ArmorTrimPatternEntry(id, holder));
-            }
-        }
-        entries.sort(Comparator.comparing(entry -> entry.id().toString()));
-        return entries;
-    }
-
-    protected ArmorTrimMaterialEntry getSelectedArmorTrimMaterialEntry() {
-        List<ArmorTrimMaterialEntry> materials = getArmorTrimMaterials();
-        clampArmorTrimSelection(materials, getArmorTrimPatterns());
-        return materials.isEmpty() ? null : materials.get(this.selectedArmorTrimMaterialIndex);
-    }
-
-    protected ArmorTrimPatternEntry getSelectedArmorTrimPatternEntry() {
-        List<ArmorTrimPatternEntry> patterns = getArmorTrimPatterns();
-        clampArmorTrimSelection(getArmorTrimMaterials(), patterns);
-        return patterns.isEmpty() ? null : patterns.get(this.selectedArmorTrimPatternIndex);
-    }
-
-    protected Holder<TrimMaterial> getSelectedArmorTrimMaterialHolder() {
-        ArmorTrimMaterialEntry entry = getSelectedArmorTrimMaterialEntry();
-        return entry == null ? null : entry.material();
-    }
-
-    protected Holder<TrimPattern> getSelectedArmorTrimPatternHolder() {
-        ArmorTrimPatternEntry entry = getSelectedArmorTrimPatternEntry();
-        return entry == null ? null : entry.pattern();
-    }
-
-    protected void clampArmorTrimSelection(List<ArmorTrimMaterialEntry> materials, List<ArmorTrimPatternEntry> patterns) {
-        this.selectedArmorTrimMaterialIndex = materials.isEmpty()
-                ? 0
-                : Mth.clamp(this.selectedArmorTrimMaterialIndex, 0, materials.size() - 1);
-        this.selectedArmorTrimPatternIndex = patterns.isEmpty()
-                ? 0
-                : Mth.clamp(this.selectedArmorTrimPatternIndex, 0, patterns.size() - 1);
-    }
-
-    protected int findArmorTrimMaterialIndex(List<ArmorTrimMaterialEntry> materials, Identifier id) {
-        if (id == null) {
-            return 0;
-        }
-        for (int i = 0; i < materials.size(); i++) {
-            if (id.equals(materials.get(i).id())) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
-    protected int findArmorTrimPatternIndex(List<ArmorTrimPatternEntry> patterns, Identifier id) {
-        if (id == null) {
-            return 0;
-        }
-        for (int i = 0; i < patterns.size(); i++) {
-            if (id.equals(patterns.get(i).id())) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
-    protected Component getArmorTrimMaterialName(ArmorTrimMaterialEntry entry) {
-        return entry == null ? Component.translatable(key("armortrim.no_materials")) : entry.material().value().description();
-    }
-
-    protected Component getArmorTrimPatternName(ArmorTrimPatternEntry entry, ArmorTrimMaterialEntry material) {
-        if (entry == null) {
-            return Component.translatable(key("armortrim.no_patterns"));
-        }
-        if (material != null) {
-            return entry.pattern().value().copyWithStyle(material.material());
-        }
-        return entry.pattern().value().description();
-    }
-
-    protected Component getSelectedArmorTrimMaterialName() {
-        return getArmorTrimMaterialName(getSelectedArmorTrimMaterialEntry());
-    }
-
-    protected Component getSelectedArmorTrimPatternName() {
-        return getArmorTrimPatternName(getSelectedArmorTrimPatternEntry(), getSelectedArmorTrimMaterialEntry());
-    }
-
-    protected Component getArmorTrimPreviewEntityName() {
-        return switch (this.armorTrimPreviewEntity) {
-            case ARMOR_TRIM_PREVIEW_PLAYER -> Component.translatable(key("armortrim.preview.player"));
-            case ARMOR_TRIM_PREVIEW_ZOMBIE -> Component.translatable(key("armortrim.preview.zombie"));
-            default -> Component.translatable(key("armortrim.preview.armor_stand"));
-        };
-    }
-
-    protected List<ArmorTrimEntry> getArmorTrimEntries() {
-        CustomData data = this.previewStack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) {
-            return List.of();
-        }
-
-        CompoundTag tag = data.copyTag();
-        if (!NbtCompat.contains(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
-            return List.of();
-        }
-
-        List<ArmorTrimEntry> entries = new ArrayList<>();
-        ListTag list = NbtCompat.getList(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND);
-        for (int i = 0; i < list.size(); i++) {
-            CompoundTag entryTag = NbtCompat.getCompound(list, i);
-            Identifier materialId = Identifier.tryParse(NbtCompat.getString(entryTag, ARMOR_TRIM_MATERIAL_TAG));
-            Identifier patternId = Identifier.tryParse(NbtCompat.getString(entryTag, ARMOR_TRIM_PATTERN_TAG));
-            if (materialId != null && patternId != null) {
-                entries.add(new ArmorTrimEntry(materialId, patternId));
-            }
-        }
-        return entries;
-    }
-
-    protected ArmorTrimEntry getLastArmorTrimEntry() {
-        List<ArmorTrimEntry> entries = getArmorTrimEntries();
-        return entries.isEmpty() ? null : entries.get(entries.size() - 1);
-    }
-
-    protected int getArmorTrimCount() {
-        return getArmorTrimEntries().size();
     }
 
     protected void readSpawnEggFieldsFromStack(ItemStack stack) {
