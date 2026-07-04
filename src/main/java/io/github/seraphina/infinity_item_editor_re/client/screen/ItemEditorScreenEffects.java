@@ -506,7 +506,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected boolean tryAddRingPotionEffect(double mouseX, double mouseY) {
-        List<MobEffect> filteredEffects = getFilteredPotionEffects();
+        List<MobEffect> filteredEffects = getVisiblePotionEffects();
         if (filteredEffects.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -536,7 +536,11 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected void addMatchingPotionEffects() {
-        List<MobEffect> effects = getFilteredPotionEffects();
+        List<MobEffect> effects = getVisiblePotionEffects();
+        if (!getFoldedPotionGroups().isEmpty()) {
+            this.status = Component.translatable(messageKey("editor_select_potion_group"));
+            return;
+        }
         if (effects.isEmpty()) {
             this.status = Component.translatable(messageKey("editor_no_potion_match"));
             return;
@@ -606,6 +610,85 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         }
         effects.sort(Comparator.comparing(effect -> effect.getDisplayName().getString(), String.CASE_INSENSITIVE_ORDER));
         return effects;
+    }
+
+    protected List<MobEffect> getVisiblePotionEffects() {
+        List<MobEffect> effects = getFilteredPotionEffects();
+        if (this.selectedPotionNamespace.isBlank()) {
+            return effects;
+        }
+
+        List<MobEffect> visibleEffects = new ArrayList<>();
+        for (MobEffect effect : effects) {
+            ResourceLocation id = CompatRegistries.MOB_EFFECTS.getKey(effect);
+            if (id != null && this.selectedPotionNamespace.equals(id.getNamespace())) {
+                visibleEffects.add(effect);
+            }
+        }
+
+        if (visibleEffects.isEmpty()) {
+            this.selectedPotionNamespace = "";
+            return effects;
+        }
+        return visibleEffects;
+    }
+
+    protected List<PotionGroupEntry> getFoldedPotionGroups() {
+        if (!this.selectedPotionNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<MobEffect> effects = getFilteredPotionEffects();
+        Map<String, List<MobEffect>> groupedEffects = new HashMap<>();
+        for (MobEffect effect : effects) {
+            ResourceLocation id = CompatRegistries.MOB_EFFECTS.getKey(effect);
+            if (id != null) {
+                groupedEffects.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(effect);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(effects.size(), groupedEffects)) {
+            return List.of();
+        }
+
+        List<PotionGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<MobEffect>> entry : groupedEffects.entrySet()) {
+            groups.add(new PotionGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(PotionGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingPotionGroup(double mouseX, double mouseY) {
+        List<PotionGroupEntry> groups = getFoldedPotionGroups();
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        PotionGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedPotionNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_potion_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
     }
 
     protected int parsePotionLevel() {

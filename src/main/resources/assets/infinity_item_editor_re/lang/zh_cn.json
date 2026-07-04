@@ -853,6 +853,8 @@
   "message.infinity_item_editor_re.editor_enchantment_removed": "已移除 %s。",
   "message.infinity_item_editor_re.editor_enchantments_cleared": "已清空附魔。",
   "message.infinity_item_editor_re.editor_no_potion_match": "没有找到匹配的药水效果。",
+  "message.infinity_item_editor_re.editor_select_potion_group": "请先选择一个 Mod 分组。",
+  "message.infinity_item_editor_re.editor_potion_group_selected": "正在显示 %s 的药水效果。",
   "message.infinity_item_editor_re.editor_potion_added": "已添加 %s %s。",
   "message.infinity_item_editor_re.editor_potion_removed": "已移除 %s。",
   "message.infinity_item_editor_re.editor_attribute_added": "已添加 %s。",
