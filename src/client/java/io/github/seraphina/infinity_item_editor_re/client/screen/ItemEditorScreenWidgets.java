@@ -660,13 +660,27 @@ protected void addItemPanel() {
     protected void addPotionPanel() {
         this.potionFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("potion_filter"))));
-        this.potionFilterBox.setMaxLength(20);
-        this.potionFilterBox.setFilter(value -> value.matches("[a-z]*"));
+        this.potionFilterBox.setMaxLength(48);
+        this.potionFilterBox.setFilter(value -> value.matches("[a-z0-9_:.\\-]*"));
         this.potionFilterBox.setTextColor(MAIN_COLOR);
         this.potionFilterBox.setValue(this.potionFilterValue);
-        this.potionFilterBox.setResponder(value -> this.potionFilterValue = value.toLowerCase(Locale.ROOT));
+        this.potionFilterBox.setResponder(value -> {
+            this.potionFilterValue = value.toLowerCase(Locale.ROOT);
+            if (!this.selectedPotionNamespace.isBlank()) {
+                this.selectedPotionNamespace = "";
+                rebuildWidgets();
+            }
+        });
 
         int controlLeft = editorControlLeft();
+        if (!this.selectedPotionNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 150, 90, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all_mods")), button -> {
+                this.selectedPotionNamespace = "";
+                rebuildWidgets();
+            }));
+        }
+
         this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 3,
                 this.potionLevelValue, 1, MAX_POTION_LEVEL));
         this.potionLevelBox.setResponder(value -> this.potionLevelValue = value);
