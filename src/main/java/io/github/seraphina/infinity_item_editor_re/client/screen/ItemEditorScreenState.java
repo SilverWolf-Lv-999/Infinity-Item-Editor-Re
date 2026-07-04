@@ -273,6 +273,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected String selectedEnchantmentNamespace = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
+    protected String selectedPotionNamespace = "";
     protected String potionLevelValue = "1";
     protected String potionTimeValue = "1";
     protected String attributeFilterValue = "";

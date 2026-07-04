@@ -490,7 +490,25 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         updateMouseDistance(mouseX, mouseY);
         renderLargePreviewItem(guiGraphics);
 
-        List<MobEffect> filteredEffects = getFilteredPotionEffects();
+        List<MobEffect> filteredEffects = getVisiblePotionEffects();
+        List<PotionGroupEntry> potionGroups = getFoldedPotionGroups();
+        if (!potionGroups.isEmpty()) {
+            int radius = getRingRadius();
+            double angle = (2.0D * Math.PI) / potionGroups.size();
+            double rotation = (this.rotOff + (Math.abs(this.mouseDist - radius) >= RING_HOVER_WIDTH ? partialTick : 0.0D)) / 60.0D;
+            for (int i = 0; i < potionGroups.size(); i++) {
+                PotionGroupEntry group = potionGroups.get(i);
+                double groupAngle = rotation + angle * i;
+                int x = (int) (centerX + radius * Math.cos(groupAngle));
+                int y = (int) (this.midY + radius * Math.sin(groupAngle));
+                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.effects().size()).getString();
+                guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
+                guiGraphics.renderItem(this.potionIcon, x - 8, y - 8);
+                guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
+            }
+            return;
+        }
+
         if (filteredEffects.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_potion_matches")),
                     centerX, this.midY + 34, panelAccentColor());
@@ -1220,6 +1238,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected boolean handlePotionClick(double mouseX, double mouseY) {
         if (tryRemoveActivePotionEffect(mouseX, mouseY)) {
+            return true;
+        }
+        if (trySelectRingPotionGroup(mouseX, mouseY)) {
             return true;
         }
         if (isMouseOverCenter(mouseX, mouseY)) {
