@@ -6,6 +6,9 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
+import net.minecraft.core.Holder;
 
 import java.util.List;
 
@@ -34,4 +37,13 @@ record PotterySherdEntry(String name, Item item) {
 }
 
 record SpawnEggEntityEntry(Identifier id, EntityType<?> type) {
+}
+
+record ArmorTrimMaterialEntry(Identifier id, Holder<TrimMaterial> material) {
+}
+
+record ArmorTrimPatternEntry(Identifier id, Holder<TrimPattern> pattern) {
+}
+
+record ArmorTrimEntry(Identifier materialId, Identifier patternId) {
 }

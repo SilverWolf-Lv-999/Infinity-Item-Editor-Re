@@ -18,6 +18,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -50,9 +51,13 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
+import net.minecraft.world.item.component.CustomData;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
 import net.minecraft.world.level.block.entity.PotDecorations;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
@@ -155,6 +160,154 @@ protected void addSelectedBannerPattern() {
         syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey("editor_banner_patterns_cleared"));
         rebuildWidgets();
+    }
+
+    protected void applySelectedArmorTrim() {
+        if (!isArmorTrimApplicable(this.previewStack)) {
+            return;
+        }
+        if (!setSelectedArmorTrimComponent()) {
+            this.status = Component.translatable(key("armortrim.no_patterns"));
+            return;
+        }
+
+        syncNbtEditorValuesFromStack();
+        this.status = Component.translatable(messageKey("editor_armor_trim_updated"),
+                getSelectedArmorTrimPatternName(), getSelectedArmorTrimMaterialName());
+        rebuildWidgets();
+    }
+
+    protected void addSelectedArmorTrim() {
+        if (!isArmorTrimApplicable(this.previewStack)) {
+            return;
+        }
+
+        ArmorTrimMaterialEntry material = getSelectedArmorTrimMaterialEntry();
+        ArmorTrimPatternEntry pattern = getSelectedArmorTrimPatternEntry();
+        if (material == null || pattern == null) {
+            this.status = Component.translatable(key(material == null ? "armortrim.no_materials" : "armortrim.no_patterns"));
+            return;
+        }
+
+        CustomData.update(DataComponents.CUSTOM_DATA, this.previewStack, tag -> {
+            ListTag trims = NbtCompat.contains(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)
+                    ? NbtCompat.getList(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy()
+                    : new ListTag();
+            CompoundTag entry = new CompoundTag();
+            entry.putString(ARMOR_TRIM_MATERIAL_TAG, material.id().toString());
+            entry.putString(ARMOR_TRIM_PATTERN_TAG, pattern.id().toString());
+            trims.add(entry);
+            tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
+        });
+        setSelectedArmorTrimComponent();
+        syncNbtEditorValuesFromStack();
+        this.status = Component.translatable(messageKey("editor_armor_trim_added"),
+                getArmorTrimPatternName(pattern, material), getArmorTrimMaterialName(material));
+        rebuildWidgets();
+    }
+
+    protected void removeLastArmorTrim() {
+        if (getArmorTrimCount() <= 0) {
+            return;
+        }
+
+        final ArmorTrimEntry[] activeEntry = new ArmorTrimEntry[1];
+        CustomData.update(DataComponents.CUSTOM_DATA, this.previewStack, tag -> {
+            if (!NbtCompat.contains(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
+                return;
+            }
+
+            ListTag trims = NbtCompat.getList(tag, ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy();
+            if (trims.isEmpty()) {
+                tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG);
+                return;
+            }
+
+            trims.remove(trims.size() - 1);
+            if (trims.isEmpty()) {
+                tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG);
+                return;
+            }
+
+            tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
+            CompoundTag last = NbtCompat.getCompound(trims, trims.size() - 1);
+            Identifier materialId = Identifier.tryParse(NbtCompat.getString(last, ARMOR_TRIM_MATERIAL_TAG));
+            Identifier patternId = Identifier.tryParse(NbtCompat.getString(last, ARMOR_TRIM_PATTERN_TAG));
+            if (materialId != null && patternId != null) {
+                activeEntry[0] = new ArmorTrimEntry(materialId, patternId);
+            }
+        });
+
+        if (activeEntry[0] == null) {
+            this.previewStack.remove(DataComponents.TRIM);
+        } else {
+            applyArmorTrimEntry(activeEntry[0]);
+        }
+        syncArmorTrimSelectionFromStack();
+        syncNbtEditorValuesFromStack();
+        this.status = Component.translatable(messageKey("editor_armor_trim_removed"));
+        rebuildWidgets();
+    }
+
+    protected void clearArmorTrims() {
+        CustomData.update(DataComponents.CUSTOM_DATA, this.previewStack, tag -> tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG));
+        this.previewStack.remove(DataComponents.TRIM);
+        syncArmorTrimSelectionFromStack();
+        syncNbtEditorValuesFromStack();
+        this.status = Component.translatable(messageKey("editor_armor_trim_cleared"));
+        rebuildWidgets();
+    }
+
+    protected void cycleArmorTrimMaterial(int direction) {
+        List<ArmorTrimMaterialEntry> materials = getArmorTrimMaterials();
+        if (materials.isEmpty()) {
+            return;
+        }
+
+        this.selectedArmorTrimMaterialIndex = Mth.positiveModulo(this.selectedArmorTrimMaterialIndex + direction, materials.size());
+        setSelectedArmorTrimComponent();
+        syncNbtEditorValuesFromStack();
+        rebuildWidgets();
+    }
+
+    protected void cycleArmorTrimPattern(int direction) {
+        List<ArmorTrimPatternEntry> patterns = getArmorTrimPatterns();
+        if (patterns.isEmpty()) {
+            return;
+        }
+
+        this.selectedArmorTrimPatternIndex = Mth.positiveModulo(this.selectedArmorTrimPatternIndex + direction, patterns.size());
+        setSelectedArmorTrimComponent();
+        syncNbtEditorValuesFromStack();
+        rebuildWidgets();
+    }
+
+    protected void cycleArmorTrimPreviewEntity() {
+        this.armorTrimPreviewEntity = Mth.positiveModulo(this.armorTrimPreviewEntity + 1, 3);
+        this.status = Component.translatable(messageKey("editor_armor_trim_preview_updated"), getArmorTrimPreviewEntityName());
+        rebuildWidgets();
+    }
+
+    protected boolean setSelectedArmorTrimComponent() {
+        Holder<TrimMaterial> material = getSelectedArmorTrimMaterialHolder();
+        Holder<TrimPattern> pattern = getSelectedArmorTrimPatternHolder();
+        if (material == null || pattern == null) {
+            return false;
+        }
+
+        this.previewStack.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
+        return true;
+    }
+
+    protected boolean applyArmorTrimEntry(ArmorTrimEntry entry) {
+        Holder<TrimMaterial> material = CompatRegistries.TRIM_MATERIALS.getHolder(entry.materialId());
+        Holder<TrimPattern> pattern = CompatRegistries.TRIM_PATTERNS.getHolder(entry.patternId());
+        if (material == null || pattern == null) {
+            return false;
+        }
+
+        this.previewStack.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
+        return true;
     }
 
     protected void cycleBannerBaseColor(int direction) {
