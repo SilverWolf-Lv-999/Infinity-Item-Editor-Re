@@ -592,9 +592,13 @@ abstract class ItemEditorScreenState extends CompatScreen {
 
     protected abstract void openBookItemEditor();
 
+    protected abstract void openArmorTrimEditor();
+
     abstract void refreshAfterContainerEdit();
 
     abstract void refreshAfterBookEdit();
+
+    abstract void applyArmorTrimEditedStack(ItemStack stack);
 
     protected abstract void goBack();
 
