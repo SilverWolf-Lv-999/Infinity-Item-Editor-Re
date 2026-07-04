@@ -298,6 +298,7 @@ public final class ItemStackNbt {
         copyComponent(components, "minecraft:custom_model_data", tag, "CustomModelData");
         copyComponent(components, "minecraft:block_state", tag, "BlockStateTag");
         copyComponent(components, "minecraft:entity_data", tag, "EntityTag");
+        copyComponent(components, "minecraft:trim", tag, "Trim");
 
         hideFlags = readComponentDisplay(components, tag, hideFlags);
         hideFlags = readComponentEnchantments(components, tag, hideFlags);
@@ -401,6 +402,7 @@ public final class ItemStackNbt {
         moveComponent(customData, "CustomModelData", components, "minecraft:custom_model_data");
         moveComponent(customData, "BlockStateTag", components, "minecraft:block_state");
         writeEntityDataComponent(itemId, customData, components);
+        writeTrimComponent(customData, components, hideFlags);
 
         writeDisplayComponents(customData, components, hideFlags);
         writeEnchantmentsComponent(customData, components, "Enchantments", "minecraft:enchantments", (hideFlags & 1) != 0);
@@ -944,6 +946,20 @@ public final class ItemStackNbt {
         ensureId(entity, inferEntityId(itemId));
         components.put("minecraft:entity_data", entity);
         customData.remove("EntityTag");
+    }
+
+    private static void writeTrimComponent(CompoundTag customData, CompoundTag components, int hideFlags) {
+        Tag value = customData.get("Trim");
+        if (value == null) {
+            return;
+        }
+
+        Tag trim = value.copy();
+        if (trim instanceof CompoundTag trimTag && (hideFlags & 128) != 0) {
+            trimTag.putBoolean("show_in_tooltip", false);
+        }
+        components.put("minecraft:trim", trim);
+        customData.remove("Trim");
     }
 
     private static void writeBlockEntityComponents(String itemId, CompoundTag customData, CompoundTag components) {
