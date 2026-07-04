@@ -744,6 +744,8 @@
   "message.infinity_item_editor_re.editor_enchantment_removed": "Removed %s.",
   "message.infinity_item_editor_re.editor_enchantments_cleared": "Cleared enchantments.",
   "message.infinity_item_editor_re.editor_no_potion_match": "No matching potion effect found.",
+  "message.infinity_item_editor_re.editor_select_potion_group": "Select a mod group first.",
+  "message.infinity_item_editor_re.editor_potion_group_selected": "Showing potion effects from %s.",
   "message.infinity_item_editor_re.editor_potion_added": "Added %s %s.",
   "message.infinity_item_editor_re.editor_potion_removed": "Removed %s.",
   "message.infinity_item_editor_re.editor_attribute_added": "Added %s.",
