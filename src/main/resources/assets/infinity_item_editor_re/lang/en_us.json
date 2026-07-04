@@ -932,5 +932,12 @@
   "message.infinity_item_editor_re.copy_no_target": "Look at a block, player, mob, or armor stand to copy it.",
   "message.infinity_item_editor_re.copy_requires_creative": "Copying to inventory requires creative mode.",
   "message.infinity_item_editor_re.copy_empty_block": "That block did not provide an item stack.",
-  "message.infinity_item_editor_re.copying": "Copying %s"
+  "message.infinity_item_editor_re.copying": "Copying %s",
+  "screen.infinity_item_editor_re.armortrim.trims": "Trims",
+  "screen.infinity_item_editor_re.armortrim.no_trims": "No appended trims",
+  "screen.infinity_item_editor_re.armortrim.options": "Trim Options",
+  "screen.infinity_item_editor_re.armortrim.material_select": "Material",
+  "screen.infinity_item_editor_re.armortrim.pattern_select": "Pattern",
+  "screen.infinity_item_editor_re.armortrim.current": "Current: %s / %s",
+  "screen.infinity_item_editor_re.armortrim.appended": "#%s: %s / %s"
 }

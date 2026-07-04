@@ -932,5 +932,12 @@
   "message.infinity_item_editor_re.copy_no_target": "请对准方块、玩家、生物或盔甲架来复制。",
   "message.infinity_item_editor_re.copy_requires_creative": "复制到物品栏需要处于创造模式。",
   "message.infinity_item_editor_re.copy_empty_block": "这个方块没有提供可复制的物品栈。",
-  "message.infinity_item_editor_re.copying": "正在复制 %s"
+  "message.infinity_item_editor_re.copying": "正在复制 %s",
+  "screen.infinity_item_editor_re.armortrim.trims": "纹饰列表",
+  "screen.infinity_item_editor_re.armortrim.no_trims": "没有已追加纹饰",
+  "screen.infinity_item_editor_re.armortrim.options": "纹饰选项",
+  "screen.infinity_item_editor_re.armortrim.material_select": "材料",
+  "screen.infinity_item_editor_re.armortrim.pattern_select": "样式",
+  "screen.infinity_item_editor_re.armortrim.current": "当前：%s / %s",
+  "screen.infinity_item_editor_re.armortrim.appended": "#%s：%s / %s"
 }
