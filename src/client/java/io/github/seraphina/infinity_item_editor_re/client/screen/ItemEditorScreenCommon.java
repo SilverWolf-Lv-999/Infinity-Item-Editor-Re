@@ -1179,6 +1179,24 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
     }
 
+    protected static boolean isArmorTrimApplicable(ItemStack stack) {
+        return getArmorTrimEquipmentSlot(stack) != null;
+    }
+
+    protected static EquipmentSlot getArmorTrimEquipmentSlot(ItemStack stack) {
+        if (!(stack.getItem() instanceof ArmorItem armorItem) || !isArmorTrimSlot(armorItem.getEquipmentSlot())) {
+            return null;
+        }
+        return armorItem.getEquipmentSlot();
+    }
+
+    protected static boolean isArmorTrimSlot(EquipmentSlot slot) {
+        return slot == EquipmentSlot.HEAD
+                || slot == EquipmentSlot.CHEST
+                || slot == EquipmentSlot.LEGS
+                || slot == EquipmentSlot.FEET;
+    }
+
     protected static boolean isDecoratedPotItem(ItemStack stack) {
         return stack.is(Items.DECORATED_POT);
     }

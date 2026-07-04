@@ -322,6 +322,11 @@ protected void addItemPanel() {
                     Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND));
         }
 
+        if (isArmorTrimApplicable(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor());
+        }
+
         if (isFireworkEditableItem(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
                     Component.translatable(key("firework")), button -> switchPanel(Panel.FIREWORK));
@@ -473,6 +478,12 @@ protected void addItemPanel() {
         if (isArmorStandItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND)));
+            y += 30;
+        }
+
+        if (isArmorTrimApplicable(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor()));
             y += 30;
         }
 
