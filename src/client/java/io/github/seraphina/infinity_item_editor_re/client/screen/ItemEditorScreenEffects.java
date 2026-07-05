@@ -45,7 +45,6 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -244,13 +243,10 @@ protected void updateRawNbt() {
             return -1;
         }
         this.enchantLevelValue = Integer.toString(level);
-        return enchantment.getMaxLevel() == 1 ? 1 : level;
+        return level;
     }
 
     protected int getDisplayLevel(Enchantment enchantment) {
-        if (enchantment.getMaxLevel() == 1) {
-            return 1;
-        }
         try {
             int level = Integer.parseInt(this.enchantLevelValue);
             return Math.max(1, Math.min(MAX_ENCHANTMENT_LEVEL, level));
@@ -266,7 +262,9 @@ protected void updateRawNbt() {
         }
         ListTag enchantments = getOrCreateEnchantmentsTag();
         int index = findEnchantmentIndex(enchantments, id);
-        CompoundTag enchantmentTag = EnchantmentHelper.storeEnchantment(id, level);
+        CompoundTag enchantmentTag = new CompoundTag();
+        enchantmentTag.putString("id", id.toString());
+        enchantmentTag.putInt("lvl", level);
         if (index >= 0) {
             enchantments.set(index, enchantmentTag);
         } else {
@@ -678,7 +676,7 @@ protected void updateRawNbt() {
 
     protected String formatPotionEffect(MobEffectInstance effect) {
         int amplifier = effect.getAmplifier();
-        String text = effect.getEffect().getDisplayName().getString() + " (" + (amplifier + 1) + ")";
+        String text = effect.getEffect().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
         if (amplifier > 1) {
             text += " " + Component.translatable("potion.potency." + amplifier).getString().trim();
         }
