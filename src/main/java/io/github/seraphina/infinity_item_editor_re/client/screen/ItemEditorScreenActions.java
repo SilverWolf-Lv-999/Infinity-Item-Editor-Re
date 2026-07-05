@@ -488,7 +488,15 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        int count = Integer.parseInt(value);
+        int count;
+        try {
+            count = Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            if (throwOnError) {
+                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
+            }
+            return;
+        }
         if (count < 1 || count > MAX_COUNT) {
             if (throwOnError) {
                 throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
