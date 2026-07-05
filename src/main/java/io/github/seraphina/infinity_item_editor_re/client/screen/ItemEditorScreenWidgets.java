@@ -90,7 +90,9 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.itemIdBox);
 
-        this.countBox = addTrackedBox(numberBox(this.midX, 85, 20, FIELD_HEIGHT, 2, this.countValue, 1, MAX_COUNT));
+        int countDigits = Integer.toString(MAX_COUNT).length();
+        this.countBox = addTrackedBox(numberBox(this.midX, 85, Math.max(10 * countDigits, 20), FIELD_HEIGHT,
+                countDigits, this.countValue, 1, MAX_COUNT));
         this.countBox.setResponder(value -> {
             this.countValue = value;
             tryApplyCount(false);
@@ -145,7 +147,9 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.itemIdBox);
 
-        this.countBox = addTrackedBox(numberBox(fieldX, sidebarItemCountY(), 48, FIELD_HEIGHT, 2, this.countValue, 1, MAX_COUNT));
+        int countDigits = Integer.toString(MAX_COUNT).length();
+        this.countBox = addTrackedBox(numberBox(fieldX, sidebarItemCountY(), Math.min(fieldWidth, Math.max(10 * countDigits, 48)), FIELD_HEIGHT,
+                countDigits, this.countValue, 1, MAX_COUNT));
         this.countBox.setResponder(value -> {
             this.countValue = value;
             tryApplyCount(false);
@@ -669,8 +673,9 @@ protected void addItemPanel() {
             }));
         }
 
-        this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 5,
-                this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
+        int enchantLevelDigits = Integer.toString(MAX_ENCHANTMENT_LEVEL).length();
+        this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, Math.max(10 * enchantLevelDigits, 40), 18,
+                enchantLevelDigits, this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
         this.enchantLevelBox.setResponder(value -> this.enchantLevelValue = value);
 
         addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 63, 90, OLD_BUTTON_HEIGHT,
@@ -702,8 +707,9 @@ protected void addItemPanel() {
             }));
         }
 
-        this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 3,
-                this.potionLevelValue, 1, MAX_POTION_LEVEL));
+        int potionLevelDigits = Integer.toString(MAX_POTION_LEVEL).length();
+        this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, Math.max(10 * potionLevelDigits, 40), 18,
+                potionLevelDigits, this.potionLevelValue, 1, MAX_POTION_LEVEL));
         this.potionLevelBox.setResponder(value -> this.potionLevelValue = value);
 
         this.potionTimeBox = addTrackedBox(numberBox(controlLeft, this.height - 60, 40, 18, 5,

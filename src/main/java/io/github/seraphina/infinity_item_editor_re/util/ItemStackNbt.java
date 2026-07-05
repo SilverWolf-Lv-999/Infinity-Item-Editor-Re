@@ -581,7 +581,7 @@ public final class ItemStackNbt {
             if (NbtCompat.contains(enchantment, "id", Tag.TAG_STRING)) {
                 int level = NbtCompat.getInt(enchantment, "lvl");
                 if (level > 0) {
-                    levels.putInt(NbtCompat.getString(enchantment, "id"), clamp(level, 1, 255));
+                    levels.putInt(NbtCompat.getString(enchantment, "id"), level);
                 }
             }
         }
@@ -1023,7 +1023,7 @@ public final class ItemStackNbt {
             }
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
-            enchantment.putShort("lvl", (short) level);
+            enchantment.putInt("lvl", level);
             enchantments.add(enchantment);
         }
         if (!enchantments.isEmpty()) {
