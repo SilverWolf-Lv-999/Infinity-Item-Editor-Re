@@ -48,7 +48,6 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -283,13 +282,10 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
             return -1;
         }
         this.enchantLevelValue = Integer.toString(level);
-        return enchantment.getMaxLevel() == 1 ? 1 : level;
+        return level;
     }
 
     protected int getDisplayLevel(Enchantment enchantment) {
-        if (enchantment.getMaxLevel() == 1) {
-            return 1;
-        }
         try {
             int level = Integer.parseInt(this.enchantLevelValue);
             return Math.max(1, Math.min(MAX_ENCHANTMENT_LEVEL, level));
@@ -307,7 +303,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         int index = findEnchantmentIndex(enchantments, id);
         CompoundTag enchantmentTag = new CompoundTag();
         enchantmentTag.putString("id", id.toString());
-        enchantmentTag.putShort("lvl", (short) level);
+        enchantmentTag.putInt("lvl", level);
         if (index >= 0) {
             enchantments.set(index, enchantmentTag);
         } else {
@@ -725,7 +721,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
 
     protected String formatPotionEffect(MobEffectInstance effect) {
         int amplifier = effect.getAmplifier();
-        String text = effect.getEffect().value().getDisplayName().getString() + " (" + (amplifier + 1) + ")";
+        String text = effect.getEffect().value().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
         if (amplifier > 1) {
             text += " " + Component.translatable("potion.potency." + amplifier).getString().trim();
         }

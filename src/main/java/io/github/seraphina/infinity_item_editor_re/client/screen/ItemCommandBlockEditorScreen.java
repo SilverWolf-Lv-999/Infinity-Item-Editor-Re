@@ -9,6 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +26,8 @@ final class ItemCommandBlockEditorScreen extends CompatScreen {
     private static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
     private static final String BLOCK_STATE_TAG = "BlockStateTag";
     private static final String ENTITY_TAG = "EntityTag";
+    private static final String ENTITY_ID_TAG = "id";
+    private static final String COMMAND_BLOCK_MINECART_ENTITY_ID = "minecraft:command_block_minecart";
     private static final String COMMAND_TAG = "Command";
     private static final String AUTO_TAG = "auto";
     private static final String CONDITIONAL_TAG = "conditional";
@@ -287,11 +290,31 @@ final class ItemCommandBlockEditorScreen extends CompatScreen {
         CompoundTag commandData = rootTag == null ? new CompoundTag() : NbtCompat.getCompound(rootTag, tagKey);
         if (command.isEmpty()) {
             commandData.remove(COMMAND_TAG);
+            removeOnlyCommandMinecartEntityId(stack, commandData);
         } else {
             commandData.putString(COMMAND_TAG, command);
+            ensureCommandMinecartEntityId(stack, commandData);
         }
 
         putOrRemoveTag(stack, rootTag, tagKey, commandData);
+    }
+
+    private void ensureCommandMinecartEntityId(ItemStack stack, CompoundTag commandData) {
+        if (stack.is(Items.COMMAND_BLOCK_MINECART) && !NbtCompat.contains(commandData, ENTITY_ID_TAG, Tag.TAG_STRING)) {
+            commandData.putString(ENTITY_ID_TAG, COMMAND_BLOCK_MINECART_ENTITY_ID);
+        }
+    }
+
+    private void removeOnlyCommandMinecartEntityId(ItemStack stack, CompoundTag commandData) {
+        if (stack.is(Items.COMMAND_BLOCK_MINECART) && isOnlyCommandMinecartEntityId(commandData)) {
+            commandData.remove(ENTITY_ID_TAG);
+        }
+    }
+
+    private boolean isOnlyCommandMinecartEntityId(CompoundTag commandData) {
+        return commandData.size() == 1
+                && NbtCompat.contains(commandData, ENTITY_ID_TAG, Tag.TAG_STRING)
+                && COMMAND_BLOCK_MINECART_ENTITY_ID.equals(NbtCompat.getString(commandData, ENTITY_ID_TAG));
     }
 
     private void writeUnconditional(ItemStack stack, boolean unconditional) {
