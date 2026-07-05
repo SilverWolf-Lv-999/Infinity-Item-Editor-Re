@@ -568,7 +568,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected void readMainFieldsFromStack(ItemStack stack) {
         ResourceLocation id = CompatRegistries.ITEMS.getKey(stack.getItem());
         this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
-        this.countValue = Integer.toString(Math.max(1, Math.min(MAX_COUNT, stack.getCount())));
+        this.countValue = Integer.toString(Math.max(1, stack.getCount()));
         this.damageValue = Integer.toString(Math.max(0, Math.min(getDamageMaxForField(stack), stack.getDamageValue())));
         this.nameValue = stack.getHoverName().getString();
         this.loreValues.clear();

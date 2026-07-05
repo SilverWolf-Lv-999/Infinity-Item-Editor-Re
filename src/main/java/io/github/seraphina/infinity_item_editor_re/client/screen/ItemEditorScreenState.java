@@ -73,9 +73,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @OnlyIn(Dist.CLIENT)
 abstract class ItemEditorScreenState extends Screen {
-    protected static final int MAX_COUNT = 64;
-    protected static final int MAX_ENCHANTMENT_LEVEL = 32767;
-    protected static final int MAX_POTION_LEVEL = 127;
+    protected static final int MAX_COUNT = Integer.MAX_VALUE;
+    protected static final int MAX_ENCHANTMENT_LEVEL = Integer.MAX_VALUE;
+    protected static final int MAX_POTION_LEVEL = Integer.MAX_VALUE;
     protected static final int MAX_POTION_SECONDS = 99999;
     protected static final int MAX_ATTRIBUTE_INTEGER = 99999999;
     protected static final int FIELD_HEIGHT = 20;

@@ -451,7 +451,7 @@ public final class ItemStackNbt {
         for (int i = 0; i < oldEnchantments.size(); i++) {
             CompoundTag enchantment = oldEnchantments.getCompound(i);
             if (enchantment.contains("id", Tag.TAG_STRING)) {
-                levels.putInt(enchantment.getString("id"), clamp(enchantment.getInt("lvl"), 0, 255));
+                levels.putInt(enchantment.getString("id"), Math.max(0, enchantment.getInt("lvl")));
             }
         }
 
@@ -758,7 +758,7 @@ public final class ItemStackNbt {
         for (String id : levels.getAllKeys()) {
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
-            enchantment.putShort("lvl", (short) levels.getInt(id));
+            enchantment.putInt("lvl", levels.getInt(id));
             enchantments.add(enchantment);
         }
         if (!enchantments.isEmpty()) {
