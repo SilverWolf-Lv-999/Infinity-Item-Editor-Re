@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -242,7 +244,7 @@ final class ItemCommandBlockEditorScreen extends CompatScreen {
             return;
         }
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 

@@ -2,7 +2,9 @@ package io.github.seraphina.infinity_item_editor_re.client;
 
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import io.github.seraphina.infinity_item_editor_re.mixin.CreativeModeInventoryScreenAccessor;
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -61,7 +63,8 @@ public final class CreativeTabRefresher {
     }
 
     private static void refreshOpenScreen(Minecraft minecraft) {
-        if (!(minecraft.screen instanceof CreativeModeInventoryScreen creativeScreen)) {
+        Screen currentScreen = MinecraftCompat.screen(minecraft);
+        if (!(currentScreen instanceof CreativeModeInventoryScreen creativeScreen)) {
             return;
         }
 
@@ -76,9 +79,10 @@ public final class CreativeTabRefresher {
     }
 
     private static void refreshOpenScreen(Minecraft minecraft, CreativeModeTab tab) {
-        if (minecraft.screen instanceof CreativeModeInventoryScreen
+        Screen currentScreen = MinecraftCompat.screen(minecraft);
+        if (currentScreen instanceof CreativeModeInventoryScreen
                 && CreativeModeInventoryScreenAccessor.infinityItemEditorRe$getSelectedTab() == tab) {
-            ((CreativeModeInventoryScreenAccessor) minecraft.screen).infinityItemEditorRe$refreshCurrentTabContents(tab.getDisplayItems());
+            ((CreativeModeInventoryScreenAccessor) currentScreen).infinityItemEditorRe$refreshCurrentTabContents(tab.getDisplayItems());
         }
     }
 }

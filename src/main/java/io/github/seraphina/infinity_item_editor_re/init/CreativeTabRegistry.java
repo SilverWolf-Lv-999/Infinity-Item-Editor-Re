@@ -70,7 +70,7 @@ public final class CreativeTabRegistry {
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BANNERS = CREATIVE_TABS.register("banners", () -> searchTab(
             "banners",
-            () -> new ItemStack(Items.RED_BANNER),
+            () -> new ItemStack(Items.BANNER.pick(DyeColor.RED)),
             CreativeTabRegistry::fillBanners
     ));
 
@@ -94,7 +94,7 @@ public final class CreativeTabRegistry {
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> VOID = CREATIVE_TABS.register("void", () -> searchTab(
             "void",
-            () -> new ItemStack(Blocks.BLACK_STAINED_GLASS),
+            () -> new ItemStack(Blocks.STAINED_GLASS.pick(DyeColor.BLACK)),
             CreativeTabRegistry::fillVoid
     ));
 
@@ -175,22 +175,22 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> banners = new ArrayList<>();
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.WHITE_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.ORANGE_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.MAGENTA_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIGHT_BLUE_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.YELLOW_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIME_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.PINK_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.GRAY_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.LIGHT_GRAY_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.CYAN_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.PURPLE_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.BLUE_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.BROWN_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.GREEN_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.RED_BANNER)));
-        addUnique(banners, normalizedTabStack(new ItemStack(Items.BLACK_BANNER)));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.WHITE))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.ORANGE))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.MAGENTA))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.LIGHT_BLUE))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.YELLOW))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.LIME))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.PINK))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.GRAY))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.LIGHT_GRAY))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.CYAN))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.PURPLE))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.BLUE))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.BROWN))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.GREEN))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.RED))));
+        addUnique(banners, normalizedTabStack(new ItemStack(Items.BANNER.pick(DyeColor.BLACK))));
         addUnique(banners, normalizedTabStack(new ItemStack(Items.SHIELD)));
         for (DyeColor color : DyeColor.values()) {
             addUnique(banners, normalizedTabStack(shield(color)));
@@ -263,7 +263,7 @@ public final class CreativeTabRegistry {
         VoidController.loadVoidToList(stacks);
 
         if (stacks.isEmpty()) {
-            output.accept(Items.BLACK_STAINED_GLASS);
+            output.accept(Items.STAINED_GLASS.pick(DyeColor.BLACK));
             return;
         }
 

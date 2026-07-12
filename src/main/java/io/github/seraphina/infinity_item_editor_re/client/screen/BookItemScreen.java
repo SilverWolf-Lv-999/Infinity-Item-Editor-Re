@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
@@ -371,7 +373,7 @@ final class BookItemScreen extends CompatScreen {
             int x = startX + FORMAT_BUTTON_WIDTH * ((i % columns) + 1);
             int y = startY + FORMAT_BUTTON_HEIGHT * (i / columns);
             addRenderableWidget(new InfinityEditorButton(x, y, FORMAT_BUTTON_WIDTH, FORMAT_BUTTON_HEIGHT,
-                    Component.literal(format.toString() + format.getChar()), button -> insertFocusedText(format.toString())));
+                    Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString())));
         }
     }
 
@@ -463,7 +465,7 @@ final class BookItemScreen extends CompatScreen {
         }
         this.lastScreen.refreshAfterBookEdit();
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 

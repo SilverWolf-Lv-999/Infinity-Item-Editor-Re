@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import com.google.gson.JsonParseException;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -221,7 +223,7 @@ final class ItemJsonEditorScreen extends CompatScreen {
             return;
         }
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 

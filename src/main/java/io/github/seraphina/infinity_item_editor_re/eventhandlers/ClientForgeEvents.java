@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -77,7 +79,7 @@ public final class ClientForgeEvents {
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
+        if (minecraft.player == null || minecraft.level == null || MinecraftCompat.screen(minecraft) != null) {
             return;
         }
 
@@ -96,7 +98,7 @@ public final class ClientForgeEvents {
             if (heldStack.isEmpty()) {
                 minecraft.player.sendOverlayMessage(Component.translatable("message." + ModSource.MODID + ".editor_no_item"));
             } else {
-                minecraft.setScreen(new ItemEditorScreen(heldStack.copy()));
+                MinecraftCompat.setScreen(minecraft, new ItemEditorScreen(heldStack.copy()));
             }
         }
 
@@ -219,7 +221,7 @@ public final class ClientForgeEvents {
             return false;
         }
 
-        minecraft.setScreen(new ItemEditorScreen(slot.getItem().copy(), containerSlot));
+        MinecraftCompat.setScreen(minecraft, new ItemEditorScreen(slot.getItem().copy(), containerSlot));
         return true;
     }
 

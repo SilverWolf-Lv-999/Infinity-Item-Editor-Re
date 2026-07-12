@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -103,7 +105,7 @@ final class ContainerItemScreen extends ContainerScreen {
             editorScreen.refreshAfterContainerEdit();
         }
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 
@@ -111,7 +113,7 @@ final class ContainerItemScreen extends ContainerScreen {
         if (this.minecraft == null) {
             return;
         }
-        this.minecraft.setScreen(new ItemPickScreen(this, this::setPickedStack, this::getPickedStack));
+        MinecraftCompat.setScreen(this.minecraft, new ItemPickScreen(this, this::setPickedStack, this::getPickedStack));
     }
 
     private void setPickedStack(ItemStack stack) {

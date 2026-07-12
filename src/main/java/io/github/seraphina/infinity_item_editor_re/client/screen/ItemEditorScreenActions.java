@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
@@ -101,10 +103,10 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.status = Component.empty();
         syncNbtEditorValuesFromStack();
         if (isBundleEditableItem(this.previewStack)) {
-            this.minecraft.setScreen(BundleItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
+            MinecraftCompat.setScreen(this.minecraft, BundleItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
             return;
         }
-        this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
     protected void openBookItemEditor() {
@@ -116,7 +118,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.status = Component.empty();
         syncNbtEditorValuesFromStack();
-        this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, new BookItemScreen((ItemEditorScreen) this, this.previewStack));
     }
 
     protected void openJsonEditor() {
@@ -128,7 +130,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.status = Component.empty();
         syncNbtEditorValuesFromStack();
-        this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
     protected void openCommandBlockEditor() {
@@ -140,7 +142,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.status = Component.empty();
         syncNbtEditorValuesFromStack();
-        this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
     protected void openArmorTrimEditor() {
@@ -152,7 +154,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.status = Component.empty();
         syncNbtEditorValuesFromStack();
-        this.minecraft.setScreen(new ArmorTrimEditorScreen((ItemEditorScreen) this, this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, new ArmorTrimEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
     protected void openItemPicker() {
@@ -162,7 +164,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (this.activePanel == Panel.ITEM) {
             applyMainFieldsToStack(false);
         }
-        this.minecraft.setScreen(new ItemPickScreen((ItemEditorScreen) this, this::replacePickedStack, () -> this.previewStack));
+        MinecraftCompat.setScreen(this.minecraft, new ItemPickScreen((ItemEditorScreen) this, this::replacePickedStack, () -> this.previewStack));
     }
 
     protected void openContainerSlotPicker() {
@@ -170,7 +172,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         captureFieldValues();
-        this.minecraft.setScreen(new ItemPickScreen((ItemEditorScreen) this, this::replaceContainerSlotPickedStack,
+        MinecraftCompat.setScreen(this.minecraft, new ItemPickScreen((ItemEditorScreen) this, this::replaceContainerSlotPickedStack,
                 () -> getContainerSlotItem(this.selectedContainerSlot)));
     }
 
@@ -295,7 +297,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     public void onClose() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(null);
+            MinecraftCompat.setScreen(this.minecraft, null);
         }
     }
 
@@ -309,7 +311,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
                 ? this.targetContainerSlot
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
         ItemStack inventoryStack = this.previewStack.copy();
-        if (this.minecraft.isSingleplayer()) {
+        if (MinecraftCompat.isSingleplayer(this.minecraft)) {
             if (!applySingleplayerInventoryStack(containerSlot, inventoryStack)) {
                 this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
                 return;

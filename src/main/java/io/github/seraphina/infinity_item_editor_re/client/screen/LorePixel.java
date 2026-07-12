@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.DyeColor;
 
@@ -21,8 +22,7 @@ class LorePixel {
     }
 
     String format() {
-        ChatFormatting formatting = ChatFormatting.getById(15 - this.color.getId());
-        return (formatting == null ? ChatFormatting.WHITE : formatting).toString();
+        return MinecraftCompat.formattingByLegacyId(15 - this.color.getId()).toString();
     }
 
     @Override

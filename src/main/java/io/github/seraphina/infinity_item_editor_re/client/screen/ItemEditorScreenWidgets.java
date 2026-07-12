@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -582,7 +584,7 @@ protected void addItemPanel() {
             int x = startX + 13 * ((i % columns) + 1);
             int y = this.height - 30 + 15 * (i / columns);
             addRenderableWidget(new InfinityEditorButton(x, y, 13, 15,
-                    Component.literal(format.toString() + format.getChar()), button -> insertFocusedText(format.toString())));
+                    Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString())));
         }
     }
 
@@ -605,7 +607,7 @@ protected void addItemPanel() {
         for (int i = 2; i < colorAmount; i++) {
             ChatFormatting format = formats[i - 2];
             addSidebarFormatButton(startX, startY, columns, i,
-                    Component.literal(format.toString() + format.getChar()), button -> insertFocusedText(format.toString()));
+                    Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString()));
         }
     }
 

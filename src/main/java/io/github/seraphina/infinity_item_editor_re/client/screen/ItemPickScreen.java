@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
@@ -356,7 +358,7 @@ final class ItemPickScreen extends CompatScreen {
 
     private void returnToLastScreen() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 

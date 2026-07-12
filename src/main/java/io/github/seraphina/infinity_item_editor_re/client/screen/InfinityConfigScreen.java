@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
@@ -122,7 +124,7 @@ public class InfinityConfigScreen extends CompatScreen {
     private void saveAndClose() {
         saveChanges();
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.parent);
+            MinecraftCompat.setScreen(this.minecraft, this.parent);
         }
     }
 

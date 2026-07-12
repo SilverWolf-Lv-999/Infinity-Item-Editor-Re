@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
@@ -286,7 +288,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         int clampedSlot = Mth.clamp(slot, 0, TRADE_SLOT_COUNT - 1);
         this.selectedTradeSlot = clampedSlot;
         ItemStack slotStack = getTradeSlotItem(NbtCompat.getCompound(trades, this.selectedTradeIndex), clampedSlot);
-        this.minecraft.setScreen(new ItemEditorScreen(slotStack, (ItemEditorScreen) this, this.selectedTradeIndex, clampedSlot));
+        MinecraftCompat.setScreen(this.minecraft, new ItemEditorScreen(slotStack, (ItemEditorScreen) this, this.selectedTradeIndex, clampedSlot));
     }
 
     protected void applyTradeSlotEditorAndReturn() {
@@ -303,7 +305,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         this.parentTradeScreen.activePanel = Panel.TRADE;
         this.parentTradeScreen.status = Component.empty();
         this.parentTradeScreen.rebuildWidgets();
-        this.minecraft.setScreen(this.parentTradeScreen);
+        MinecraftCompat.setScreen(this.minecraft, this.parentTradeScreen);
     }
 
     protected void setTradeSlotItem(int tradeIndex, int slot, ItemStack stack) {

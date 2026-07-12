@@ -34,6 +34,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -1131,7 +1132,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected boolean isVillagerTradeEditableItem(ItemStack stack) {
-        return isSpawnEggItem(stack) && EntityType.VILLAGER.equals(getCurrentSpawnEggEntityType(stack));
+        return isSpawnEggItem(stack) && EntityTypes.VILLAGER.equals(getCurrentSpawnEggEntityType(stack));
     }
 
     protected static boolean isPlayerHeadItem(ItemStack stack) {

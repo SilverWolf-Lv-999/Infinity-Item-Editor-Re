@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
@@ -16,6 +18,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
@@ -563,7 +566,7 @@ final class ArmorTrimEditorScreen extends CompatScreen {
 
     private void returnToLastScreen() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(this.lastScreen);
+            MinecraftCompat.setScreen(this.minecraft, this.lastScreen);
         }
     }
 
@@ -941,7 +944,7 @@ final class ArmorTrimEditorScreen extends CompatScreen {
 
         if (this.previewEntity == PREVIEW_ZOMBIE) {
             if (this.zombiePreview == null || this.zombiePreview.level() != this.minecraft.level) {
-                this.zombiePreview = EntityType.ZOMBIE.create(this.minecraft.level, EntitySpawnReason.LOAD);
+                this.zombiePreview = EntityTypes.ZOMBIE.create(this.minecraft.level, EntitySpawnReason.LOAD);
             }
             return this.zombiePreview;
         }

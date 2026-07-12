@@ -6,24 +6,7 @@ import net.minecraft.world.item.Items;
 import java.util.List;
 
 public final class BannerPatternCatalog {
-    static final Item[] ITEMS_BY_DYE = {
-            Items.WHITE_BANNER,
-            Items.ORANGE_BANNER,
-            Items.MAGENTA_BANNER,
-            Items.LIGHT_BLUE_BANNER,
-            Items.YELLOW_BANNER,
-            Items.LIME_BANNER,
-            Items.PINK_BANNER,
-            Items.GRAY_BANNER,
-            Items.LIGHT_GRAY_BANNER,
-            Items.CYAN_BANNER,
-            Items.PURPLE_BANNER,
-            Items.BLUE_BANNER,
-            Items.BROWN_BANNER,
-            Items.GREEN_BANNER,
-            Items.RED_BANNER,
-            Items.BLACK_BANNER
-    };
+    static final Item[] ITEMS_BY_DYE = Items.BANNER.asList().toArray(Item[]::new);
 
     static final List<BannerPatternEntry> PATTERNS = List.of(
             new BannerPatternEntry("square_bottom_left", "bl"),
