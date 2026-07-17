@@ -875,6 +875,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             SpawnEggTagRow row = rows.get(i);
             if (row.type() != SpawnEggTagRowType.BOOLEAN
                     && row.type() != SpawnEggTagRowType.PRESENCE
+                    && row.type() != SpawnEggTagRowType.AGEABLE_BABY
+                    && row.type() != SpawnEggTagRowType.AGE_LOCKED
                     && row.type() != SpawnEggTagRowType.CHOICE) {
                 drawRightLabel(guiGraphics, Component.translatable(key("spawnegg." + row.translationSuffix())),
                         controlsX + 66, getSpawnEggTagRowY(i - this.spawnEggTagScroll) + 6);

@@ -73,6 +73,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 abstract class ItemEditorScreenBannerSpawn extends ItemEditorScreenItemData {
+    private static final int SPAWN_EGG_BABY_AGE = -24000;
+
     protected ItemEditorScreenBannerSpawn(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
@@ -705,6 +707,40 @@ protected void addSelectedBannerPattern() {
         rebuildWidgets();
     }
 
+    protected void toggleSpawnEggAgeOption(SpawnEggTagRow row) {
+        if (!isSpawnEditorItem(this.previewStack)) {
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+        boolean enabled = getSpawnEggAgeOptionValue(row);
+        switch (row.type()) {
+            case AGEABLE_BABY -> {
+                if (enabled) {
+                    removeSpawnEggTagValue(entityTag, row.tagKey());
+                    removeSpawnEggTagValue(entityTag, "AgeLocked");
+                } else {
+                    putSpawnEggIntValue(entityTag, row.tagKey(), SPAWN_EGG_BABY_AGE);
+                }
+            }
+            case AGE_LOCKED -> {
+                if (enabled) {
+                    removeSpawnEggTagValue(entityTag, row.tagKey());
+                } else {
+                    putSpawnEggIntValue(entityTag, "Age", SPAWN_EGG_BABY_AGE);
+                    putSpawnEggBooleanValue(entityTag, row.tagKey(), true);
+                }
+            }
+            default -> {
+                return;
+            }
+        }
+        cleanupSpawnEggEntityTag(entityTag);
+        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        rebuildWidgets();
+    }
+
     protected void toggleSpawnEggPresence(SpawnEggTagRow row) {
         if (!isSpawnEditorItem(this.previewStack)) {
             return;
@@ -1002,6 +1038,12 @@ protected void addSelectedBannerPattern() {
                 Component.translatable(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
     }
 
+    protected Component getSpawnEggAgeOptionText(SpawnEggTagRow row) {
+        return Component.translatable(key("spawnegg.option_state"),
+                Component.translatable(key("spawnegg." + row.translationSuffix())),
+                Component.translatable(key("spawnegg.state." + (getSpawnEggAgeOptionValue(row) ? 1 : 0))));
+    }
+
     protected Component getSpawnEggPresenceText(SpawnEggTagRow row) {
         return Component.translatable(key("spawnegg.option_state"),
                 Component.translatable(key("spawnegg." + row.translationSuffix())),
@@ -1057,6 +1099,25 @@ protected void addSelectedBannerPattern() {
         }
         String leafKey = getSpawnEggLeafTagKey(row.tagKey());
         return NbtCompat.contains(parent, leafKey, Tag.TAG_BYTE) && NbtCompat.getBoolean(parent, leafKey);
+    }
+
+    protected boolean getSpawnEggAgeOptionValue(SpawnEggTagRow row) {
+        CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
+        CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (parent == null) {
+            return false;
+        }
+
+        String leafKey = getSpawnEggLeafTagKey(row.tagKey());
+        return switch (row.type()) {
+            case AGEABLE_BABY ->
+                    NbtCompat.contains(parent, leafKey, NbtCompat.TAG_ANY_NUMERIC)
+                            && NbtCompat.getInt(parent, leafKey) < 0;
+            case AGE_LOCKED ->
+                    NbtCompat.contains(parent, leafKey, Tag.TAG_BYTE)
+                            && NbtCompat.getBoolean(parent, leafKey);
+            default -> false;
+        };
     }
 
     protected boolean getSpawnEggPresenceValue(SpawnEggTagRow row) {

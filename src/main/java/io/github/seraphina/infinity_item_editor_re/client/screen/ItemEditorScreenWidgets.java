@@ -1125,6 +1125,12 @@ protected void addItemPanel() {
             return;
         }
 
+        if (row.type() == SpawnEggTagRowType.AGEABLE_BABY || row.type() == SpawnEggTagRowType.AGE_LOCKED) {
+            addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
+                    getSpawnEggAgeOptionText(row), button -> toggleSpawnEggAgeOption(row)));
+            return;
+        }
+
         if (row.type() == SpawnEggTagRowType.PRESENCE) {
             addRenderableWidget(new InfinityEditorButton(controlsX, y, width, FIELD_HEIGHT,
                     getSpawnEggPresenceText(row), button -> toggleSpawnEggPresence(row)));

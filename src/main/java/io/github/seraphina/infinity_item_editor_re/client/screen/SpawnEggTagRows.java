@@ -2,6 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 final class SpawnEggTagRows {
     private static final List<SpawnEggChoiceOption> VILLAGER_PROFESSION_OPTIONS = List.of(
@@ -40,11 +41,20 @@ final class SpawnEggTagRows {
             new SpawnEggChoiceOption("4", "4"),
             new SpawnEggChoiceOption("5", "5")
     );
+    private static final Set<String> AGEABLE_BABY_ENTITIES = Set.of(
+            "armadillo", "axolotl", "bee", "camel", "cat", "chicken", "cow", "dolphin",
+            "donkey", "fox", "glow_squid", "goat", "happy_ghast", "hoglin", "horse",
+            "llama", "mooshroom", "nautilus", "ocelot", "panda", "pig", "polar_bear",
+            "rabbit", "sheep", "skeleton_horse", "sniffer", "squid", "strider",
+            "trader_llama", "turtle", "villager", "wandering_trader", "wolf", "zombie_horse"
+    );
+    private static final Set<String> IS_BABY_ENTITIES = Set.of(
+            "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin", "piglin", "zoglin"
+    );
 
     static final List<SpawnEggTagRow> GENERAL = List.of(
             customName(),
             floatNumber("health", "Health", 0.0D, 2048.0D),
-            intNumber("age", "Age", -24000.0D, 24000.0D),
             shortNumber("fire", "Fire", 0.0D, Short.MAX_VALUE),
             floatNumber("absorption", "AbsorptionAmount", 0.0D, 2048.0D),
             booleanRow("no_ai", "NoAI"),
@@ -63,6 +73,13 @@ final class SpawnEggTagRows {
 
     static List<SpawnEggTagRow> forEntity(String path) {
         List<SpawnEggTagRow> rows = new ArrayList<>();
+        if (AGEABLE_BABY_ENTITIES.contains(path)) {
+            rows.add(ageableBaby());
+            rows.add(ageLocked());
+        }
+        if (IS_BABY_ENTITIES.contains(path)) {
+            rows.add(booleanRow("is_baby", "IsBaby"));
+        }
         switch (path) {
             case "chicken" -> rows.add(intNumber("egg_lay_time", "EggLayTime", 0.0D, 20000.0D));
             case "creeper" -> {
@@ -90,7 +107,6 @@ final class SpawnEggTagRows {
             case "slime", "magma_cube" -> rows.add(displayOffsetIntNumber("size", "Size", 1.0D, 50.0D, 1.0D));
             case "vindicator" -> rows.add(booleanRow("johnny", "Johnny"));
             case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
-                rows.add(booleanRow("is_baby", "IsBaby"));
                 rows.add(booleanRow("can_break_doors", "CanBreakDoors"));
                 if ("zombie_villager".equals(path)) {
                     rows.add(villagerProfession());
@@ -119,6 +135,14 @@ final class SpawnEggTagRows {
 
     private static SpawnEggTagRow presenceRow(String translationSuffix, String tagKey) {
         return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.PRESENCE, null, 0.0D, 1.0D);
+    }
+
+    private static SpawnEggTagRow ageableBaby() {
+        return new SpawnEggTagRow("is_baby", "Age", SpawnEggTagRowType.AGEABLE_BABY, null, 0.0D, 1.0D);
+    }
+
+    private static SpawnEggTagRow ageLocked() {
+        return new SpawnEggTagRow("lock_baby", "AgeLocked", SpawnEggTagRowType.AGE_LOCKED, null, 0.0D, 1.0D);
     }
 
     private static SpawnEggTagRow customName() {
@@ -205,6 +229,8 @@ record SpawnEggChoiceOption(String value, String translationSuffix) {
 enum SpawnEggTagRowType {
     BOOLEAN,
     PRESENCE,
+    AGEABLE_BABY,
+    AGE_LOCKED,
     NUMBER,
     CUSTOM_NAME,
     OWNER,
