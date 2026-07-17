@@ -1,6 +1,6 @@
 # Infinity Item Editor Re
 
-Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。
+Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge 多版本** 的客户端物品编辑 Mod，目标是复刻并移植旧版本的 Infinity Item Editor 体验。当前 `26.1.2` 工作区已拆分为 `common`、`fabric`、`neoforge` 三个 Gradle 模块，并最终构建为一个可同时被 Fabric 和 NeoForge 识别的通用 Jar。
 
 这个仓库不是原作者的官方更新版，而是基于旧版功能思路重新适配到新版 Minecraft 的移植/复刻项目。当前仍处于开发阶段，部分面板和细节可能还会继续补全或调整。
 
@@ -8,12 +8,12 @@ Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge �
 
 | 项目 | 内容 |
 | --- | --- |
-| 多分支支持版本 | Fabric 1.20.1；Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11 |
-| 当前工作区 | NeoForge 1.21.11 |
-| 当前工作区 NeoForge | 21.11.42 |
-| Java | Fabric/Forge 1.20.1 使用 Java 17；NeoForge 1.21.x 使用 Java 21 |
+| 多分支支持版本 | Fabric 1.20.1、26.1.2；Forge 1.20.1；NeoForge 1.21.1、1.21.4、1.21.10、1.21.11、26.1.2 |
+| 当前工作区 | Minecraft 26.1.2，Fabric / NeoForge 多模块 |
+| 当前工作区加载器 | Fabric Loader 0.19.3、Fabric API 0.155.2+26.1.2、NeoForge 26.1.2.78 |
+| Java | 当前 26.1.2 工作区使用 Java 25 |
 | Mod ID | `infinity_item_editor_re` |
-| 当前工作区版本 | `1.21.11-1.0.0-B` |
+| 当前工作区版本 | `26.1.2-1.1.0-B` |
 | 许可证 | GNU GPL 3.0 |
 
 ## 功能
@@ -75,7 +75,7 @@ Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge �
 - 复制方块时会生成对应物品；按住 `Ctrl` 复制方块可带上方块实体 NBT，并保存到 Realm。
 - 复制生物、玩家或盔甲架时，会把目标装备复制到玩家对应装备槽位。
 - 自动收集聊天悬浮物品和服务器装备包中的物品数据到 Void 缓存。
-- 提供多个带搜索栏的创造模式标签页：
+- 提供多个创造模式标签页；NeoForge 版本带搜索栏，Fabric 版本使用原版创造标签页 API：
   - `Infinity - Realm`：保存的自定义物品。
   - `Infinity - Unavailable`：命令方块、屏障、结构方块、刷怪笼、药水、附魔书等常规创造物品栏中不直接提供或不完整提供的物品。
   - `Infinity - Banners`：旗帜、盾牌和图案变体。
@@ -86,8 +86,8 @@ Infinity Item Editor Re 是一个面向 **Minecraft Fabric / Forge / NeoForge �
 
 ## 使用说明
 
-1. 安装目标 Minecraft 版本对应的 Fabric、Forge 或 NeoForge。
-2. 下载或自行构建与目标版本和加载器匹配的 jar。
+1. 安装目标 Minecraft 版本对应的 Fabric、Forge 或 NeoForge；当前 26.1.2 工作区支持 Fabric 和 NeoForge。
+2. 当前 26.1.2 版本只需下载或构建同一个通用 jar；Fabric 和 NeoForge 均使用该文件。
 3. 将 jar 放入客户端 `.minecraft/mods` 目录。
 4. 启动游戏后进入创造模式，手持一个物品并按 `U` 打开编辑器。
 
@@ -104,7 +104,7 @@ Mod 会在客户端游戏目录下创建数据目录：
 
 ## 配置
 
-客户端配置文件中可以开关部分标签页和行为，支持的版本也可以从 Mod 列表打开内置配置界面。主要选项包括：
+客户端配置文件中可以开关部分标签页和行为。主要选项包括：
 
 - `itemGuiMode`：物品编辑器界面模式，默认 `LEGACY` 旧界面；可设为 `SIDEBAR` 使用新版侧边栏，也可以在编辑器内点击 `UI` 按钮即时切换并保存。
 - `voidTab`
@@ -116,11 +116,11 @@ Mod 会在客户端游戏目录下创建数据目录：
 - `thiefTab`
 - `fireworkTab`
 
-配置文件通常位于客户端 `config` 目录。
+当前工作区的配置文件为 `.minecraft/config/infinity_item_editor_re.properties`，Fabric 与 NeoForge 共用相同格式。
 
 ## 从源码构建
 
-不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。本工作区对应 NeoForge 1.21.11，使用 NeoForge `21.11.42` 和 Java 21。
+不同 Minecraft/Loader 版本请使用对应分支或源码目录构建。本工作区对应 Minecraft 26.1.2，使用 Java 25，可同时构建 Fabric 和 NeoForge 版本。
 
 Windows:
 
@@ -134,21 +134,33 @@ Linux / macOS:
 ./gradlew build
 ```
 
-构建完成后，jar 会输出到：
+构建完成后，最终分发的通用 jar 会输出到：
 
 ```text
-build/libs/
+build/libs/infinity_item_editor_re-26.1.2-1.1.0-B.jar
 ```
+
+该 Jar 同时包含 `fabric.mod.json`、`META-INF/neoforge.mods.toml` 和两个平台入口类。Fabric 与 NeoForge 会分别读取自己的元数据并启动对应入口。`fabric/build/libs/` 与 `neoforge/build/libs/` 中的文件只是通用 Jar 的平台构建输入，不需要单独分发。
 
 开发环境运行客户端：
 
 ```powershell
-.\gradlew.bat runClient
+.\gradlew.bat :fabric:runClient
+.\gradlew.bat :neoforge:runClient
+```
+
+项目模块：
+
+```text
+common/    平台无关的编辑器、数据和资源
+fabric/    Fabric 加载器入口与事件注册
+neoforge/  NeoForge 加载器入口与事件注册
+build/     最终的 Fabric / NeoForge 通用 Jar
 ```
 
 ## 当前状态
 
-本项目是旧版 Mod 的 Fabric/Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前支持 Fabric 1.20.1、Forge 1.20.1，以及 NeoForge 1.21.1、1.21.4、1.21.10、1.21.11。常用物品编辑面板、组件编辑器、JSON 编辑器、命令方块编辑器、书本页面编辑器、收纳袋/容器/陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
+本项目是旧版 Mod 的 Fabric/Forge/NeoForge 多版本复刻/移植版，不保证与旧版完全一致。当前 26.1.2 工作区已支持从同一多模块项目构建一个 Fabric / NeoForge 通用 Jar。常用物品编辑面板、组件编辑器、JSON 编辑器、命令方块编辑器、书本页面编辑器、收纳袋/容器/陶罐/试炼刷怪笼编辑、创造标签页和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。欢迎提交 Issue 或 Pull Request 帮助补全。
 
 ## 原项目与参考
 

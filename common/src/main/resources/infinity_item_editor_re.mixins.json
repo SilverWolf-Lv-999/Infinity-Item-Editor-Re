@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.seraphina.infinity_item_editor_re.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+  ],
+  "client": [
+    "AbstractContainerScreenAccessor",
+    "ConnectionAccessor",
+    "CreativeModeInventoryScreenAccessor",
+    "SlotAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

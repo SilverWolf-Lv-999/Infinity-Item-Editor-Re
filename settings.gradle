@@ -3,6 +3,7 @@ pluginManagement {
         mavenLocal()
         gradlePluginPortal()
         maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.fabricmc.net/' }
     }
 }
 
@@ -10,4 +11,8 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
 
-rootProject.name = 'infinityitemeditor26-1-2neo'
+rootProject.name = 'infinity-item-editor-re-26.1.2'
+
+include 'common'
+include 'neoforge'
+include 'fabric'
