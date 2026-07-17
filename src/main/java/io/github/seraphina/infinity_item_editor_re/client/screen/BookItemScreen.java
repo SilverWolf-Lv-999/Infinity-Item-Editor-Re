@@ -48,6 +48,7 @@ final class BookItemScreen extends CompatScreen {
     private static final int FORMAT_BUTTON_HEIGHT = 15;
     private static final int FORMAT_BUTTON_Y_OFFSET = 30;
     private static final int FORMAT_BUTTON_ROWS = 2;
+    private static final int BOOK_TEXT_COLOR = 0xFF000000;
 
     private final ItemEditorScreen lastScreen;
     private final ItemStack bookStack;
@@ -78,7 +79,7 @@ final class BookItemScreen extends CompatScreen {
                     TEXT_WIDTH, LINE_HEIGHT, Component.translatable(key("book.line"), line + 1));
             int lineIndex = line;
             lineBox.setBordered(false);
-            lineBox.setTextColor(0);
+            lineBox.setTextColor(BOOK_TEXT_COLOR);
             lineBox.setTextColorUneditable(0xFF555555);
             lineBox.setMaxLength(MAX_PAGE_LENGTH);
             lineBox.setValue(getPageLine(currentPage, lineIndex));
@@ -170,7 +171,8 @@ final class BookItemScreen extends CompatScreen {
         guiGraphics.blit(RenderPipelines.GUI_TEXTURED, BookViewScreen.BOOK_LOCATION, left, 2,
                 0.0F, 0.0F, IMAGE_WIDTH, IMAGE_WIDTH, 256, 256);
         Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
-        guiGraphics.text(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18, 0, false);
+        guiGraphics.text(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18,
+                BOOK_TEXT_COLOR, false);
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 

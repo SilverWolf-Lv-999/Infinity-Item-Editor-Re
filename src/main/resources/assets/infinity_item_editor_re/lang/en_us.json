@@ -752,6 +752,7 @@
   "screen.infinity_item_editor_re.spawnegg.snbt_type.compound_list": "a list of compounds",
   "screen.infinity_item_editor_re.spawnegg.johnny": "Johnny",
   "screen.infinity_item_editor_re.spawnegg.is_baby": "Baby",
+  "screen.infinity_item_editor_re.spawnegg.lock_baby": "Lock Baby State",
   "screen.infinity_item_editor_re.spawnegg.can_break_doors": "Can Break Doors",
   "screen.infinity_item_editor_re.spawnegg.anger": "Anger",
   "screen.infinity_item_editor_re.spawnegg.villager_profession": "Profession",

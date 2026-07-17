@@ -57,6 +57,8 @@ final class ArmorTrimEditorScreen extends CompatScreen {
     private static final int PREVIEW_ARMOR_STAND = 0;
     private static final int PREVIEW_PLAYER = 1;
     private static final int PREVIEW_ZOMBIE = 2;
+    private static final int PREVIEW_ARMOR_STAND_ENTITY_ID = Integer.MIN_VALUE + 1;
+    private static final int PREVIEW_ZOMBIE_ENTITY_ID = Integer.MIN_VALUE + 2;
     private static final String ARMOR_TRIMS_CUSTOM_DATA_TAG = "InfinityItemEditorArmorTrims";
     private static final String ARMOR_TRIM_MATERIAL_TAG = "material";
     private static final String ARMOR_TRIM_PATTERN_TAG = "pattern";
@@ -945,12 +947,16 @@ final class ArmorTrimEditorScreen extends CompatScreen {
         if (this.previewEntity == PREVIEW_ZOMBIE) {
             if (this.zombiePreview == null || this.zombiePreview.level() != this.minecraft.level) {
                 this.zombiePreview = EntityTypes.ZOMBIE.create(this.minecraft.level, EntitySpawnReason.LOAD);
+                if (this.zombiePreview != null) {
+                    this.zombiePreview.setId(PREVIEW_ZOMBIE_ENTITY_ID);
+                }
             }
             return this.zombiePreview;
         }
 
         if (this.armorStandPreview == null || this.armorStandPreview.level() != this.minecraft.level) {
             ArmorStand armorStand = new ArmorStand(this.minecraft.level, 0.0D, 0.0D, 0.0D);
+            armorStand.setId(PREVIEW_ARMOR_STAND_ENTITY_ID);
             armorStand.setShowArms(true);
             armorStand.setNoBasePlate(true);
             armorStand.setInvisible(false);

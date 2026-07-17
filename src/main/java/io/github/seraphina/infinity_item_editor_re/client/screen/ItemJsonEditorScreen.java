@@ -17,6 +17,7 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -300,28 +301,31 @@ final class ItemJsonEditorScreen extends CompatScreen {
         private static final int COLOR_COMPLETION_SELECTED = 0xFF243A55;
         private static final int COLOR_ERROR_LINE = 0x44F44262;
 
-        private static final List<String> KEY_COMPLETIONS = List.of(
-                "id", "Count", "tag", "Damage", "display", "Name", "Lore", "HideFlags", "Unbreakable",
-                "Enchantments", "StoredEnchantments", "lvl", "AttributeModifiers", "AttributeName", "Amount", "Operation",
-                "UUID", "Slot", "RepairCost", "CanDestroy", "CanPlaceOn", "CustomPotionEffects", "CustomPotionColor",
-                "Potion", "Ambient", "Amplifier", "Duration", "ShowIcon", "ShowParticles", "BlockEntityTag",
-                "BlockStateTag", "EntityTag", "SkullOwner", "Properties", "textures", "Value", "Signature",
-                "Fireworks", "Flight", "Explosions", "Explosion", "Type", "Colors", "FadeColors", "Flicker",
-                "Trail", "Items", "Slot", "tag", "Offers", "Recipes", "buy", "buyB", "sell", "uses", "maxUses",
-                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand", "Base", "Patterns", "Pattern", "Color"
+        private static final List<String> ROOT_KEY_COMPLETIONS = List.of("id", "count", "components");
+        private static final List<String> COMPONENT_IDS = BuiltInRegistries.DATA_COMPONENT_TYPE.keySet().stream()
+                .map(id -> id.toString())
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+        private static final List<String> COMPONENT_KEY_COMPLETIONS = List.of(
+                "id", "type", "value", "count", "show_in_tooltip", "items", "blocks", "state", "predicates",
+                "levels", "modifiers", "amount", "operation", "slot", "potion", "custom_color", "custom_effects",
+                "duration", "amplifier", "ambient", "show_particles", "show_icon", "pages", "title", "author",
+                "generation", "material", "pattern", "colors", "fade_colors", "has_trail", "has_twinkle"
         );
-        private static final List<String> ROOT_KEY_COMPLETIONS = List.of("id", "Count", "tag");
-        private static final List<String> DISPLAY_KEY_COMPLETIONS = List.of("Name", "Lore", "color", "italic", "bold",
-                "underlined", "strikethrough", "obfuscated");
-        private static final List<String> ENCHANTMENT_KEY_COMPLETIONS = List.of("id", "lvl");
-        private static final List<String> ATTRIBUTE_KEY_COMPLETIONS = List.of("AttributeName", "Name", "Amount",
-                "Operation", "UUID", "Slot");
-        private static final List<String> POTION_EFFECT_KEY_COMPLETIONS = List.of("Id", "Amplifier", "Duration",
-                "Ambient", "ShowParticles", "ShowIcon");
-        private static final List<String> FIREWORK_KEY_COMPLETIONS = List.of("Flight", "Explosions", "Type", "Colors",
-                "FadeColors", "Flicker", "Trail");
-        private static final List<String> TRADE_KEY_COMPLETIONS = List.of("buy", "buyB", "sell", "uses", "maxUses",
-                "rewardExp", "xp", "priceMultiplier", "specialPrice", "demand");
+        private static final List<String> ENCHANTMENT_COMPONENT_KEYS = List.of("levels", "show_in_tooltip");
+        private static final List<String> ATTRIBUTE_COMPONENT_KEYS = List.of("modifiers", "show_in_tooltip");
+        private static final List<String> ATTRIBUTE_MODIFIER_KEYS = List.of("type", "id", "amount", "operation", "slot");
+        private static final List<String> ADVENTURE_COMPONENT_KEYS = List.of("predicates", "show_in_tooltip");
+        private static final List<String> BLOCK_PREDICATE_KEYS = List.of("blocks", "nbt", "state");
+        private static final List<String> POTION_COMPONENT_KEYS = List.of("potion", "custom_color", "custom_effects",
+                "custom_name");
+        private static final List<String> POTION_EFFECT_KEYS = List.of("id", "amplifier", "duration", "ambient",
+                "show_particles", "show_icon");
+        private static final List<String> FIREWORK_KEYS = List.of("flight_duration", "explosions");
+        private static final List<String> FIREWORK_EXPLOSION_KEYS = List.of("shape", "colors", "fade_colors",
+                "has_trail", "has_twinkle");
+        private static final List<String> ATTRIBUTE_OPERATION_VALUES = List.of("add_value", "add_multiplied_base",
+                "add_multiplied_total");
         private static final List<String> VALUE_LITERALS = List.of("true", "false", "0", "1", "{}", "[]");
         private static final List<String> SLOT_VALUES = List.of("mainhand", "offhand", "head", "chest", "legs", "feet");
         private static final List<String> COMMAND_NAMES = List.of(
@@ -1658,46 +1662,110 @@ final class ItemJsonEditorScreen extends CompatScreen {
             if (context.isEmpty() && request.path().size() <= 1) {
                 keys.addAll(this.rootKeyCompletions);
                 return new ArrayList<>(keys);
-            } else if (context.equals("display")) {
-                keys.addAll(DISPLAY_KEY_COMPLETIONS);
-            } else if (isEnchantmentContext(context)) {
-                keys.addAll(ENCHANTMENT_KEY_COMPLETIONS);
-            } else if (context.equals("attributemodifiers")) {
-                keys.addAll(ATTRIBUTE_KEY_COMPLETIONS);
-            } else if (context.equals("custompotioneffects")) {
-                keys.addAll(POTION_EFFECT_KEY_COMPLETIONS);
-            } else if (context.equals("fireworks") || context.equals("explosions")) {
-                keys.addAll(FIREWORK_KEY_COMPLETIONS);
-            } else if (context.equals("recipes") || context.equals("offers")) {
-                keys.addAll(TRADE_KEY_COMPLETIONS);
             }
-            keys.addAll(KEY_COMPLETIONS);
+
+            String component = componentContext(request.path());
+            if (context.equals("components") && component.isEmpty()) {
+                return COMPONENT_IDS;
+            }
+            if (!component.isEmpty()) {
+                if (isEnchantmentComponent(component) && context.equals("levels")) {
+                    return ENCHANTMENT_IDS;
+                }
+                if (component.equals("minecraft:attribute_modifiers") && context.equals("modifiers")) {
+                    return ATTRIBUTE_MODIFIER_KEYS;
+                }
+                if (isAdventureComponent(component) && context.equals("predicates")) {
+                    return BLOCK_PREDICATE_KEYS;
+                }
+                if (component.equals("minecraft:potion_contents") && context.equals("custom_effects")) {
+                    return POTION_EFFECT_KEYS;
+                }
+                if (component.equals("minecraft:fireworks") && context.equals("explosions")) {
+                    return FIREWORK_EXPLOSION_KEYS;
+                }
+
+                if (context.equals(component)) {
+                    keys.addAll(componentRootKeys(component));
+                }
+                keys.addAll(COMPONENT_KEY_COMPLETIONS);
+                return new ArrayList<>(keys);
+            }
+
+            keys.addAll(COMPONENT_KEY_COMPLETIONS);
             return new ArrayList<>(keys);
         }
 
-        private boolean isEnchantmentContext(String context) {
-            return context.equals("enchantments") || context.equals("storedenchantments");
+        private List<String> componentRootKeys(String component) {
+            return switch (component) {
+                case "minecraft:enchantments", "minecraft:stored_enchantments" -> ENCHANTMENT_COMPONENT_KEYS;
+                case "minecraft:attribute_modifiers" -> ATTRIBUTE_COMPONENT_KEYS;
+                case "minecraft:can_break", "minecraft:can_place_on" -> ADVENTURE_COMPONENT_KEYS;
+                case "minecraft:potion_contents" -> POTION_COMPONENT_KEYS;
+                case "minecraft:fireworks" -> FIREWORK_KEYS;
+                case "minecraft:firework_explosion" -> FIREWORK_EXPLOSION_KEYS;
+                case "minecraft:trim" -> List.of("material", "pattern", "show_in_tooltip");
+                case "minecraft:profile" -> List.of("name", "id", "properties");
+                case "minecraft:written_book_content" -> List.of("title", "author", "generation", "pages", "resolved");
+                case "minecraft:writable_book_content" -> List.of("pages");
+                case "minecraft:food" -> List.of("nutrition", "saturation_modifier", "can_always_eat");
+                case "minecraft:tool" -> List.of("rules", "default_mining_speed", "damage_per_block");
+                case "minecraft:equippable" -> List.of("slot", "equip_sound", "asset_id", "camera_overlay",
+                        "allowed_entities", "dispensable", "swappable", "damage_on_hurt");
+                default -> COMPONENT_KEY_COMPLETIONS;
+            };
+        }
+
+        private String componentContext(List<String> path) {
+            for (int i = 0; i < path.size(); i++) {
+                if (!"components".equalsIgnoreCase(path.get(i))) {
+                    continue;
+                }
+                for (int j = i + 1; j < path.size(); j++) {
+                    String key = path.get(j);
+                    if (key != null && !key.isEmpty()) {
+                        return key.toLowerCase(Locale.ROOT);
+                    }
+                }
+                break;
+            }
+            return "";
+        }
+
+        private boolean isEnchantmentComponent(String component) {
+            return component.equals("minecraft:enchantments") || component.equals("minecraft:stored_enchantments");
+        }
+
+        private boolean isAdventureComponent(String component) {
+            return component.equals("minecraft:can_break") || component.equals("minecraft:can_place_on");
         }
 
         private void addValueCompletions(Set<Completion> results, CompletionRequest request) {
             String normalizedKey = request.key() == null ? "" : request.key().toLowerCase(Locale.ROOT);
             String context = lastPathKey(request.path()).toLowerCase(Locale.ROOT);
+            String component = componentContext(request.path());
             if (normalizedKey.equals("id")) {
-                if (isEnchantmentContext(context)) {
-                    addStringValues(results, request, ENCHANTMENT_IDS);
-                } else if (context.equals("entitytag")) {
+                if (component.equals("minecraft:potion_contents") && context.equals("custom_effects")) {
+                    addStringValues(results, request, EFFECT_IDS);
+                } else if (component.equals("minecraft:entity_data")) {
                     addStringValues(results, request, ENTITY_IDS);
-                } else {
+                } else if (component.isEmpty()) {
                     addStringValues(results, request, ITEM_IDS);
                 }
-            } else if (normalizedKey.equals("attributename") || normalizedKey.equals("name")) {
-                if (context.equals("attributemodifiers")) {
-                    addStringValues(results, request, ATTRIBUTE_IDS);
-                }
+            } else if (normalizedKey.equals("type") && component.equals("minecraft:attribute_modifiers")) {
+                addStringValues(results, request, ATTRIBUTE_IDS);
             } else if (normalizedKey.equals("slot")) {
                 addStringValues(results, request, SLOT_VALUES);
             } else if (normalizedKey.equals("potion")) {
                 addStringValues(results, request, POTION_IDS);
+            } else if (normalizedKey.equals("blocks")) {
+                addStringValues(results, request, BLOCK_IDS);
+            } else if (normalizedKey.equals("item") || normalizedKey.equals("items")) {
+                addStringValues(results, request, ITEM_IDS);
+            } else if (normalizedKey.equals("operation")) {
+                addStringValues(results, request, ATTRIBUTE_OPERATION_VALUES);
+            } else if (normalizedKey.equals("count")) {
+                addRawValues(results, request, COUNT_VALUES);
             }
             addSnippetValues(results, request, normalizedKey);
             addRawValues(results, request, VALUE_LITERALS);
@@ -1719,37 +1787,63 @@ final class ItemJsonEditorScreen extends CompatScreen {
                 return;
             }
 
-            String valueIndent = indentationAt(request.replaceStart()) + INDENT;
-            if (normalizedKey.equals("display")) {
+            String baseIndent = indentationAt(request.replaceStart());
+            String valueIndent = baseIndent + INDENT;
+            if (normalizedKey.equals("components")) {
                 String snippet = "{\n" + valueIndent
-                        + "\"Name\": \"{\\\"text\\\":\\\"Name\\\"}\",\n" + valueIndent
-                        + "\"Lore\": []\n" + indentationAt(request.replaceStart()) + "}";
+                        + "\"minecraft:custom_name\": \"{\\\"text\\\":\\\"Name\\\"}\"\n" + baseIndent + "}";
                 String marker = "Name";
-                results.add(new Completion("display object", snippet,
+                results.add(new Completion("components object", snippet,
                         request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, true),
                         marker.length()));
-            } else if (normalizedKey.equals("enchantments") || normalizedKey.equals("storedenchantments")) {
-                String snippet = "[\n" + valueIndent
-                        + "{\"id\": \"minecraft:sharpness\", \"lvl\": 1}\n" + indentationAt(request.replaceStart()) + "]";
+            } else if (normalizedKey.equals("minecraft:custom_name") || normalizedKey.equals("minecraft:item_name")) {
+                String snippet = "\"{\\\"text\\\":\\\"Name\\\"}\"";
+                String marker = "Name";
+                results.add(new Completion("text component", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, true),
+                        marker.length()));
+            } else if (normalizedKey.equals("minecraft:lore")) {
+                String snippet = "[\"{\\\"text\\\":\\\"Lore line\\\"}\"]";
+                String marker = "Lore line";
+                results.add(new Completion("lore component", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, true),
+                        marker.length()));
+            } else if (isEnchantmentComponent(normalizedKey)) {
+                String snippet = "{\n" + valueIndent
+                        + "\"levels\": {\"minecraft:sharpness\": 1},\n" + valueIndent
+                        + "\"show_in_tooltip\": true\n" + baseIndent + "}";
                 String marker = "minecraft:sharpness";
-                results.add(new Completion("enchantment list", snippet,
+                results.add(new Completion("enchantment component", snippet,
                         request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, false),
                         marker.length()));
-            } else if (normalizedKey.equals("attributemodifiers")) {
-                String snippet = "[\n" + valueIndent
-                        + "{\"AttributeName\": \"minecraft:generic.attack_damage\", \"Name\": \"generic.attack_damage\", "
-                        + "\"Amount\": 1.0, \"Operation\": 0, \"UUID\": [0, 0, 0, 0], \"Slot\": \"mainhand\"}\n"
-                        + indentationAt(request.replaceStart()) + "]";
+            } else if (normalizedKey.equals("minecraft:attribute_modifiers")) {
+                String nestedIndent = valueIndent + INDENT;
+                String snippet = "{\n" + valueIndent + "\"modifiers\": [\n" + nestedIndent
+                        + "{\"type\": \"minecraft:generic.attack_damage\", \"id\": \"minecraft:attack_damage\", "
+                        + "\"amount\": 1.0, \"operation\": \"add_value\", \"slot\": \"mainhand\"}\n"
+                        + valueIndent + "],\n" + valueIndent + "\"show_in_tooltip\": true\n" + baseIndent + "}";
                 String marker = "minecraft:generic.attack_damage";
-                results.add(new Completion("attribute modifier", snippet,
+                results.add(new Completion("attribute modifiers component", snippet,
                         request.replaceStart(), request.replaceEnd(), false,
                         templateCursor(snippet, marker, false), marker.length()));
-            } else if (normalizedKey.equals("canplaceon") || normalizedKey.equals("candestroy")) {
-                String snippet = "[\"minecraft:stone\"]";
+            } else if (isAdventureComponent(normalizedKey)) {
+                String snippet = "{\n" + valueIndent
+                        + "\"predicates\": [{\"blocks\": \"minecraft:stone\"}],\n" + valueIndent
+                        + "\"show_in_tooltip\": true\n" + baseIndent + "}";
                 String marker = "minecraft:stone";
-                results.add(new Completion("block id list", snippet,
+                results.add(new Completion("block predicate component", snippet,
                         request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, false),
                         marker.length()));
+            } else if (normalizedKey.equals("minecraft:potion_contents")) {
+                String snippet = "{\n" + valueIndent + "\"potion\": \"minecraft:water\"\n" + baseIndent + "}";
+                String marker = "minecraft:water";
+                results.add(new Completion("potion contents component", snippet,
+                        request.replaceStart(), request.replaceEnd(), false, templateCursor(snippet, marker, false),
+                        marker.length()));
+            } else if (normalizedKey.equals("minecraft:unbreakable")
+                    || normalizedKey.equals("minecraft:custom_data")) {
+                results.add(new Completion("empty component", "{}",
+                        request.replaceStart(), request.replaceEnd(), false));
             }
         }
 

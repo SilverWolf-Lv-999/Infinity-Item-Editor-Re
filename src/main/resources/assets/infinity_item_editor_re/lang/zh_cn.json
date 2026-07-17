@@ -752,6 +752,7 @@
   "screen.infinity_item_editor_re.spawnegg.snbt_type.compound_list": "复合标签列表",
   "screen.infinity_item_editor_re.spawnegg.johnny": "Johnny",
   "screen.infinity_item_editor_re.spawnegg.is_baby": "幼年",
+  "screen.infinity_item_editor_re.spawnegg.lock_baby": "锁定幼年状态",
   "screen.infinity_item_editor_re.spawnegg.can_break_doors": "可破门",
   "screen.infinity_item_editor_re.spawnegg.anger": "愤怒值",
   "screen.infinity_item_editor_re.spawnegg.villager_profession": "职业",
