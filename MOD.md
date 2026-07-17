@@ -4,11 +4,15 @@
 
 **Infinity Item Editor Re** is a client-side creative item editor for multiple Minecraft versions:
 
+- **Fabric 26.1.2**
+- **Fabric 26.2**
 - **Forge 1.20.1**
 - **NeoForge 1.21.1**
 - **NeoForge 1.21.4**
 - **NeoForge 1.21.10**
 - **NeoForge 1.21.11**
+- **NeoForge 26.1.2**
+- **NeoForge 26.2**
 
 It is an independent remake and port inspired by the old Infinity Item Editor mod. It is not an official update from the original author.
 
@@ -31,7 +35,7 @@ Current features include:
 
 ### Creative Tabs
 
-The mod adds searchable creative tabs:
+The mod adds helper creative tabs. NeoForge provides searchable tabs, while Fabric uses the vanilla creative-tab API:
 
 - **Infinity - Realm**: player-saved custom items.
 - **Infinity - Unavailable**: command blocks, barrier, structure blocks, spawners, potions, enchanted books, and other items not fully exposed by normal creative tabs.
@@ -47,8 +51,28 @@ Use the jar that matches your Minecraft version and loader.
 
 - Forge 1.20.1 builds require Java 17.
 - NeoForge 1.21.x builds require Java 21.
+- Fabric and NeoForge 26.1.2/26.2 builds require Java 25.
+
+The current 26.2 workspace uses Fabric Loader `0.19.3`, Fabric API `0.155.2+26.2`, and NeoForge `26.2.0.11-beta`. It is a multi-module Gradle project with shared `common` code and separate `fabric` and `neoforge` platform modules. The final build is one universal jar containing both loader metadata files and both platform entrypoints; the same file can be installed on Fabric or NeoForge.
+
+Fabric API is a required dependency on Fabric because the platform entrypoint uses its tick, key mapping, screen, chat, and connection event APIs.
 
 This is mainly a client-side tool. Servers normally do not need to install it, but inventory-writing and entity-equipment-copying features require creative mode permissions and may be limited by server rules.
+
+### Building the 26.2 Workspace
+
+Build the universal jar with Java 25:
+
+```powershell
+.\gradlew.bat build
+```
+
+The distributable file is `build/libs/infinity_item_editor_re-26.2.0-1.1.0-B.jar`. Run either development client with:
+
+```powershell
+.\gradlew.bat :fabric:runClient
+.\gradlew.bat :neoforge:runClient
+```
 
 ### Status
 
@@ -70,11 +94,15 @@ Thanks to the original author and contributors. Please respect the original proj
 
 **Infinity Item Editor Re** 是一个支持多个 Minecraft 版本的客户端创造物品编辑 Mod：
 
+- **Fabric 26.1.2**
+- **Fabric 26.2**
 - **Forge 1.20.1**
 - **NeoForge 1.21.1**
 - **NeoForge 1.21.4**
 - **NeoForge 1.21.10**
 - **NeoForge 1.21.11**
+- **NeoForge 26.1.2**
+- **NeoForge 26.2**
 
 它复刻并移植了旧版 Infinity Item Editor 的使用体验。本项目不是原作者的官方更新版，而是独立维护的新版适配/复刻项目。
 
@@ -97,7 +125,7 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 ### 创造模式标签页
 
-本 Mod 会添加多个带搜索栏的创造模式标签页：
+本 Mod 会添加多个辅助创造模式标签页。NeoForge 版本带搜索栏，Fabric 版本使用原版创造标签页 API：
 
 - **Infinity - Realm**：玩家保存的自定义物品。
 - **Infinity - Unavailable**：命令方块、屏障、结构方块、刷怪笼、药水、附魔书等常规创造物品栏中不直接提供或不完整提供的物品。
@@ -113,8 +141,28 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 - Forge 1.20.1 版本使用 Java 17。
 - NeoForge 1.21.x 版本使用 Java 21。
+- Fabric 与 NeoForge 26.1.2/26.2 版本使用 Java 25。
+
+当前 26.2 工作区使用 Fabric Loader `0.19.3`、Fabric API `0.155.2+26.2` 和 NeoForge `26.2.0.11-beta`。项目采用多模块 Gradle 结构，公共代码位于 `common`，Fabric 和 NeoForge 的平台实现分别位于 `fabric` 与 `neoforge`。最终构建产物是同时包含两种加载器元数据和平台入口的通用 Jar，同一个文件可安装到 Fabric 或 NeoForge。
+
+Fabric 端必须安装 Fabric API，因为平台入口使用了 Fabric API 的 Tick、快捷键、屏幕、聊天和服务器连接事件。
 
 这是一个主要面向客户端的工具，服务端通常不需要安装。但写入玩家物品栏、复制实体装备等功能需要创造模式权限，也可能受到服务器规则限制。
+
+### 构建 26.2 工作区
+
+使用 Java 25 构建通用 Jar：
+
+```powershell
+.\gradlew.bat build
+```
+
+最终分发文件为 `build/libs/infinity_item_editor_re-26.2.0-1.1.0-B.jar`。开发环境可分别启动两个加载器：
+
+```powershell
+.\gradlew.bat :fabric:runClient
+.\gradlew.bat :neoforge:runClient
+```
 
 ### 当前状态
 

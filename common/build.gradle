@@ -1,0 +1,23 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev'
+    id 'net.fabricmc.fabric-loom-companion'
+}
+
+base {
+    archivesName = "${mod_id}-common"
+}
+
+neoForge {
+    neoFormVersion = project.neoform_version
+}
+
+dependencies {
+    compileOnly 'org.spongepowered:mixin:0.8.7'
+    annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
+}
+
+sourceSets.main.resources {
+    exclude '**/*.bbmodel'
+    exclude '**/.cache/**'
+}
