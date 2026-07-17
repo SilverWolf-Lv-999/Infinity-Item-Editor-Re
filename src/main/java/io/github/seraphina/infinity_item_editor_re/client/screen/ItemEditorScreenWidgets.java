@@ -1149,6 +1149,10 @@ protected void addItemPanel() {
                 this.spawnEggOwnerValue = value;
                 applySpawnEggOwner(value);
             });
+        } else if (row.type() == SpawnEggTagRowType.STRING) {
+            box.setResponder(value -> applySpawnEggString(row, value));
+        } else if (row.type() == SpawnEggTagRowType.SNBT) {
+            box.setResponder(value -> applySpawnEggSnbt(row, value));
         } else {
             box.setFilter(value -> isAllowedSpawnEggNumber(value, row.numberType()));
             box.setResponder(value -> applySpawnEggNumber(row, value));

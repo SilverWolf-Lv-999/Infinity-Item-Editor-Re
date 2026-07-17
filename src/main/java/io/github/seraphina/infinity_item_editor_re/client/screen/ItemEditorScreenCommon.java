@@ -616,9 +616,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             CompoundTag frontText = NbtCompat.getCompound(blockEntity, SIGN_FRONT_TEXT_TAG);
             if (NbtCompat.contains(frontText, SIGN_MESSAGES_TAG, Tag.TAG_LIST)) {
                 ListTag messages = NbtCompat.getList(frontText, SIGN_MESSAGES_TAG, Tag.TAG_STRING);
-                for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
-                    readSignLine(i, NbtCompat.getString(messages, i));
-                }
+                readModernSignMessages(messages);
                 readModernMessages = !messages.isEmpty();
             }
         }
@@ -633,8 +631,54 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
     }
 
+    protected void readModernSignMessages(ListTag messages) {
+        if (isLegacyJsonSignMessageList(messages)) {
+            for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
+                readSignLine(i, NbtCompat.getString(messages, i));
+            }
+            return;
+        }
+
+        try {
+            List<Component> components = ComponentCompat.fromNbtList(messages);
+            for (int i = 0; i < SIGN_LINES && i < components.size(); i++) {
+                readSignLine(i, components.get(i));
+            }
+        } catch (RuntimeException exception) {
+            for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
+                if (messages.get(i) instanceof StringTag stringTag) {
+                    readSignLine(i, Component.literal(stringTag.value()));
+                }
+            }
+        }
+    }
+
+    protected boolean isLegacyJsonSignMessageList(ListTag messages) {
+        if (messages.isEmpty()) {
+            return false;
+        }
+        for (Tag message : messages) {
+            if (!(message instanceof StringTag stringTag)) {
+                return false;
+            }
+            String raw = stringTag.value().stripLeading();
+            if (!(raw.startsWith("\"") || raw.startsWith("{") || raw.startsWith("["))) {
+                return false;
+            }
+            try {
+                ComponentCompat.fromJson(raw);
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected void readSignLine(int line, String raw) {
-        Component component = readSerializedComponent(raw);
+        readSignLine(line, readSerializedComponent(raw));
+    }
+
+    protected void readSignLine(int line, Component component) {
         this.signLineValues[line] = component.getString();
         if (line == 0) {
             ClickEvent clickEvent = component.getStyle().getClickEvent();
@@ -776,6 +820,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         this.spawnEggCustomNameValue = "";
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
+        this.spawnEggTextValueOverrides.clear();
         this.spawnEggTagScroll = 0;
         if (!isSpawnEditorItem(stack)) {
             return;

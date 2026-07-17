@@ -55,7 +55,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
                     "jukebox_playable", "note_block_sound", "instrument")),
             new VanillaComponentCategory("blocks_decor", Set.of("firework_explosion", "fireworks", "banner_patterns",
                     "base_color", "pot_decorations", "provides_banner_patterns", "provides_trim_material", "bees")),
-            new VanillaComponentCategory("entities", Set.of("entity_data", "bucket_entity_data", "profile",
+            new VanillaComponentCategory("entities", Set.of("entity_data", "bucket_entity_data", "sulfur_cube_content", "profile",
                     "villager/variant", "wolf/variant", "wolf/sound_variant", "wolf/collar", "fox/variant",
                     "salmon/size", "parrot/variant", "tropical_fish/pattern", "tropical_fish/base_color",
                     "tropical_fish/pattern_color", "mooshroom/variant", "rabbit/variant", "pig/variant",
@@ -1882,6 +1882,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
         values.put("minecraft:debug_stick_state", "{}");
         values.put("minecraft:entity_data", "{id:\"minecraft:pig\"}");
         values.put("minecraft:bucket_entity_data", "{}");
+        values.put("minecraft:sulfur_cube_content", "{id:\"minecraft:stone\",count:1,components:{}}");
         values.put("minecraft:block_entity_data", "{}");
         values.put("minecraft:instrument", "\"minecraft:ponder_goat_horn\"");
         values.put("minecraft:provides_trim_material", "{asset_name:\"iron\",ingredient:\"minecraft:iron_ingot\",item_model_index:0.0f}");

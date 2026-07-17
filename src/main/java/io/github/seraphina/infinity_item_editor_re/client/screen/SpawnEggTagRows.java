@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import net.minecraft.nbt.Tag;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,6 +90,22 @@ final class SpawnEggTagRows {
             }
             case "shulker" -> rows.add(intNumber("color", "Color", 0.0D, 16.0D));
             case "slime", "magma_cube" -> rows.add(displayOffsetIntNumber("size", "Size", 1.0D, 50.0D, 1.0D));
+            case "sulfur_cube" -> {
+                rows.add(stringRow("sulfur_cube_absorbed_item", "equipment.body.id"));
+                rows.add(intNumber("sulfur_cube_absorbed_count", "equipment.body.count", 1.0D, 99.0D));
+                rows.add(snbtRow("sulfur_cube_absorbed_item_snbt", "equipment.body", Tag.TAG_COMPOUND));
+                rows.add(attributeDoubleNumber("sulfur_cube_bounciness", "minecraft:bounciness", 0.0D, 1.0D));
+                rows.add(attributeDoubleNumber("sulfur_cube_friction", "minecraft:friction_modifier", 0.0D, 2048.0D));
+                rows.add(attributeDoubleNumber("sulfur_cube_air_drag", "minecraft:air_drag_modifier", 0.0D, 2048.0D));
+                rows.add(attributeDoubleNumber("sulfur_cube_knockback_resistance", "minecraft:knockback_resistance", 0.0D, 1.0D));
+                rows.add(attributeDoubleNumber("sulfur_cube_explosion_knockback_resistance",
+                        "minecraft:explosion_knockback_resistance", 0.0D, 1.0D));
+                rows.add(attributeDoubleNumber("sulfur_cube_gravity", "minecraft:gravity", -1.0D, 1.0D));
+                rows.add(snbtRow("sulfur_cube_attributes_snbt", "attributes", Tag.TAG_LIST));
+                rows.add(intNumber("sulfur_cube_pickup_timer", "pickup_timer", 0.0D, Integer.MAX_VALUE));
+                rows.add(booleanRow("sulfur_cube_from_bucket", "from_bucket"));
+                rows.add(intNumber("sulfur_cube_fuse", "fuse", -1.0D, Integer.MAX_VALUE));
+            }
             case "vindicator" -> rows.add(booleanRow("johnny", "Johnny"));
             case "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin" -> {
                 rows.add(booleanRow("is_baby", "IsBaby"));
@@ -129,6 +147,16 @@ final class SpawnEggTagRows {
         return new SpawnEggTagRow("owner", "Owner", SpawnEggTagRowType.OWNER, null, 0.0D, 0.0D);
     }
 
+    private static SpawnEggTagRow stringRow(String translationSuffix, String tagKey) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.STRING, null,
+                0.0D, 0.0D, 0.0D, null, null, Tag.TAG_END);
+    }
+
+    private static SpawnEggTagRow snbtRow(String translationSuffix, String tagKey, int expectedTagType) {
+        return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.SNBT, null,
+                0.0D, 0.0D, 0.0D, null, null, expectedTagType);
+    }
+
     private static SpawnEggTagRow villagerProfession() {
         return choice("villager_profession", "VillagerData.profession",
                 SpawnEggChoiceStorage.STRING, VILLAGER_PROFESSION_OPTIONS);
@@ -163,6 +191,12 @@ final class SpawnEggTagRows {
         return number(translationSuffix, tagKey, SpawnEggNumberType.FLOAT, minValue, maxValue);
     }
 
+    private static SpawnEggTagRow attributeDoubleNumber(String translationSuffix, String attributeId,
+                                                        double minValue, double maxValue) {
+        return new SpawnEggTagRow(translationSuffix, attributeId, SpawnEggTagRowType.ATTRIBUTE_NUMBER,
+                SpawnEggNumberType.DOUBLE, minValue, maxValue, 0.0D, null, null, Tag.TAG_END);
+    }
+
     private static SpawnEggTagRow number(String translationSuffix, String tagKey,
                                          SpawnEggNumberType numberType, double minValue, double maxValue) {
         return number(translationSuffix, tagKey, numberType, minValue, maxValue, 0.0D);
@@ -172,22 +206,22 @@ final class SpawnEggTagRows {
                                          SpawnEggNumberType numberType, double minValue, double maxValue,
                                          double displayOffset) {
         return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.NUMBER, numberType,
-                minValue, maxValue, displayOffset, null, null);
+                minValue, maxValue, displayOffset, null, null, Tag.TAG_END);
     }
 
     private static SpawnEggTagRow choice(String translationSuffix, String tagKey,
                                          SpawnEggChoiceStorage choiceStorage, List<SpawnEggChoiceOption> choices) {
         return new SpawnEggTagRow(translationSuffix, tagKey, SpawnEggTagRowType.CHOICE, null,
-                0.0D, 0.0D, 0.0D, choiceStorage, choices);
+                0.0D, 0.0D, 0.0D, choiceStorage, choices, Tag.TAG_END);
     }
 }
 
 record SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
                       SpawnEggNumberType numberType, double minValue, double maxValue, double displayOffset,
-                      SpawnEggChoiceStorage choiceStorage, List<SpawnEggChoiceOption> choices) {
+                      SpawnEggChoiceStorage choiceStorage, List<SpawnEggChoiceOption> choices, int expectedTagType) {
     SpawnEggTagRow(String translationSuffix, String tagKey, SpawnEggTagRowType type,
                    SpawnEggNumberType numberType, double minValue, double maxValue) {
-        this(translationSuffix, tagKey, type, numberType, minValue, maxValue, 0.0D, null, null);
+        this(translationSuffix, tagKey, type, numberType, minValue, maxValue, 0.0D, null, null, Tag.TAG_END);
     }
 
     double toStoredNumber(double displayValue) {
@@ -206,6 +240,9 @@ enum SpawnEggTagRowType {
     BOOLEAN,
     PRESENCE,
     NUMBER,
+    ATTRIBUTE_NUMBER,
+    STRING,
+    SNBT,
     CUSTOM_NAME,
     OWNER,
     CHOICE
@@ -215,7 +252,8 @@ enum SpawnEggNumberType {
     BYTE,
     SHORT,
     INT,
-    FLOAT
+    FLOAT,
+    DOUBLE
 }
 
 enum SpawnEggChoiceStorage {

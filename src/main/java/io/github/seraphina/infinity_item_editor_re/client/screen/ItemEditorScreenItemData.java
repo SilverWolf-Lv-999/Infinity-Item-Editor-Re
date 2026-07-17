@@ -95,12 +95,12 @@ protected void applySignToStack() {
         }
 
         CompoundTag frontText = NbtCompat.getCompound(blockEntity, SIGN_FRONT_TEXT_TAG);
-        ListTag messages = new ListTag();
+        List<Component> messages = new ArrayList<>(SIGN_LINES);
         for (int i = 0; i < SIGN_LINES; i++) {
-            messages.add(StringTag.valueOf(ComponentCompat.toJson(createSignLineComponent(i))));
+            messages.add(createSignLineComponent(i));
         }
 
-        frontText.put(SIGN_MESSAGES_TAG, messages);
+        frontText.put(SIGN_MESSAGES_TAG, ComponentCompat.toNbtList(messages));
         frontText.remove(SIGN_FILTERED_MESSAGES_TAG);
         if (!NbtCompat.contains(frontText, SIGN_COLOR_TAG, Tag.TAG_STRING)) {
             frontText.putString(SIGN_COLOR_TAG, "black");

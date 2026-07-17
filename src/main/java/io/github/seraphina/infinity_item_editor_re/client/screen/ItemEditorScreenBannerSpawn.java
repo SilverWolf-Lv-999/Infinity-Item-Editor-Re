@@ -682,6 +682,7 @@ protected void addSelectedBannerPattern() {
         this.spawnEggCustomNameValue = "";
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
+        this.spawnEggTextValueOverrides.clear();
         syncNbtEditorValuesFromStack();
         this.status = Component.translatable(messageKey(getSpawnEditorTagClearedMessageKey()));
         readSpawnEggFieldsFromStack(this.previewStack);
@@ -764,10 +765,23 @@ protected void addSelectedBannerPattern() {
 
         String normalized = value == null ? "" : value.trim();
         this.spawnEggNumberValueOverrides.put(row.tagKey(), normalized);
-        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
         if (normalized.isEmpty()) {
-            removeSpawnEggTagValue(entityTag, row.tagKey());
+            CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+            if (row.type() == SpawnEggTagRowType.ATTRIBUTE_NUMBER) {
+                if (!hasCompoundSpawnEggAttributeList(entityTag)) {
+                    showSpawnEggWrongSnbtType("sulfur_cube_attributes_snbt", "compound_list");
+                    return;
+                }
+                removeSpawnEggAttributeNumberValue(entityTag, row.tagKey());
+            } else {
+                if (!validateSpawnEggTagParents(entityTag, row)) {
+                    return;
+                }
+                removeSpawnEggTagValue(entityTag, row.tagKey());
+            }
             this.spawnEggNumberValueOverrides.remove(row.tagKey());
+            invalidateSpawnEggRawSnbtOverride(row);
+            cleanupSpawnEggNestedTags(entityTag);
             cleanupSpawnEggEntityTag(entityTag);
             return;
         }
@@ -776,10 +790,10 @@ protected void addSelectedBannerPattern() {
         }
 
         try {
-            double parsed = row.numberType() == SpawnEggNumberType.FLOAT
+            double parsed = row.numberType() == SpawnEggNumberType.FLOAT || row.numberType() == SpawnEggNumberType.DOUBLE
                     ? Double.parseDouble(normalized)
                     : Long.parseLong(normalized);
-            if (parsed < row.minValue() || parsed > row.maxValue()) {
+            if (!Double.isFinite(parsed) || parsed < row.minValue() || parsed > row.maxValue()) {
                 this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
                         Component.translatable(key("spawnegg." + row.translationSuffix())),
                         formatSpawnEggNumber(row.minValue()),
@@ -788,13 +802,127 @@ protected void addSelectedBannerPattern() {
             }
 
             double storedValue = row.toStoredNumber(parsed);
-            putSpawnEggNumberValue(entityTag, row, storedValue);
+            CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+            if (row.type() == SpawnEggTagRowType.ATTRIBUTE_NUMBER) {
+                if (!hasCompoundSpawnEggAttributeList(entityTag)) {
+                    showSpawnEggWrongSnbtType("sulfur_cube_attributes_snbt", "compound_list");
+                    return;
+                }
+                putSpawnEggAttributeNumberValue(entityTag, row.tagKey(), storedValue);
+            } else {
+                if (!validateSpawnEggTagParents(entityTag, row)) {
+                    return;
+                }
+                putSpawnEggNumberValue(entityTag, row, storedValue);
+            }
+            invalidateSpawnEggRawSnbtOverride(row);
+            cleanupSpawnEggNestedTags(entityTag);
             cleanupSpawnEggEntityTag(entityTag);
         } catch (NumberFormatException exception) {
             this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
                     Component.translatable(key("spawnegg." + row.translationSuffix())),
                     formatSpawnEggNumber(row.minValue()),
                     formatSpawnEggNumber(row.maxValue()));
+        }
+    }
+
+    protected void applySpawnEggString(SpawnEggTagRow row, String value) {
+        if (!isSpawnEditorItem(this.previewStack)) {
+            return;
+        }
+
+        String rawValue = value == null ? "" : value;
+        String normalized = rawValue.trim();
+        this.spawnEggTextValueOverrides.put(row.tagKey(), rawValue);
+        if (normalized.isEmpty()) {
+            CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+            if (!validateSpawnEggTagParents(entityTag, row)) {
+                return;
+            }
+            if ("equipment.body.id".equals(row.tagKey())) {
+                removeSpawnEggTagValue(entityTag, "equipment.body");
+                this.spawnEggNumberValueOverrides.remove("equipment.body.count");
+            } else {
+                removeSpawnEggTagValue(entityTag, row.tagKey());
+            }
+            this.spawnEggTextValueOverrides.remove(row.tagKey());
+            invalidateSpawnEggRawSnbtOverride(row);
+            cleanupSpawnEggNestedTags(entityTag);
+            cleanupSpawnEggEntityTag(entityTag);
+            return;
+        }
+
+        String itemId = normalizeItemId(normalized);
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || CompatRegistries.ITEMS.getHolder(id) == null) {
+            this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_item"), normalized);
+            return;
+        }
+
+        CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+        if (!validateSpawnEggTagParents(entityTag, row)) {
+            return;
+        }
+        putSpawnEggStringValue(entityTag, row.tagKey(), id.toString());
+        CompoundTag body = getSpawnEggTagParent(entityTag, row.tagKey(), false);
+        if (body != null && !NbtCompat.contains(body, "count")) {
+            body.putInt("count", 1);
+        }
+        this.spawnEggTextValueOverrides.remove(row.tagKey());
+        invalidateSpawnEggRawSnbtOverride(row);
+        cleanupSpawnEggNestedTags(entityTag);
+        cleanupSpawnEggEntityTag(entityTag);
+    }
+
+    protected void applySpawnEggSnbt(SpawnEggTagRow row, String value) {
+        if (!isSpawnEditorItem(this.previewStack)) {
+            return;
+        }
+
+        String rawValue = value == null ? "" : value;
+        String normalized = rawValue.trim();
+        this.spawnEggTextValueOverrides.put(row.tagKey(), rawValue);
+        if (normalized.isEmpty()) {
+            CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+            if (!validateSpawnEggTagParents(entityTag, row)) {
+                return;
+            }
+            removeSpawnEggTagValue(entityTag, row.tagKey());
+            this.spawnEggTextValueOverrides.remove(row.tagKey());
+            clearSpawnEggConvenienceOverrides(row);
+            cleanupSpawnEggNestedTags(entityTag);
+            cleanupSpawnEggEntityTag(entityTag);
+            return;
+        }
+
+        try {
+            Tag parsed = NbtCompat.parseAnyTag(normalized);
+            if (row.expectedTagType() != Tag.TAG_END && parsed.getId() != row.expectedTagType()) {
+                this.status = Component.translatable(messageKey("editor_spawn_egg_wrong_snbt_type"),
+                        Component.translatable(key("spawnegg." + row.translationSuffix())),
+                        getSpawnEggExpectedSnbtType(row));
+                return;
+            }
+            if ("attributes".equals(row.tagKey()) && parsed instanceof ListTag list && !isCompoundTagList(list)) {
+                this.status = Component.translatable(messageKey("editor_spawn_egg_wrong_snbt_type"),
+                        Component.translatable(key("spawnegg." + row.translationSuffix())),
+                        Component.translatable(key("spawnegg.snbt_type.compound_list")));
+                return;
+            }
+
+            CompoundTag entityTag = getOrCreateSpawnEditorEntityTag();
+            if (!validateSpawnEggTagParents(entityTag, row)) {
+                return;
+            }
+            putSpawnEggTagValue(entityTag, row.tagKey(), parsed);
+            this.spawnEggTextValueOverrides.remove(row.tagKey());
+            clearSpawnEggConvenienceOverrides(row);
+            cleanupSpawnEggNestedTags(entityTag);
+            cleanupSpawnEggEntityTag(entityTag);
+        } catch (CommandSyntaxException exception) {
+            this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_snbt"),
+                    Component.translatable(key("spawnegg." + row.translationSuffix())),
+                    exception.getMessage());
         }
     }
 
@@ -1077,6 +1205,13 @@ protected void addSelectedBannerPattern() {
         }
 
         CompoundTag entityTag = getSpawnEditorEntityTag(this.previewStack);
+        if (row.type() == SpawnEggTagRowType.ATTRIBUTE_NUMBER) {
+            CompoundTag attribute = getSpawnEggAttributeEntry(entityTag, row.tagKey());
+            return attribute == null || !NbtCompat.contains(attribute, "base", NbtCompat.TAG_ANY_NUMERIC)
+                    ? ""
+                    : Double.toString(row.toDisplayNumber(NbtCompat.getDouble(attribute, "base")));
+        }
+
         CompoundTag parent = getSpawnEggTagParent(entityTag, row.tagKey(), false);
         if (parent == null) {
             return "";
@@ -1091,6 +1226,7 @@ protected void addSelectedBannerPattern() {
             case SHORT -> formatSpawnEggNumber(row.toDisplayNumber(NbtCompat.getShort(parent, leafKey)));
             case INT -> formatSpawnEggNumber(row.toDisplayNumber(NbtCompat.getInt(parent, leafKey)));
             case FLOAT -> Float.toString((float) row.toDisplayNumber(NbtCompat.getFloat(parent, leafKey)));
+            case DOUBLE -> Double.toString(row.toDisplayNumber(NbtCompat.getDouble(parent, leafKey)));
         };
     }
 
@@ -1098,7 +1234,9 @@ protected void addSelectedBannerPattern() {
         return switch (row.type()) {
             case CUSTOM_NAME -> 256;
             case OWNER -> SPAWN_EGG_OWNER_MAX_LENGTH;
-            default -> 16;
+            case STRING -> SPAWN_EGG_STRING_MAX_LENGTH;
+            case SNBT -> SPAWN_EGG_SNBT_MAX_LENGTH;
+            default -> 32;
         };
     }
 
@@ -1106,8 +1244,36 @@ protected void addSelectedBannerPattern() {
         return switch (row.type()) {
             case CUSTOM_NAME -> this.spawnEggCustomNameValue;
             case OWNER -> this.spawnEggOwnerValue;
-            default -> getSpawnEggNumberValue(row);
+            case STRING -> getSpawnEggStringValue(row);
+            case SNBT -> getSpawnEggSnbtValue(row);
+            case NUMBER, ATTRIBUTE_NUMBER -> getSpawnEggNumberValue(row);
+            default -> "";
         };
+    }
+
+    protected String getSpawnEggStringValue(SpawnEggTagRow row) {
+        String override = this.spawnEggTextValueOverrides.get(row.tagKey());
+        if (override != null) {
+            return override;
+        }
+
+        Tag value = getSpawnEggTagValue(getSpawnEditorEntityTag(this.previewStack), row.tagKey());
+        return value instanceof StringTag stringTag ? stringTag.value() : "";
+    }
+
+    protected String getSpawnEggSnbtValue(SpawnEggTagRow row) {
+        String override = this.spawnEggTextValueOverrides.get(row.tagKey());
+        if (override != null) {
+            return override;
+        }
+
+        Tag value = getSpawnEggTagValue(getSpawnEditorEntityTag(this.previewStack), row.tagKey());
+        return value == null ? "" : value.toString();
+    }
+
+    protected Tag getSpawnEggTagValue(CompoundTag entityTag, String tagPath) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, false);
+        return parent == null ? null : parent.get(getSpawnEggLeafTagKey(tagPath));
     }
 
     protected CompoundTag getSpawnEggTagParent(CompoundTag entityTag, String tagPath, boolean create) {
@@ -1175,7 +1341,70 @@ protected void addSelectedBannerPattern() {
             case SHORT -> parent.putShort(leafKey, (short) storedValue);
             case INT -> parent.putInt(leafKey, (int) storedValue);
             case FLOAT -> parent.putFloat(leafKey, (float) storedValue);
+            case DOUBLE -> parent.putDouble(leafKey, storedValue);
         }
+    }
+
+    protected void putSpawnEggTagValue(CompoundTag entityTag, String tagPath, Tag value) {
+        CompoundTag parent = getSpawnEggTagParent(entityTag, tagPath, true);
+        if (parent != null) {
+            parent.put(getSpawnEggLeafTagKey(tagPath), value);
+        }
+    }
+
+    protected void putSpawnEggAttributeNumberValue(CompoundTag entityTag, String attributeId, double value) {
+        ListTag attributes = NbtCompat.contains(entityTag, "attributes", Tag.TAG_LIST)
+                ? NbtCompat.getList(entityTag, "attributes", Tag.TAG_COMPOUND)
+                : new ListTag();
+        CompoundTag attribute = null;
+        for (int i = 0; i < attributes.size(); i++) {
+            CompoundTag candidate = NbtCompat.getCompound(attributes, i);
+            if (attributeId.equals(NbtCompat.getString(candidate, "id"))) {
+                attribute = candidate;
+                break;
+            }
+        }
+        if (attribute == null) {
+            attribute = new CompoundTag();
+            attribute.putString("id", attributeId);
+            attributes.add(attribute);
+        }
+        attribute.putDouble("base", value);
+        entityTag.put("attributes", attributes);
+    }
+
+    protected void removeSpawnEggAttributeNumberValue(CompoundTag entityTag, String attributeId) {
+        if (entityTag == null || !NbtCompat.contains(entityTag, "attributes", Tag.TAG_LIST)) {
+            return;
+        }
+
+        ListTag attributes = NbtCompat.getList(entityTag, "attributes", Tag.TAG_COMPOUND);
+        for (int i = attributes.size() - 1; i >= 0; i--) {
+            CompoundTag attribute = NbtCompat.getCompound(attributes, i);
+            if (attributeId.equals(NbtCompat.getString(attribute, "id"))) {
+                attributes.remove(i);
+            }
+        }
+        if (attributes.isEmpty()) {
+            entityTag.remove("attributes");
+        } else {
+            entityTag.put("attributes", attributes);
+        }
+    }
+
+    protected CompoundTag getSpawnEggAttributeEntry(CompoundTag entityTag, String attributeId) {
+        if (entityTag == null || !NbtCompat.contains(entityTag, "attributes", Tag.TAG_LIST)) {
+            return null;
+        }
+
+        ListTag attributes = NbtCompat.getList(entityTag, "attributes", Tag.TAG_COMPOUND);
+        for (int i = 0; i < attributes.size(); i++) {
+            CompoundTag attribute = NbtCompat.getCompound(attributes, i);
+            if (attributeId.equals(NbtCompat.getString(attribute, "id"))) {
+                return attribute;
+            }
+        }
+        return null;
     }
 
     protected void removeSpawnEggTagValue(CompoundTag entityTag, String tagPath) {
@@ -1209,13 +1438,16 @@ protected void addSelectedBannerPattern() {
         if (value == null || value.isEmpty()) {
             return true;
         }
-        return type == SpawnEggNumberType.FLOAT
-                ? value.matches("-?\\d*(\\.\\d*)?")
+        return type == SpawnEggNumberType.FLOAT || type == SpawnEggNumberType.DOUBLE
+                ? value.matches("-?\\d*(\\.\\d*)?([eE][+-]?\\d*)?")
                 : value.matches("-?\\d*");
     }
 
     protected boolean isPartialSpawnEggNumber(String value) {
-        return "-".equals(value) || ".".equals(value) || "-.".equals(value);
+        return "-".equals(value)
+                || ".".equals(value)
+                || "-.".equals(value)
+                || value.matches("-?\\d*(\\.\\d*)?[eE][+-]?");
     }
 
     protected String formatSpawnEggNumber(double value) {
@@ -1223,6 +1455,108 @@ protected void addSelectedBannerPattern() {
             return Long.toString((long) value);
         }
         return Double.toString(value);
+    }
+
+    protected boolean hasCompoundSpawnEggAttributeList(CompoundTag entityTag) {
+        if (!NbtCompat.contains(entityTag, "attributes")) {
+            return true;
+        }
+        if (!NbtCompat.contains(entityTag, "attributes", Tag.TAG_LIST)) {
+            return false;
+        }
+        return isCompoundTagList(NbtCompat.getList(entityTag, "attributes", Tag.TAG_COMPOUND));
+    }
+
+    protected boolean validateSpawnEggTagParents(CompoundTag entityTag, SpawnEggTagRow row) {
+        if (hasCompoundSpawnEggTagParents(entityTag, row.tagKey())) {
+            return true;
+        }
+        showSpawnEggWrongSnbtType(row.translationSuffix(), "compound");
+        return false;
+    }
+
+    protected boolean hasCompoundSpawnEggTagParents(CompoundTag entityTag, String tagPath) {
+        if (entityTag == null) {
+            return false;
+        }
+
+        String[] parts = tagPath.split("\\.");
+        CompoundTag current = entityTag;
+        for (int i = 0; i < parts.length - 1; i++) {
+            String part = parts[i];
+            if (!NbtCompat.contains(current, part)) {
+                return true;
+            }
+            if (!NbtCompat.contains(current, part, Tag.TAG_COMPOUND)) {
+                return false;
+            }
+            current = NbtCompat.getCompound(current, part);
+        }
+        return true;
+    }
+
+    protected void showSpawnEggWrongSnbtType(String fieldTranslationSuffix, String typeTranslationSuffix) {
+        this.status = Component.translatable(messageKey("editor_spawn_egg_wrong_snbt_type"),
+                Component.translatable(key("spawnegg." + fieldTranslationSuffix)),
+                Component.translatable(key("spawnegg.snbt_type." + typeTranslationSuffix)));
+    }
+
+    protected boolean isCompoundTagList(ListTag list) {
+        for (Tag element : list) {
+            if (!(element instanceof CompoundTag)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected Component getSpawnEggExpectedSnbtType(SpawnEggTagRow row) {
+        String suffix = row.expectedTagType() == Tag.TAG_LIST ? "list" : "compound";
+        return Component.translatable(key("spawnegg.snbt_type." + suffix));
+    }
+
+    protected void invalidateSpawnEggRawSnbtOverride(SpawnEggTagRow row) {
+        if (row.type() == SpawnEggTagRowType.ATTRIBUTE_NUMBER) {
+            this.spawnEggTextValueOverrides.remove("attributes");
+        } else if (row.tagKey().startsWith("equipment.body.")) {
+            this.spawnEggTextValueOverrides.remove("equipment.body");
+        }
+    }
+
+    protected void clearSpawnEggConvenienceOverrides(SpawnEggTagRow row) {
+        if ("equipment.body".equals(row.tagKey())) {
+            this.spawnEggTextValueOverrides.remove("equipment.body.id");
+            this.spawnEggNumberValueOverrides.remove("equipment.body.count");
+        } else if ("attributes".equals(row.tagKey())) {
+            for (SpawnEggTagRow sulfurRow : SpawnEggTagRows.forEntity("sulfur_cube")) {
+                if (sulfurRow.type() == SpawnEggTagRowType.ATTRIBUTE_NUMBER) {
+                    this.spawnEggNumberValueOverrides.remove(sulfurRow.tagKey());
+                }
+            }
+        }
+    }
+
+    protected void cleanupSpawnEggNestedTags(CompoundTag entityTag) {
+        if (entityTag == null) {
+            return;
+        }
+
+        if (NbtCompat.contains(entityTag, "equipment", Tag.TAG_COMPOUND)) {
+            CompoundTag equipment = NbtCompat.getCompound(entityTag, "equipment");
+            if (NbtCompat.contains(equipment, "body", Tag.TAG_COMPOUND)
+                    && NbtCompat.getCompound(equipment, "body").isEmpty()) {
+                equipment.remove("body");
+            }
+            if (equipment.isEmpty()) {
+                entityTag.remove("equipment");
+            } else {
+                entityTag.put("equipment", equipment);
+            }
+        }
+        if (NbtCompat.contains(entityTag, "attributes", Tag.TAG_LIST)
+                && NbtCompat.getList(entityTag, "attributes", Tag.TAG_COMPOUND).isEmpty()) {
+            entityTag.remove("attributes");
+        }
     }
 
     protected void setSpawnEggEntityScroll(int value) {

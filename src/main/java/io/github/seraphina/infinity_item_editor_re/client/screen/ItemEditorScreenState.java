@@ -207,6 +207,8 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected static final int SPAWN_EGG_TAG_ROWS = 8;
     protected static final int SPAWN_EGG_TAG_ROW_HEIGHT = 24;
     protected static final int SPAWN_EGG_OWNER_MAX_LENGTH = 128;
+    protected static final int SPAWN_EGG_STRING_MAX_LENGTH = 256;
+    protected static final int SPAWN_EGG_SNBT_MAX_LENGTH = 20000;
     protected static final String OFFERS_TAG = "Offers";
     protected static final String RECIPES_TAG = "Recipes";
     protected static final String TRADE_BUY_TAG = "buy";
@@ -339,6 +341,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected final List<ComponentEditorLabel> componentEditorLabels = new ArrayList<>();
     protected final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
     protected final Map<String, String> spawnEggNumberValueOverrides = new HashMap<>();
+    protected final Map<String, String> spawnEggTextValueOverrides = new HashMap<>();
     protected final Set<String> expandedComponentGroups = new HashSet<>();
     protected final Set<String> expandedNbtPaths = new HashSet<>();
     protected final ItemStack enchantBook = new ItemStack(Items.ENCHANTED_BOOK);
@@ -837,6 +840,10 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected abstract void applySpawnEggOwner(String value);
 
     protected abstract void applySpawnEggNumber(SpawnEggTagRow row, String value);
+
+    protected abstract void applySpawnEggString(SpawnEggTagRow row, String value);
+
+    protected abstract void applySpawnEggSnbt(SpawnEggTagRow row, String value);
 
     protected abstract void cycleSpawnEggChoice(SpawnEggTagRow row);
 
