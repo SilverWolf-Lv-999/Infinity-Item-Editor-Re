@@ -227,7 +227,10 @@ public final class ClientForgeEvents {
         }
 
         if (Config.getIsVoidEnabled()) {
-            new VoidController(stack).addItemStack(minecraft.player, stack.copy(), minecraft.player.getUUID().toString().replace("-", ""));
+            if (new VoidController(stack).addItemStack(minecraft.player, stack.copy(),
+                    minecraft.player.getUUID().toString().replace("-", ""))) {
+                CreativeTabRefresher.refreshVoid(minecraft);
+            }
         }
         return true;
     }
@@ -258,7 +261,9 @@ public final class ClientForgeEvents {
         }
 
         if (Config.getIsVoidEnabled()) {
-            new VoidController(stack).addItemStack(minecraft.player, stack.copy(), "chat");
+            if (new VoidController(stack).addItemStack(minecraft.player, stack.copy(), "chat")) {
+                CreativeTabRefresher.refreshVoid(minecraft);
+            }
         }
         if (Config.getIsThiefTabEnabled() && ClientCreativeTabData.rememberChatLinkedItem(stack)) {
             CreativeTabRefresher.refreshThief(minecraft);

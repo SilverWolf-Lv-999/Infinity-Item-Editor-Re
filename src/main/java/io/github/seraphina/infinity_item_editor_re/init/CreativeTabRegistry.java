@@ -341,14 +341,14 @@ public final class CreativeTabRegistry {
     private static void addUncategorizedRegistryItems(List<ItemStack> stacks) {
         Set<Item> categorizedItems = new HashSet<>();
         for (CreativeModeTab tab : CreativeModeTab.TABS) {
-            if (tab == null || tab == CreativeModeTab.TAB_HOTBAR
-                    || tab == REALM || tab == UNAVAILABLE || tab == BANNERS || tab == SKULLS
-                    || tab == THIEF || tab == FIREWORKS || tab == VOID) {
+            if (tab == null) {
                 continue;
             }
 
             NonNullList<ItemStack> tabItems = NonNullList.create();
-            tab.fillItemList(tabItems);
+            for (Item item : Registry.ITEM) {
+                item.fillItemCategory(tab, tabItems);
+            }
             for (ItemStack stack : tabItems) {
                 categorizedItems.add(stack.getItem());
             }

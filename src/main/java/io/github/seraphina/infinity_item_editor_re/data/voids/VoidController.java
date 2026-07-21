@@ -109,9 +109,9 @@ public class VoidController {
             }
         }
     }
-    public void addItemStack(Player player, ItemStack stack, String from) {
+    public boolean addItemStack(Player player, ItemStack stack, String from) {
         if (stack == null || stack.isEmpty() || !hasMeaningfulTag(stack)) {
-            return;
+            return false;
         }
 
         ItemStack savedStack = stack.copy();
@@ -125,7 +125,7 @@ public class VoidController {
                 if (element.addUuid(from, true)) {
                     write();
                 }
-                return;
+                return false;
             }
         }
 
@@ -139,6 +139,7 @@ public class VoidController {
         element.addUuid(from, false);
         elementList.add(element);
         write();
+        return true;
     }
 
     public NonNullList<VoidElement> getElementList() {

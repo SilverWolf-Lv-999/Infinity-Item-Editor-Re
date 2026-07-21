@@ -37,12 +37,17 @@ public class VoidConsumer implements Runnable {
 
         Entity entity = minecraft.level.getEntity(packet.getEntity());
         String uuid = entity instanceof Player player ? player.getStringUUID().replace("-", "") : null;
+        boolean voidChanged = false;
 
         for (Pair<EquipmentSlot, ItemStack> slot : packet.getSlots()) {
             ItemStack stack = slot.getSecond();
             if (!stack.isEmpty()) {
-                new VoidController(stack).addItemStack(minecraft.player, stack.copy(), uuid);
+                voidChanged |= new VoidController(stack).addItemStack(minecraft.player, stack.copy(), uuid);
             }
+        }
+
+        if (voidChanged) {
+            CreativeTabRefresher.refreshVoid(minecraft);
         }
     }
 }
