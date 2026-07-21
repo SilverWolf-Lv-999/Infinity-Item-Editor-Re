@@ -2,9 +2,10 @@ package io.github.seraphina.infinity_item_editor_re.eventhandlers;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.VoidConsumer;
+import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -19,16 +20,13 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+            CreativeTabRegistry.bootstrap();
+            ClientRegistry.registerKeyBinding(ClientKeyMappings.OPEN_EDITOR);
+            ClientRegistry.registerKeyBinding(ClientKeyMappings.COPY_TARGET);
+            ClientRegistry.registerKeyBinding(ClientKeyMappings.SAVE_REALM);
             ModSource.initClientStorage(Minecraft.getInstance().gameDirectory);
             startVoidConsumer();
         });
-    }
-
-    @SubscribeEvent
-    public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
-        event.register(ClientKeyMappings.OPEN_EDITOR);
-        event.register(ClientKeyMappings.COPY_TARGET);
-        event.register(ClientKeyMappings.SAVE_REALM);
     }
 
     private static synchronized void startVoidConsumer() {

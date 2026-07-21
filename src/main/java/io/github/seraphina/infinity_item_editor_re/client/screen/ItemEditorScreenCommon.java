@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -474,17 +474,17 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected Component getUiModeButtonText() {
-        return Component.translatable(key("ui.mode"), getUiModeDisplayName(Config.getItemGuiMode()));
+        return new net.minecraft.network.chat.TranslatableComponent(key("ui.mode"), getUiModeDisplayName(Config.getItemGuiMode()));
     }
 
     protected Component getUiModeDisplayName(Config.ItemEditorUiMode mode) {
-        return Component.translatable(key("ui.mode." + mode.name().toLowerCase(Locale.ROOT)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("ui.mode." + mode.name().toLowerCase(Locale.ROOT)));
     }
 
     protected void toggleUiMode() {
         captureFieldValues();
         Config.ItemEditorUiMode mode = Config.toggleItemGuiMode();
-        this.status = Component.translatable(messageKey("editor_ui_mode_updated"), getUiModeDisplayName(mode));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_ui_mode_updated"), getUiModeDisplayName(mode));
         rebuildWidgets();
     }
 
@@ -696,7 +696,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        this.fireworkExplosionType = Mth.clamp(FireworkRocketItem.Shape.getShape(explosion).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
+        this.fireworkExplosionType = Mth.clamp(FireworkRocketItem.Shape.byId(explosion.getByte("Type")).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
         this.fireworkFlicker = explosion.getBoolean(FIREWORK_FLICKER_TAG);
         this.fireworkTrail = explosion.getBoolean(FIREWORK_TRAIL_TAG);
 
@@ -775,7 +775,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         int next = Mth.positiveModulo(current + direction, DECORATED_POT_SHERD_ITEMS.length);
         this.decoratedPotSherdValues[sideIndex] = getDecoratedPotCatalogSherdId(next);
         applyDecoratedPotSherdsToStack();
-        this.status = Component.translatable(messageKey("editor_decorated_pot_sherd_updated"),
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_decorated_pot_sherd_updated"),
                 getDecoratedPotSideName(sideIndex), getDecoratedPotSherdName(sideIndex));
         rebuildWidgets();
     }
@@ -787,7 +787,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
         Arrays.fill(this.decoratedPotSherdValues, DECORATED_POT_DEFAULT_SHERD);
         applyDecoratedPotSherdsToStack();
-        this.status = Component.translatable(messageKey("editor_decorated_pot_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_decorated_pot_cleared"));
         rebuildWidgets();
     }
 
@@ -810,12 +810,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected Component getDecoratedPotSideButtonText(int sideIndex) {
-        return Component.translatable(key("decorated_pot.side." + getDecoratedPotSideKey(sideIndex)),
+        return new net.minecraft.network.chat.TranslatableComponent(key("decorated_pot.side." + getDecoratedPotSideKey(sideIndex)),
                 getDecoratedPotSherdName(sideIndex));
     }
 
     protected Component getDecoratedPotSideName(int sideIndex) {
-        return Component.translatable(key("decorated_pot.side_name." + getDecoratedPotSideKey(sideIndex)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("decorated_pot.side_name." + getDecoratedPotSideKey(sideIndex)));
     }
 
     protected Component getDecoratedPotSherdName(int sideIndex) {
@@ -824,7 +824,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (item != null && item != Items.AIR) {
             return new ItemStack(item).getHoverName();
         }
-        return Component.literal(sherdId);
+        return new net.minecraft.network.chat.TextComponent(sherdId);
     }
 
     protected String getDecoratedPotSherdId(int sideIndex) {
@@ -925,7 +925,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
 
         EntityType<?> type = getCurrentSpawnEggEntityType(stack);
-        ResourceLocation id = type == null ? null : ForgeRegistries.ENTITY_TYPES.getKey(type);
+        ResourceLocation id = type == null ? null : ForgeRegistries.ENTITIES.getKey(type);
         if (id == null) {
             clampSpawnEggEntitySelection(getFilteredSpawnEggEntities());
             return;
@@ -944,17 +944,17 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected Component readSerializedComponent(String raw) {
         if (raw == null || raw.isBlank()) {
-            return Component.empty();
+            return new net.minecraft.network.chat.TextComponent("");
         }
         try {
             Component component = Component.Serializer.fromJson(raw);
-            return component == null ? Component.literal(raw) : component;
+            return component == null ? new net.minecraft.network.chat.TextComponent(raw) : component;
         } catch (RuntimeException exception) {
             try {
                 Component component = Component.Serializer.fromJsonLenient(raw);
-                return component == null ? Component.literal(raw) : component;
+                return component == null ? new net.minecraft.network.chat.TextComponent(raw) : component;
             } catch (RuntimeException ignored) {
-                return Component.literal(raw);
+                return new net.minecraft.network.chat.TextComponent(raw);
             }
         }
     }
@@ -1189,10 +1189,10 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static EquipmentSlot getArmorTrimEquipmentSlot(ItemStack stack) {
-        if (!(stack.getItem() instanceof ArmorItem armorItem) || !isArmorTrimSlot(armorItem.getEquipmentSlot())) {
+        if (!(stack.getItem() instanceof ArmorItem armorItem) || !isArmorTrimSlot(armorItem.getSlot())) {
             return null;
         }
-        return armorItem.getEquipmentSlot();
+        return armorItem.getSlot();
     }
 
     protected static boolean isArmorTrimSlot(EquipmentSlot slot) {
@@ -1203,7 +1203,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static boolean isDecoratedPotItem(ItemStack stack) {
-        return stack.is(Items.DECORATED_POT);
+        return false;
     }
 
     protected static boolean isSpawnEggItem(ItemStack stack) {
@@ -1266,14 +1266,14 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected Component getBookResolvedText() {
         CompoundTag tag = this.previewStack.getTag();
         boolean resolved = tag != null && tag.getBoolean(BOOK_RESOLVED_TAG);
-        return Component.translatable(key("book.resolved." + (resolved ? 1 : 0)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("book.resolved." + (resolved ? 1 : 0)));
     }
 
     protected Component getBookSignButtonText() {
         if (this.previewStack.is(Items.WRITTEN_BOOK)) {
-            return Component.translatable(key("book.unsign"));
+            return new net.minecraft.network.chat.TranslatableComponent(key("book.unsign"));
         }
-        return Component.translatable(key(this.rememberedSignedBookData == null ? "book.sign" : "book.resign"));
+        return new net.minecraft.network.chat.TranslatableComponent(key(this.rememberedSignedBookData == null ? "book.sign" : "book.resign"));
     }
 
     protected int getFireworkFlight() {
@@ -1309,12 +1309,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected Component getFireworkTypeName(int type) {
-        return Component.translatable(key("firework.type." + Mth.clamp(type, 0, FIREWORK_EXPLOSION_TYPES - 1)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("firework.type." + Mth.clamp(type, 0, FIREWORK_EXPLOSION_TYPES - 1)));
     }
 
     protected Component getFireworkFadeColorText() {
         if (this.fireworkFadeColor < 0) {
-            return Component.translatable(key("firework.fade.none"));
+            return new net.minecraft.network.chat.TranslatableComponent(key("firework.fade.none"));
         }
         return getDyeColorName(getFireworkDyeColor(this.fireworkFadeColor));
     }
@@ -1366,7 +1366,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static int getDefaultAttributeSlot(ItemStack stack) {
         if (stack.getItem() instanceof ArmorItem armorItem) {
-            return getAttributeSlotNumber(armorItem.getEquipmentSlot());
+            return getAttributeSlotNumber(armorItem.getSlot());
         }
         if (stack.is(Items.SHIELD) || stack.is(Items.TOTEM_OF_UNDYING)) {
             return 2;

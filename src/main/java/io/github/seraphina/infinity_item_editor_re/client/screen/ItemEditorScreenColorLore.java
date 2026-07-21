@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -85,7 +85,7 @@ protected void applyColorFromHex(boolean updateStatus) {
 
         if (normalized.length() != 6) {
             if (updateStatus && !normalized.isBlank()) {
-                this.status = Component.translatable(messageKey("editor_invalid_color"));
+                this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_color"));
             }
             return;
         }
@@ -94,10 +94,10 @@ protected void applyColorFromHex(boolean updateStatus) {
             setEditorColor(Integer.parseInt(normalized, 16));
             syncColorControlsFromStack();
             if (updateStatus) {
-                this.status = Component.translatable(messageKey("editor_color_updated"), this.colorHexValue);
+                this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_color_updated"), this.colorHexValue);
             }
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_color"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_color"));
         }
     }
 
@@ -210,7 +210,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         int gridWidth = columns * cellSize;
         int gridHeight = dyeGridRows(columns) * cellSize;
         int gridX = dyeGridX(columns, cellSize);
-        int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
+        int gridY = this.blueSlider.y + this.blueSlider.getHeight() + 10;
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, gridX - 5, gridY - 5, gridX + gridWidth + 5, gridY + gridHeight + 5, 7,
                     ModernUi.SURFACE, ModernUi.BORDER);
@@ -251,7 +251,7 @@ protected void applyColorFromHex(boolean updateStatus) {
         }
 
         int gridWidth = columns * cellSize;
-        return this.blueSlider.getX() + (this.blueSlider.getWidth() - gridWidth) / 2;
+        return this.blueSlider.x + (this.blueSlider.getWidth() - gridWidth) / 2;
     }
 
     protected boolean shouldShowDyeGrid() {
@@ -320,16 +320,17 @@ protected void applyColorFromHex(boolean updateStatus) {
         }
         applyLoreToStack();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_lore_painted"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_lore_painted"));
     }
 
     protected void cycleGuiScale() {
         if (this.minecraft == null) {
             return;
         }
-        int current = this.minecraft.options.guiScale().get();
+        int current = this.minecraft.options.guiScale;
         int next = current >= 4 ? 0 : current + 1;
-        this.minecraft.options.guiScale().set(next);
+        this.minecraft.options.guiScale = next;
+        this.minecraft.options.save();
         this.minecraft.resizeDisplay();
         rebuildWidgets();
     }

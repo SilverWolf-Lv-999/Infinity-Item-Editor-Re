@@ -1,6 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen.modern;
 
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.util.Mth;
 
 public final class ModernUi {
@@ -236,10 +236,10 @@ public final class ModernUi {
 
     public static int lerpColor(int from, int to, float amount) {
         amount = Mth.clamp(amount, 0.0F, 1.0F);
-        int a = Mth.lerpInt(amount, from >>> 24 & 255, to >>> 24 & 255);
-        int r = Mth.lerpInt(amount, from >>> 16 & 255, to >>> 16 & 255);
-        int g = Mth.lerpInt(amount, from >>> 8 & 255, to >>> 8 & 255);
-        int b = Mth.lerpInt(amount, from & 255, to & 255);
+        int a = Math.round(Mth.lerp(amount, from >>> 24 & 255, to >>> 24 & 255));
+        int r = Math.round(Mth.lerp(amount, from >>> 16 & 255, to >>> 16 & 255));
+        int g = Math.round(Mth.lerp(amount, from >>> 8 & 255, to >>> 8 & 255));
+        int b = Math.round(Mth.lerp(amount, from & 255, to & 255));
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 

@@ -4,10 +4,8 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.commands.arguments.item.ItemParser;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -36,8 +34,8 @@ public final class GiveHelper {
         return command.toString();
     }
 
-    public static ItemStack getItemStackFromString(String command, HolderLookup<Item> itemLookup) {
-        if (command == null || command.isBlank() || itemLookup == null) {
+    public static ItemStack getItemStackFromString(String command) {
+        if (command == null || command.isBlank()) {
             return ItemStack.EMPTY;
         }
 
@@ -48,7 +46,7 @@ public final class GiveHelper {
             }
 
             StringReader reader = new StringReader(itemArgument);
-            ItemParser.ItemResult itemResult = ItemParser.parseForItem(itemLookup, reader);
+            ItemParser parser = new ItemParser(reader, false).parse();
             int count = 1;
             reader.skipWhitespace();
             if (reader.canRead()) {
@@ -58,7 +56,7 @@ public final class GiveHelper {
                 return ItemStack.EMPTY;
             }
 
-            return new ItemInput(itemResult.item(), itemResult.nbt()).createItemStack(count, false);
+            return new ItemInput(parser.getItem(), parser.getNbt()).createItemStack(count, false);
         } catch (CommandSyntaxException exception) {
             return ItemStack.EMPTY;
         }

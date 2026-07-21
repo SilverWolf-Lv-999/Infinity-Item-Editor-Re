@@ -6,8 +6,8 @@ import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.AbstractScrollWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -49,12 +49,12 @@ final class ItemJsonEditorScreen extends Screen {
     private String jsonText;
     private String appliedJsonText;
     private JsonCodeEditBox jsonBox;
-    private Component status = Component.empty();
+    private Component status = new net.minecraft.network.chat.TextComponent("");
     private int statusColor = STATUS_NEUTRAL;
     private boolean discardArmed;
 
     ItemJsonEditorScreen(ItemEditorScreen lastScreen, ItemStack stack) {
-        super(Component.translatable(key("json")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("json")));
         this.lastScreen = lastScreen;
         this.jsonText = ItemJsonConverter.toJson(stack);
         this.appliedJsonText = this.jsonText;
@@ -65,7 +65,7 @@ final class ItemJsonEditorScreen extends Screen {
         int editorWidth = Math.max(180, this.width - EDITOR_MARGIN * 2);
         int editorHeight = Math.max(80, this.height - EDITOR_TOP - EDITOR_BOTTOM_MARGIN);
         this.jsonBox = addRenderableWidget(new JsonCodeEditBox(this.font, EDITOR_MARGIN, EDITOR_TOP,
-                editorWidth, editorHeight, Component.translatable(key("json.placeholder"))));
+                editorWidth, editorHeight, new net.minecraft.network.chat.TranslatableComponent(key("json.placeholder"))));
         this.jsonBox.setValue(this.jsonText);
         this.jsonBox.setValueListener(value -> {
             this.jsonText = value;
@@ -78,13 +78,13 @@ final class ItemJsonEditorScreen extends Screen {
         int totalWidth = BUTTON_WIDTH * 4 + 12;
         int x = (this.width - totalWidth) / 2;
         addRenderableWidget(new InfinityEditorButton(x, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                Component.translatable(key("back")), button -> returnToLastScreen()));
+                new net.minecraft.network.chat.TranslatableComponent(key("back")), button -> returnToLastScreen()));
         addRenderableWidget(new InfinityEditorButton(x + BUTTON_WIDTH + 4, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                Component.translatable(key("json.format")), button -> formatJson()));
+                new net.minecraft.network.chat.TranslatableComponent(key("json.format")), button -> formatJson()));
         addRenderableWidget(new InfinityEditorButton(x + (BUTTON_WIDTH + 4) * 2, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                Component.translatable(key("reset")), button -> resetJson()));
+                new net.minecraft.network.chat.TranslatableComponent(key("reset")), button -> resetJson()));
         addRenderableWidget(new InfinityEditorButton(x + (BUTTON_WIDTH + 4) * 3, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
-                Component.translatable(key("json.apply")), button -> applyJson(false)));
+                new net.minecraft.network.chat.TranslatableComponent(key("json.apply")), button -> applyJson(false)));
     }
 
     @Override
@@ -127,6 +127,10 @@ final class ItemJsonEditorScreen extends Screen {
     }
 
     @Override
+    public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        render(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 12, InfinityEditorButton.MAIN_COLOR);
@@ -162,7 +166,7 @@ final class ItemJsonEditorScreen extends Screen {
         try {
             ItemStack stack = ItemJsonConverter.fromJson(this.jsonBox == null ? this.jsonText : this.jsonBox.getValue());
             this.lastScreen.applyJsonEditedStack(stack);
-            this.status = Component.translatable(messageKey("editor_json_applied"), stack.getHoverName());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_json_applied"), stack.getHoverName());
             this.statusColor = STATUS_GOOD;
             this.jsonText = ItemJsonConverter.toJson(stack);
             this.appliedJsonText = this.jsonText;
@@ -186,7 +190,7 @@ final class ItemJsonEditorScreen extends Screen {
                 this.jsonBox.setValue(this.jsonText);
                 this.jsonBox.clearError();
             }
-            this.status = Component.translatable(messageKey("editor_json_formatted"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_json_formatted"));
             this.statusColor = STATUS_GOOD;
         } catch (JsonParseException exception) {
             showInvalidJson(exception);
@@ -201,14 +205,14 @@ final class ItemJsonEditorScreen extends Screen {
             this.jsonBox.setValue(this.jsonText);
             this.jsonBox.clearError();
         }
-        this.status = Component.translatable(messageKey("editor_json_reset"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_json_reset"));
         this.statusColor = STATUS_NEUTRAL;
     }
 
     private void returnToLastScreen() {
         if (isDirty() && !this.discardArmed) {
             this.discardArmed = true;
-            this.status = Component.translatable(messageKey("editor_json_unsaved"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_json_unsaved"));
             this.statusColor = STATUS_NEUTRAL;
             if (this.jsonBox != null) {
                 setFocused(this.jsonBox);
@@ -232,15 +236,15 @@ final class ItemJsonEditorScreen extends Screen {
         if (this.font.width(text) <= maxWidth) {
             return this.status;
         }
-        return Component.literal(this.font.plainSubstrByWidth(text, maxWidth - this.font.width("...")) + "...");
+        return new net.minecraft.network.chat.TextComponent(this.font.plainSubstrByWidth(text, maxWidth - this.font.width("...")) + "...");
     }
 
     private void showInvalidJson(Exception exception) {
         JsonErrorLocation location = JsonErrorLocation.from(exception.getMessage());
         if (location == null) {
-            this.status = Component.translatable(messageKey("editor_invalid_json"), exception.getMessage());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_json"), exception.getMessage());
         } else {
-            this.status = Component.translatable(messageKey("editor_invalid_json_at"),
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_json_at"),
                     location.line(), location.column(), exception.getMessage());
             if (this.jsonBox != null) {
                 this.jsonBox.moveCursorToLineColumn(location.line(), location.column());
@@ -378,7 +382,7 @@ final class ItemJsonEditorScreen extends Screen {
         private static final List<String> BLOCK_IDS = registryKeys(ForgeRegistries.BLOCKS.getValues());
         private static final List<String> ENCHANTMENT_IDS = registryKeys(ForgeRegistries.ENCHANTMENTS.getValues());
         private static final List<String> ATTRIBUTE_IDS = registryKeys(ForgeRegistries.ATTRIBUTES.getValues());
-        private static final List<String> ENTITY_IDS = registryKeys(ForgeRegistries.ENTITY_TYPES.getValues());
+        private static final List<String> ENTITY_IDS = registryKeys(ForgeRegistries.ENTITIES.getValues());
         private static final List<String> EFFECT_IDS = registryKeys(ForgeRegistries.MOB_EFFECTS.getValues());
 
         private final Font font;
@@ -2740,7 +2744,7 @@ final class ItemJsonEditorScreen extends Screen {
                 } else if (value instanceof Attribute attribute) {
                     key = ForgeRegistries.ATTRIBUTES.getKey(attribute);
                 } else if (value instanceof EntityType<?> entityType) {
-                    key = ForgeRegistries.ENTITY_TYPES.getKey(entityType);
+                    key = ForgeRegistries.ENTITIES.getKey(entityType);
                 } else if (value instanceof MobEffect effect) {
                     key = ForgeRegistries.MOB_EFFECTS.getKey(effect);
                 }

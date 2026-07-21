@@ -2,7 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -56,7 +56,7 @@ final class ContainerItemScreen extends ContainerScreen {
     protected void init() {
         super.init();
         addRenderableWidget(new InfinityEditorButton(this.leftPos + this.imageWidth + 4, this.topPos, 80, 20,
-                Component.translatable("screen." + ModSource.MODID + ".pick"), button -> openPickScreen()));
+                new net.minecraft.network.chat.TranslatableComponent("screen." + ModSource.MODID + ".pick"), button -> openPickScreen()));
     }
 
     @Override
@@ -69,9 +69,13 @@ final class ContainerItemScreen extends ContainerScreen {
     }
 
     @Override
+    protected void renderLabels(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY) {
+        renderLabels(GuiGraphics.wrap(poseStack), mouseX, mouseY);
+    }
+
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         super.renderLabels(guiGraphics, mouseX, mouseY);
-        Component cloneLabel = Component.translatable("screen." + ModSource.MODID + ".container.inventory_clone");
+        Component cloneLabel = new net.minecraft.network.chat.TranslatableComponent("screen." + ModSource.MODID + ".container.inventory_clone");
         guiGraphics.drawString(this.font, cloneLabel, (this.imageWidth - this.font.width(cloneLabel)) / 2, -10,
                 INVENTORY_CLONE_COLOR, false);
     }
@@ -130,18 +134,18 @@ final class ContainerItemScreen extends ContainerScreen {
         if (inventoryStack.isEmpty()) {
             if (slot.mayPickup(player)) {
                 this.copiedInventory.setItem(inventorySlot, slotStack.copy());
-                slot.setByPlayer(ItemStack.EMPTY);
+                slot.set(ItemStack.EMPTY);
                 slot.onTake(player, slotStack);
             }
         } else if (slotStack.isEmpty()) {
             if (slot.mayPlace(inventoryStack)) {
                 ItemStack moved = splitForSlot(slot, inventoryStack);
-                slot.setByPlayer(moved);
+                slot.set(moved);
                 this.copiedInventory.setItem(inventorySlot, inventoryStack.isEmpty() ? ItemStack.EMPTY : inventoryStack);
             }
         } else if (slot.mayPickup(player) && slot.mayPlace(inventoryStack)) {
             ItemStack moved = splitForSlot(slot, inventoryStack);
-            slot.setByPlayer(moved);
+            slot.set(moved);
             if (inventoryStack.isEmpty()) {
                 this.copiedInventory.setItem(inventorySlot, slotStack.copy());
             } else if (!this.copiedInventory.add(slotStack.copy())) {

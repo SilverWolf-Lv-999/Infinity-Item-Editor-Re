@@ -212,7 +212,7 @@ public final class ClientCreativeTabData {
             for (DyeColor color : DyeColor.values()) {
                 ItemStack star = new ItemStack(Items.FIREWORK_STAR);
                 CompoundTag explosion = star.getOrCreateTagElement("Explosion");
-                getFireworkShape(type).save(explosion);
+                explosion.putByte("Type", (byte) getFireworkShape(type).getId());
                 explosion.putIntArray("Colors", new int[]{color.getFireworkColor()});
                 addUnique(stacks, star);
             }
@@ -377,17 +377,18 @@ public final class ClientCreativeTabData {
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
         stack.getOrCreateTag().putString("SkullOwner", owner);
         CompoundTag display = stack.getOrCreateTagElement("display");
-        display.putString("Name", net.minecraft.network.chat.Component.Serializer.toJson(net.minecraft.network.chat.Component.literal(owner + "'s Head")));
+        display.putString("Name", net.minecraft.network.chat.Component.Serializer.toJson(
+                new net.minecraft.network.chat.TextComponent(owner + "'s Head")));
         return stack;
     }
 
     private static ItemStack createNote(String noteName, String... lore) {
         ItemStack stack = new ItemStack(Items.PAPER);
-        stack.setHoverName(Component.literal(noteName));
+        stack.setHoverName(new net.minecraft.network.chat.TextComponent(noteName));
         if (lore != null && lore.length > 0) {
             ListTag loreTag = new ListTag();
             for (String line : lore) {
-                loreTag.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal(line))));
+                loreTag.add(StringTag.valueOf(Component.Serializer.toJson(new net.minecraft.network.chat.TextComponent(line))));
             }
             stack.getOrCreateTagElement("display").put("Lore", loreTag);
         }

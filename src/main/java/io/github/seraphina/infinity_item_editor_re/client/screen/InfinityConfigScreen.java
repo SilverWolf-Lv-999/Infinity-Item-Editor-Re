@@ -4,7 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,11 +32,11 @@ public class InfinityConfigScreen extends Screen {
     private final Screen parent;
     private Config.ItemEditorUiMode pendingItemGuiMode;
     private final Map<Config.BooleanEntry, Boolean> pendingValues = new LinkedHashMap<>();
-    private Component status = Component.empty();
+    private Component status = new net.minecraft.network.chat.TextComponent("");
     private ConfigList configList;
 
     public InfinityConfigScreen(Screen parent) {
-        super(Component.translatable(key("title")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("title")));
         this.parent = parent;
         this.pendingItemGuiMode = Config.getItemGuiMode();
         for (Config.BooleanEntry entry : Config.booleanEntries()) {
@@ -53,18 +53,19 @@ public class InfinityConfigScreen extends Screen {
         int totalButtonWidth = BUTTON_WIDTH * 3 + BUTTON_GAP * 2;
         int x = (this.width - totalButtonWidth) / 2;
         int y = this.height - 27;
-        this.addRenderableWidget(Button.builder(Component.translatable(key("save")), button -> saveChanges())
-                .bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
-        this.addRenderableWidget(Button.builder(Component.translatable(key("reset")), button -> resetToDefaults())
-                .bounds(x + BUTTON_WIDTH + BUTTON_GAP, y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
-        this.addRenderableWidget(Button.builder(Component.translatable(key("done")), button -> saveAndClose())
-                .bounds(x + (BUTTON_WIDTH + BUTTON_GAP) * 2, y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                .build());
+        this.addRenderableWidget(new Button(x, y, BUTTON_WIDTH, BUTTON_HEIGHT,
+                new net.minecraft.network.chat.TranslatableComponent(key("save")), button -> saveChanges()));
+        this.addRenderableWidget(new Button(x + BUTTON_WIDTH + BUTTON_GAP, y, BUTTON_WIDTH, BUTTON_HEIGHT,
+                new net.minecraft.network.chat.TranslatableComponent(key("reset")), button -> resetToDefaults()));
+        this.addRenderableWidget(new Button(x + (BUTTON_WIDTH + BUTTON_GAP) * 2, y, BUTTON_WIDTH, BUTTON_HEIGHT,
+                new net.minecraft.network.chat.TranslatableComponent(key("done")), button -> saveAndClose()));
     }
 
     @Override
+    public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        render(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
@@ -85,7 +86,7 @@ public class InfinityConfigScreen extends Screen {
 
     private void toggle(Config.BooleanEntry entry) {
         this.pendingValues.put(entry, !getPendingValue(entry));
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
     }
 
     private Config.ItemEditorUiMode getPendingItemGuiMode() {
@@ -96,7 +97,7 @@ public class InfinityConfigScreen extends Screen {
         this.pendingItemGuiMode = this.pendingItemGuiMode == Config.ItemEditorUiMode.LEGACY
                 ? Config.ItemEditorUiMode.SIDEBAR
                 : Config.ItemEditorUiMode.LEGACY;
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
     }
 
     private void resetToDefaults() {
@@ -115,7 +116,7 @@ public class InfinityConfigScreen extends Screen {
         Config.syncPublicFields();
         Config.save();
         CreativeTabRefresher.rebuildAllTabs(this.minecraft);
-        this.status = Component.translatable(key("saved"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(key("saved"));
     }
 
     private void saveAndClose() {
@@ -130,11 +131,11 @@ public class InfinityConfigScreen extends Screen {
     }
 
     private static Component booleanText(boolean value) {
-        return Component.translatable(key(value ? "on" : "off"));
+        return new net.minecraft.network.chat.TranslatableComponent(key(value ? "on" : "off"));
     }
 
     private static Component itemGuiModeText(Config.ItemEditorUiMode mode) {
-        return Component.translatable("screen." + ModSource.MODID + ".ui.mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
+        return new net.minecraft.network.chat.TranslatableComponent("screen." + ModSource.MODID + ".ui.mode." + mode.name().toLowerCase(java.util.Locale.ROOT));
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -180,6 +181,11 @@ public class InfinityConfigScreen extends Screen {
         }
 
         @Override
+        public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int index, int top, int left, int width, int height,
+                           int mouseX, int mouseY, boolean hovered, float partialTick) {
+            render(GuiGraphics.wrap(poseStack), index, top, left, width, height, mouseX, mouseY, hovered, partialTick);
+        }
+
         public void render(GuiGraphics guiGraphics, int index, int top, int left, int width, int height,
                            int mouseX, int mouseY, boolean hovered, float partialTick) {
             if (hovered) {
@@ -190,8 +196,8 @@ public class InfinityConfigScreen extends Screen {
             int toggleY = top + (height - TOGGLE_HEIGHT) / 2 - 2;
             int textWidth = Math.max(1, toggleX - left - 12);
             if (this.entry == null) {
-                Component modeTitle = Component.translatable(key("item_gui_mode.title"));
-                Component modeDescription = Component.translatable(key("item_gui_mode.description"));
+                Component modeTitle = new net.minecraft.network.chat.TranslatableComponent(key("item_gui_mode.title"));
+                Component modeDescription = new net.minecraft.network.chat.TranslatableComponent(key("item_gui_mode.description"));
                 Component modeText = itemGuiModeText(this.screen.getPendingItemGuiMode());
                 guiGraphics.drawString(this.screen.font, modeTitle, left, top + 4, TEXT_COLOR);
                 List<FormattedCharSequence> description = this.screen.font.split(modeDescription, textWidth);
@@ -206,9 +212,9 @@ public class InfinityConfigScreen extends Screen {
             }
 
             boolean value = this.screen.getPendingValue(this.entry);
-            guiGraphics.drawString(this.screen.font, Component.translatable(this.entry.titleKey()), left, top + 4, TEXT_COLOR);
+            guiGraphics.drawString(this.screen.font, new net.minecraft.network.chat.TranslatableComponent(this.entry.titleKey()), left, top + 4, TEXT_COLOR);
             List<FormattedCharSequence> description = this.screen.font.split(
-                    Component.translatable(this.entry.descriptionKey()),
+                    new net.minecraft.network.chat.TranslatableComponent(this.entry.descriptionKey()),
                     textWidth
             );
             for (int line = 0; line < Math.min(2, description.size()); line++) {
@@ -239,14 +245,14 @@ public class InfinityConfigScreen extends Screen {
         @Override
         public Component getNarration() {
             if (this.entry == null) {
-                return Component.empty()
-                        .append(Component.translatable(key("item_gui_mode.title")))
+                return new net.minecraft.network.chat.TextComponent("")
+                        .append(new net.minecraft.network.chat.TranslatableComponent(key("item_gui_mode.title")))
                         .append(" ")
                         .append(itemGuiModeText(this.screen.getPendingItemGuiMode()));
             }
 
-            return Component.empty()
-                    .append(Component.translatable(this.entry.titleKey()))
+            return new net.minecraft.network.chat.TextComponent("")
+                    .append(new net.minecraft.network.chat.TranslatableComponent(this.entry.titleKey()))
                     .append(" ")
                     .append(booleanText(this.screen.getPendingValue(this.entry)));
         }

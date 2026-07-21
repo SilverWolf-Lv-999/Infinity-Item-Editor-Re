@@ -1,14 +1,14 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -102,7 +102,7 @@ protected void updateRawNbt() {
 
     protected Component getUnbreakableText() {
         boolean unbreakable = this.previewStack.getTag() != null && this.previewStack.getTag().getBoolean("Unbreakable");
-        return Component.translatable(key("tag.unbreakable." + (unbreakable ? 1 : 0)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("tag.unbreakable." + (unbreakable ? 1 : 0)));
     }
 
     protected void toggleHideFlag(HideFlag flag) {
@@ -125,7 +125,7 @@ protected void updateRawNbt() {
     protected Component getHideFlagText(HideFlag flag) {
         CompoundTag tag = this.previewStack.getTag();
         boolean hidden = tag != null && (tag.getInt(HIDE_FLAGS_TAG) & flag.mask()) != 0;
-        return Component.translatable(key(flag.translationKey() + "." + (hidden ? 1 : 0)));
+        return new net.minecraft.network.chat.TranslatableComponent(key(flag.translationKey() + "." + (hidden ? 1 : 0)));
     }
 
     protected void toggleEnchantmentsScope() {
@@ -165,9 +165,9 @@ protected void updateRawNbt() {
         EnchantmentEntry entry = activeEnchantments.get(index);
         if (removeEnchantmentAtIndex(index)) {
             Component name = entry.enchantment() == null
-                    ? Component.literal(String.valueOf(entry.id()))
-                    : Component.translatable(entry.enchantment().getDescriptionId());
-            this.status = Component.translatable(messageKey("editor_enchantment_removed"), name);
+                    ? new net.minecraft.network.chat.TextComponent(String.valueOf(entry.id()))
+                    : new net.minecraft.network.chat.TranslatableComponent(entry.enchantment().getDescriptionId());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_enchantment_removed"), name);
         }
         return true;
     }
@@ -208,18 +208,18 @@ protected void updateRawNbt() {
             return;
         }
         putEnchantment(enchantment, level);
-        this.status = Component.translatable(messageKey("editor_enchantment_added"),
-                Component.translatable(enchantment.getDescriptionId()), level);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_enchantment_added"),
+                new net.minecraft.network.chat.TranslatableComponent(enchantment.getDescriptionId()), level);
     }
 
     protected void addMatchingEnchantments() {
         List<Enchantment> enchantments = getVisibleEnchantments(this.previewStack);
         if (!getFoldedEnchantmentGroups(this.previewStack).isEmpty()) {
-            this.status = Component.translatable(messageKey("editor_select_enchantment_group"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_select_enchantment_group"));
             return;
         }
         if (enchantments.isEmpty()) {
-            this.status = Component.translatable(messageKey("editor_no_enchantment_match"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_no_enchantment_match"));
             return;
         }
 
@@ -230,7 +230,7 @@ protected void updateRawNbt() {
             }
             putEnchantment(enchantment, level);
         }
-        this.status = Component.translatable(messageKey("editor_enchantments_added"), enchantments.size());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_enchantments_added"), enchantments.size());
     }
 
     protected int getLevelForEnchantment(Enchantment enchantment) {
@@ -238,12 +238,12 @@ protected void updateRawNbt() {
         try {
             level = Integer.parseInt(this.enchantLevelBox == null ? this.enchantLevelValue : this.enchantLevelBox.getValue());
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_enchantment_level"), MAX_ENCHANTMENT_LEVEL);
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_enchantment_level"), MAX_ENCHANTMENT_LEVEL);
             return -1;
         }
 
         if (level < 1 || level > MAX_ENCHANTMENT_LEVEL) {
-            this.status = Component.translatable(messageKey("editor_invalid_enchantment_level"), MAX_ENCHANTMENT_LEVEL);
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_enchantment_level"), MAX_ENCHANTMENT_LEVEL);
             return -1;
         }
         this.enchantLevelValue = Integer.toString(level);
@@ -315,7 +315,7 @@ protected void updateRawNbt() {
             boolean applicable = canApplyEnchantment(stack, enchantment);
             hasApplicableEnchantments |= applicable;
             ResourceLocation id = ForgeRegistries.ENCHANTMENTS.getKey(enchantment);
-            String name = Component.translatable(enchantment.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
+            String name = new net.minecraft.network.chat.TranslatableComponent(enchantment.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
             String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
             if (filter.isEmpty() || name.contains(filter) || idString.contains(filter)) {
                 matchingEnchantments.add(enchantment);
@@ -328,7 +328,7 @@ protected void updateRawNbt() {
         List<Enchantment> enchantments = this.showAllEnchantments || !hasApplicableEnchantments
                 ? matchingEnchantments
                 : applicableMatchingEnchantments;
-        enchantments.sort(Comparator.comparing(enchantment -> Component.translatable(enchantment.getDescriptionId()).getString(),
+        enchantments.sort(Comparator.comparing(enchantment -> new net.minecraft.network.chat.TranslatableComponent(enchantment.getDescriptionId()).getString(),
                 String.CASE_INSENSITIVE_ORDER));
         return enchantments;
     }
@@ -407,7 +407,7 @@ protected void updateRawNbt() {
         }
 
         this.selectedEnchantmentNamespace = closestGroup.namespace();
-        this.status = Component.translatable(messageKey("editor_enchantment_group_selected"), closestGroup.namespace());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_enchantment_group_selected"), closestGroup.namespace());
         rebuildWidgets();
         return true;
     }
@@ -497,11 +497,11 @@ protected void updateRawNbt() {
     protected void addMatchingPotionEffects() {
         List<MobEffect> effects = getVisiblePotionEffects();
         if (!getFoldedPotionGroups().isEmpty()) {
-            this.status = Component.translatable(messageKey("editor_select_potion_group"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_select_potion_group"));
             return;
         }
         if (effects.isEmpty()) {
-            this.status = Component.translatable(messageKey("editor_no_potion_match"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_no_potion_match"));
             return;
         }
         for (MobEffect effect : effects) {
@@ -524,7 +524,7 @@ protected void updateRawNbt() {
         effects.add(instance);
         PotionUtils.setCustomEffects(this.previewStack, effects);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_potion_added"), effect.getDisplayName(), level);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_potion_added"), effect.getDisplayName(), level);
         return true;
     }
 
@@ -544,7 +544,7 @@ protected void updateRawNbt() {
             PotionUtils.setCustomEffects(this.previewStack, effects);
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_potion_removed"), removed.getEffect().getDisplayName());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_potion_removed"), removed.getEffect().getDisplayName());
     }
 
     protected List<MobEffectInstance> getCustomPotionEffects() {
@@ -640,7 +640,7 @@ protected void updateRawNbt() {
         }
 
         this.selectedPotionNamespace = closestGroup.namespace();
-        this.status = Component.translatable(messageKey("editor_potion_group_selected"), closestGroup.namespace());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_potion_group_selected"), closestGroup.namespace());
         rebuildWidgets();
         return true;
     }
@@ -654,7 +654,7 @@ protected void updateRawNbt() {
             this.potionLevelValue = Integer.toString(level);
             return level;
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_potion_level"), MAX_POTION_LEVEL);
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_potion_level"), MAX_POTION_LEVEL);
             return -1;
         }
     }
@@ -668,7 +668,7 @@ protected void updateRawNbt() {
             this.potionTimeValue = Integer.toString(seconds);
             return seconds;
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_potion_time"), MAX_POTION_SECONDS);
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_potion_time"), MAX_POTION_SECONDS);
             return -1;
         }
     }
@@ -682,7 +682,7 @@ protected void updateRawNbt() {
         int amplifier = effect.getAmplifier();
         String text = effect.getEffect().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
         if (amplifier > 1) {
-            text += " " + Component.translatable("potion.potency." + amplifier).getString().trim();
+            text += " " + new net.minecraft.network.chat.TranslatableComponent("potion.potency." + amplifier).getString().trim();
         }
         text += effect.isVisible() ? " P:S" : " P:H";
         return text;
@@ -696,7 +696,7 @@ protected void updateRawNbt() {
         }
         String text = effect.getDisplayName().getString();
         if (level > 1) {
-            text += " " + Component.translatable("potion.potency." + (level - 1)).getString().trim();
+            text += " " + new net.minecraft.network.chat.TranslatableComponent("potion.potency." + (level - 1)).getString().trim();
         }
         return text;
     }
@@ -736,7 +736,7 @@ protected void updateRawNbt() {
         int index = (int) ((mouseY - startY) / 10);
         AttributeEntry entry = entries.get(index);
         removeAttributeModifierAt(entry.tagIndex());
-        this.status = Component.translatable(messageKey("editor_attribute_removed"), getAttributeDisplayName(entry));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_attribute_removed"), getAttributeDisplayName(entry));
         return true;
     }
 
@@ -791,7 +791,7 @@ protected void updateRawNbt() {
 
         getOrCreateAttributeModifiersTag().add(modifierTag);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_attribute_added"), Component.translatable(attribute.getDescriptionId()));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_attribute_added"), new net.minecraft.network.chat.TranslatableComponent(attribute.getDescriptionId()));
     }
 
     protected Double getAttributeAmount() {
@@ -807,7 +807,7 @@ protected void updateRawNbt() {
             double amount = whole + decimal / 1000.0D;
             return this.attributeNegative ? -amount : amount;
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_attribute_value"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_attribute_value"));
             return null;
         }
     }
@@ -888,12 +888,12 @@ protected void updateRawNbt() {
 
     protected Component getAttributeDisplayName(AttributeEntry entry) {
         if (entry.attribute() != null) {
-            return Component.translatable(entry.attribute().getDescriptionId());
+            return new net.minecraft.network.chat.TranslatableComponent(entry.attribute().getDescriptionId());
         }
         if (!entry.attributeName().isBlank()) {
-            return Component.literal(entry.attributeName());
+            return new net.minecraft.network.chat.TextComponent(entry.attributeName());
         }
-        return Component.literal("Unknown Attribute");
+        return new net.minecraft.network.chat.TextComponent("Unknown Attribute");
     }
 
     protected Attribute getAttributeByName(String name) {
@@ -909,7 +909,7 @@ protected void updateRawNbt() {
                 attributes.add(attribute);
             }
         }
-        attributes.sort(Comparator.comparing(attribute -> Component.translatable(attribute.getDescriptionId()).getString(),
+        attributes.sort(Comparator.comparing(attribute -> new net.minecraft.network.chat.TranslatableComponent(attribute.getDescriptionId()).getString(),
                 String.CASE_INSENSITIVE_ORDER));
         return attributes;
     }
@@ -988,7 +988,7 @@ protected void updateRawNbt() {
         }
 
         this.selectedAttributeNamespace = closestGroup.namespace();
-        this.status = Component.translatable(messageKey("editor_attribute_group_selected"), closestGroup.namespace());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_attribute_group_selected"), closestGroup.namespace());
         rebuildWidgets();
         return true;
     }
@@ -1001,7 +1001,7 @@ protected void updateRawNbt() {
         ResourceLocation id = ForgeRegistries.ATTRIBUTES.getKey(attribute);
         String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
         String descriptionId = attribute.getDescriptionId().toLowerCase(Locale.ROOT);
-        String name = Component.translatable(attribute.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
+        String name = new net.minecraft.network.chat.TranslatableComponent(attribute.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
         return idString.contains(filter)
                 || descriptionId.contains(filter)
                 || name.contains(filter);

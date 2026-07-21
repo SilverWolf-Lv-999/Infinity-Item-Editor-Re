@@ -2,13 +2,9 @@
 
 ## English
 
-**Infinity Item Editor Re** is a client-side creative item editor for multiple Minecraft versions:
+**Infinity Item Editor Re** is a client-side creative item editor for Minecraft Forge 1.18.2:
 
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
+- **Forge 1.18.2**
 
 It is an independent remake and port inspired by the old Infinity Item Editor mod. It is not an official update from the original author.
 
@@ -22,7 +18,7 @@ Current features include:
 - Edit item ID, count, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
 - Switch between the legacy editor layout and the newer sidebar layout.
 - Copy `/give` commands, drop edited items, save items to Infinity Realm, and pick items from registry, Realm, Void, or inventory sources.
-- Edit enchantments, potion effects, custom attributes, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, trial spawners, villager trades, books, command blocks, and lore.
+- Edit enchantments, potion effects, custom attributes, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, spawn eggs, spawners, villager trades, books, command blocks, and lore.
 - Use Lore Painter to draw colored tooltip art with text characters.
 - Copy targeted blocks, mobs, players, and armor stands with the default `V` key.
 - Save custom items into Infinity Realm with the default `G` key.
@@ -45,14 +41,13 @@ The mod adds searchable creative tabs:
 
 Use the jar that matches your Minecraft version and loader.
 
-- Forge 1.20.1 builds require Java 17.
-- NeoForge 1.21.x builds require Java 21.
+- Forge 1.18.2 builds require Java 17.
 
 This is mainly a client-side tool. Servers normally do not need to install it, but inventory-writing and entity-equipment-copying features require creative mode permissions and may be limited by server rules.
 
 ### Status
 
-This is still a work-in-progress remake/port. Most common editor panels, creative tabs, JSON editing, command block editing, book page editing, decorated pot/trial spawner editing, and the main shortcut workflows are implemented. The Advanced NBT Browser can browse, expand, collapse, and scroll NBT structures, but it is not yet a full graphical NBT editor.
+This is the Forge 1.18.2 downport. Most common editor panels, creative tabs, JSON editing, command block editing, book page editing, and the main shortcut workflows are implemented. Armor trims, decorated pots, and trial spawners do not exist in Minecraft 1.18.2 and are intentionally unavailable. The Advanced NBT Browser can browse, expand, collapse, and scroll NBT structures, but it is not yet a full graphical NBT editor.
 
 ### Credits
 
@@ -68,13 +63,9 @@ Thanks to the original author and contributors. Please respect the original proj
 
 ## 中文
 
-**Infinity Item Editor Re** 是一个支持多个 Minecraft 版本的客户端创造物品编辑 Mod：
+**Infinity Item Editor Re** 是一个适用于 Minecraft Forge 1.18.2 的客户端创造物品编辑 Mod：
 
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
+- **Forge 1.18.2**
 
 它复刻并移植了旧版 Infinity Item Editor 的使用体验。本项目不是原作者的官方更新版，而是独立维护的新版适配/复刻项目。
 
@@ -88,7 +79,7 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 - 编辑物品 ID、数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
 - 支持旧版布局和新版侧边栏布局切换。
 - 复制 `/give` 命令、丢出编辑后的物品、保存到 Infinity Realm，并可从注册物品、Realm、Void 或物品栏来源选择物品。
-- 编辑附魔、药水效果、自定义属性、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、试炼刷怪笼、村民交易、书本、命令方块和 Lore。
+- 编辑附魔、药水效果、自定义属性、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、刷怪蛋、刷怪箱、村民交易、书本、命令方块和 Lore。
 - 使用 Lore Painter 通过字符和颜色绘制物品提示文本图案。
 - 默认按 `V` 复制准星指向的方块、生物、玩家或盔甲架。
 - 默认按 `G` 将自定义物品保存到 Infinity Realm。
@@ -111,14 +102,13 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 请下载与 Minecraft 版本和加载器匹配的 jar。
 
-- Forge 1.20.1 版本使用 Java 17。
-- NeoForge 1.21.x 版本使用 Java 21。
+- Forge 1.18.2 版本使用 Java 17。
 
 这是一个主要面向客户端的工具，服务端通常不需要安装。但写入玩家物品栏、复制实体装备等功能需要创造模式权限，也可能受到服务器规则限制。
 
 ### 当前状态
 
-本项目仍处于复刻/移植开发阶段。大部分常用编辑面板、创造标签页、JSON 编辑器、命令方块编辑器、书本页面编辑器、饰纹陶罐/试炼刷怪笼编辑和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。
+本工作区是 Forge 1.18.2 的向下适配版本。大部分常用编辑面板、创造标签页、JSON 编辑器、命令方块编辑器、书本页面编辑器和主要快捷键工作流已经实现。盔甲纹饰、饰纹陶罐和试炼刷怪笼在 Minecraft 1.18.2 中不存在，因此不提供对应入口。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。
 
 ### 致谢
 

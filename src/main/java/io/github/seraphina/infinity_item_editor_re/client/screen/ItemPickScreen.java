@@ -6,7 +6,7 @@ import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
@@ -45,7 +45,7 @@ final class ItemPickScreen extends Screen {
 
         @Override
         Component getName() {
-            return Component.translatable(itemGroupKey("realm"));
+            return new net.minecraft.network.chat.TranslatableComponent(itemGroupKey("realm"));
         }
     };
     private static final PickList VOID_LIST = new PickList() {
@@ -58,7 +58,7 @@ final class ItemPickScreen extends Screen {
 
         @Override
         Component getName() {
-            return Component.translatable(itemGroupKey("void"));
+            return new net.minecraft.network.chat.TranslatableComponent(itemGroupKey("void"));
         }
     };
     private static final PickList INVENTORY_LIST = new PickList() {
@@ -84,7 +84,7 @@ final class ItemPickScreen extends Screen {
         Component getName() {
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player == null) {
-                return Component.translatable("container.inventory");
+                return new net.minecraft.network.chat.TranslatableComponent("container.inventory");
             }
             return minecraft.player.getInventory().getDisplayName();
         }
@@ -106,7 +106,7 @@ final class ItemPickScreen extends Screen {
     }
 
     private ItemPickScreen(Screen lastScreen, Consumer<ItemStack> stackSetter, Supplier<ItemStack> stackGetter, PickList pickList) {
-        super(Component.translatable(key("pick")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("pick")));
         this.lastScreen = lastScreen;
         this.stackSetter = stackSetter;
         this.stackGetter = stackGetter;
@@ -119,13 +119,13 @@ final class ItemPickScreen extends Screen {
         this.midY = this.height / 2;
 
         addRenderableWidget(new InfinityEditorButton(this.midX - 90, this.height - 35, 60, 20,
-                Component.translatable(key("back")), button -> returnToLastScreen()));
+                new net.minecraft.network.chat.TranslatableComponent(key("back")), button -> returnToLastScreen()));
         InfinityEditorButton reset = addRenderableWidget(new InfinityEditorButton(this.midX - 30, this.height - 35, 60, 20,
-                Component.translatable(key("reset")), button -> {
+                new net.minecraft.network.chat.TranslatableComponent(key("reset")), button -> {
         }));
         reset.active = false;
         addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 35, 60, 20,
-                Component.translatable(key("drop")), button -> dropSelectedStack()));
+                new net.minecraft.network.chat.TranslatableComponent(key("drop")), button -> dropSelectedStack()));
 
         applySearchIfNeeded();
     }
@@ -218,6 +218,10 @@ final class ItemPickScreen extends Screen {
     }
 
     @Override
+    public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        render(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics);
         renderSelectedStack(guiGraphics);
@@ -243,8 +247,8 @@ final class ItemPickScreen extends Screen {
 
         guiGraphics.drawCenteredString(this.font, this.pickList.getName(), this.midX, 60, InfinityEditorButton.CONTRAST_COLOR);
         Component searchText = this.searchString.isEmpty()
-                ? Component.translatable(key("pick.type_search"))
-                : Component.literal(this.searchString);
+                ? new net.minecraft.network.chat.TranslatableComponent(key("pick.type_search"))
+                : new net.minecraft.network.chat.TextComponent(this.searchString);
         guiGraphics.drawCenteredString(this.font, searchText, this.midX, 73, BLAND_COLOR);
 
         renderPickListName(guiGraphics, REALM_LIST, space, 100);
@@ -274,7 +278,7 @@ final class ItemPickScreen extends Screen {
             guiGraphics.renderTooltip(this.font, hovered, mouseX, mouseY);
         } else if (!this.searchString.equals(this.filteredString)
                 && isMouseIn(mouseX, mouseY, this.midX - searchWidth / 2, 56, searchWidth, 8)) {
-            guiGraphics.renderTooltip(this.font, Component.translatable(key("pick.click_search")), mouseX, mouseY);
+            guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TranslatableComponent(key("pick.click_search")), mouseX, mouseY);
         } else if (isMouseIn(mouseX, mouseY, this.midX - 8, 27, ITEM_SIZE, ITEM_SIZE)) {
             ItemStack stack = getSelectedStack();
             if (!stack.isEmpty()) {

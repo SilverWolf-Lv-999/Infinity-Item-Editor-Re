@@ -4,7 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
@@ -16,10 +16,18 @@ class ColorSlider extends AbstractSliderButton {
     private float hoverAmount;
 
     ColorSlider(int x, int y, int width, int height, Component label, int value, IntConsumer responder) {
-        super(x, y, width, height, Component.empty(), Mth.clamp(value, 0, 255) / 255.0D);
+        super(x, y, width, height, new net.minecraft.network.chat.TextComponent(""), Mth.clamp(value, 0, 255) / 255.0D);
         this.label = label;
         this.responder = responder;
         updateMessage();
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
     }
 
     private int getIntValue() {
@@ -33,7 +41,7 @@ class ColorSlider extends AbstractSliderButton {
 
     @Override
     protected void updateMessage() {
-        setMessage(Component.literal(this.label.getString() + ": " + getIntValue()));
+        setMessage(new net.minecraft.network.chat.TextComponent(this.label.getString() + ": " + getIntValue()));
     }
 
     @Override
@@ -42,9 +50,13 @@ class ColorSlider extends AbstractSliderButton {
     }
 
     @Override
+    public void renderButton(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        renderWidget(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (Config.getItemGuiMode() != Config.ItemEditorUiMode.SIDEBAR) {
-            super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+            super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
 

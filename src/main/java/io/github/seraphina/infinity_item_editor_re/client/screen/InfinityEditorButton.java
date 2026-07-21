@@ -4,7 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -31,6 +31,10 @@ public class InfinityEditorButton extends AbstractButton {
     }
 
     @Override
+    public void renderButton(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        renderWidget(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         updateHoverAmount(partialTick);
         if (Config.getItemGuiMode() == Config.ItemEditorUiMode.SIDEBAR) {
@@ -50,7 +54,8 @@ public class InfinityEditorButton extends AbstractButton {
         guiGraphics.fill(x + width - 1, y, x + width, y + height, DARK_SHADE);
 
         int textColor = this.active ? (this.isHoveredOrFocused() ? CONTRAST_COLOR : MAIN_COLOR) : DISABLED_COLOR;
-        renderScrollingString(guiGraphics, Minecraft.getInstance().font, 2, textColor);
+        renderCenteredModernText(guiGraphics, Minecraft.getInstance().font, this.x + 2, this.y,
+                this.x + this.width - 2, this.y + this.height, textColor);
     }
 
     private void renderSidebarWidget(GuiGraphics guiGraphics) {
@@ -101,8 +106,24 @@ public class InfinityEditorButton extends AbstractButton {
         }
     }
 
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
+    }
+
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+    public void updateNarration(NarrationElementOutput narrationElementOutput) {
         defaultButtonNarrationText(narrationElementOutput);
     }
 

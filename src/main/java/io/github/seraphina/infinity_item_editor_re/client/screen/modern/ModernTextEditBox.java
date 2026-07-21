@@ -3,7 +3,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen.modern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
@@ -16,6 +16,18 @@ public class ModernTextEditBox extends EditBox {
         setBordered(false);
         setTextColor(ModernUi.TEXT_PRIMARY);
         setTextColorUneditable(ModernUi.TEXT_MUTED);
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
     }
 
     @Override
@@ -58,6 +70,10 @@ public class ModernTextEditBox extends EditBox {
     }
 
     @Override
+    public void renderButton(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        renderWidget(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!isVisible()) {
             return;
@@ -82,7 +98,7 @@ public class ModernTextEditBox extends EditBox {
         setY(originalY + (getHeight() - 8) / 2);
         setWidth(Math.max(1, originalWidth - 8));
         try {
-            super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+            super.renderButton(guiGraphics, mouseX, mouseY, partialTick);
         } finally {
             setX(originalX);
             setY(originalY);

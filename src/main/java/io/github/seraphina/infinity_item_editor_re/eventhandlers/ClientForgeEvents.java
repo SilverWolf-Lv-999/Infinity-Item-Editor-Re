@@ -8,7 +8,6 @@ import io.github.seraphina.infinity_item_editor_re.client.screen.ItemEditorScree
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
 import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
-import io.github.seraphina.infinity_item_editor_re.mixin.CreativeModeInventoryScreenAccessor;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import io.netty.channel.ChannelDuplexHandler;
@@ -18,7 +17,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -62,7 +60,7 @@ public final class ClientForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onKeyInput(InputEvent.Key event) {
+    public static void onKeyInput(InputEvent.KeyInputEvent event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
             return;
@@ -81,7 +79,7 @@ public final class ClientForgeEvents {
         while (ClientKeyMappings.OPEN_EDITOR.consumeClick()) {
             ItemStack heldStack = minecraft.player.getMainHandItem();
             if (heldStack.isEmpty()) {
-                minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".editor_no_item"), true);
+                minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".editor_no_item"), true);
             } else {
                 minecraft.setScreen(new ItemEditorScreen(heldStack.copy()));
             }
@@ -93,14 +91,14 @@ public final class ClientForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+    public static void onScreenKeyPressed(ScreenEvent.KeyboardKeyPressedEvent.Pre event) {
         if (handleContainerKeyShortcut(event.getScreen(), event.getKeyCode(), event.getScanCode())) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
-    public static void onScreenMousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
+    public static void onScreenMousePressed(ScreenEvent.MouseClickedEvent.Pre event) {
         if (handleContainerMouseShortcut(event.getScreen(), event.getButton())) {
             event.setCanceled(true);
         }
@@ -124,7 +122,7 @@ public final class ClientForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onServerConnection(ClientPlayerNetworkEvent.LoggingIn event) {
+    public static void onServerConnection(ClientPlayerNetworkEvent.LoggedInEvent event) {
         if (!Config.getIsVoidEnabled() || event.getConnection().channel().pipeline().get(VOID_HANDLER) != null) {
             return;
         }
@@ -235,13 +233,12 @@ public final class ClientForgeEvents {
     }
 
     private static boolean isRealmCreativeTabSlot(Minecraft minecraft, Screen screen, Slot slot) {
-        if (!(screen instanceof CreativeModeInventoryScreen) || PlayerInventorySlots.isPlayerInventorySlot(minecraft.player, slot)
-                || !CreativeTabRegistry.REALM.isPresent()) {
+        if (!(screen instanceof CreativeModeInventoryScreen creativeScreen)
+                || PlayerInventorySlots.isPlayerInventorySlot(minecraft.player, slot)) {
             return false;
         }
 
-        CreativeModeTab selectedTab = CreativeModeInventoryScreenAccessor.infinityItemEditorRe$getSelectedTab();
-        return selectedTab == CreativeTabRegistry.REALM.get();
+        return creativeScreen.getSelectedTab() == CreativeTabRegistry.REALM.getId();
     }
 
     private static void handleHoverItem(Minecraft minecraft, Style style) {
@@ -289,14 +286,11 @@ public final class ClientForgeEvents {
         }
 
         if (!minecraft.player.getAbilities().instabuild) {
-            minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_requires_creative"), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_requires_creative"), true);
             return true;
         }
 
-        ItemStack pastedStack = GiveHelper.getItemStackFromString(
-                minecraft.keyboardHandler.getClipboard(),
-                minecraft.level.registryAccess().lookupOrThrow(Registries.ITEM)
-        );
+        ItemStack pastedStack = GiveHelper.getItemStackFromString(minecraft.keyboardHandler.getClipboard());
         if (pastedStack.isEmpty()) {
             return false;
         }
@@ -326,12 +320,12 @@ public final class ClientForgeEvents {
             return;
         }
 
-        minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_no_target"), true);
+        minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_no_target"), true);
     }
 
     private static void copyTargetEquipment(Minecraft minecraft, LivingEntity livingEntity) {
         if (!minecraft.player.getAbilities().instabuild) {
-            minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_requires_creative"), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_requires_creative"), true);
             return;
         }
 
@@ -342,7 +336,7 @@ public final class ClientForgeEvents {
         copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.LEGS, PlayerInventorySlots.LEGS_CONTAINER_SLOT);
         copyEquipmentSlot(minecraft, livingEntity, EquipmentSlot.FEET, PlayerInventorySlots.FEET_CONTAINER_SLOT);
 
-        minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copying", livingEntity.getDisplayName()), true);
+        minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copying", livingEntity.getDisplayName()), true);
     }
 
     private static void copyTargetBlock(Minecraft minecraft, BlockHitResult blockHitResult) {
@@ -353,13 +347,13 @@ public final class ClientForgeEvents {
         BlockPos blockPos = blockHitResult.getBlockPos();
         BlockState blockState = minecraft.level.getBlockState(blockPos);
         if (blockState.isAir()) {
-            minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_no_target"), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_no_target"), true);
             return;
         }
 
         ItemStack stack = blockState.getCloneItemStack(blockHitResult, minecraft.level, blockPos, minecraft.player);
         if (stack.isEmpty()) {
-            minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_empty_block"), true);
+            minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_empty_block"), true);
             return;
         }
 
@@ -384,14 +378,14 @@ public final class ClientForgeEvents {
 
         if (!minecraft.player.getAbilities().instabuild) {
             if (!controlDown) {
-                minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copy_requires_creative"), true);
+                minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copy_requires_creative"), true);
             }
             return;
         }
 
         minecraft.player.getInventory().setPickedItem(stack);
         minecraft.gameMode.handleCreativeModeItemAdd(minecraft.player.getInventory().getSelected(), 36 + minecraft.player.getInventory().selected);
-        minecraft.player.displayClientMessage(Component.translatable("message." + ModSource.MODID + ".copying", stack.getHoverName()), true);
+        minecraft.player.displayClientMessage(new net.minecraft.network.chat.TranslatableComponent("message." + ModSource.MODID + ".copying", stack.getHoverName()), true);
     }
 
     private static void addCustomNbtData(ItemStack stack, BlockEntity blockEntity) {

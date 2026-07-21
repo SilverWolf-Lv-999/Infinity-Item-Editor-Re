@@ -9,8 +9,7 @@ enum HideFlag {
     CAN_DESTROY(ItemStack.TooltipPart.CAN_DESTROY, "flag.candestroy"),
     CAN_PLACE_ON(ItemStack.TooltipPart.CAN_PLACE, "flag.canplaceon"),
     ITEM_INFO(ItemStack.TooltipPart.ADDITIONAL, "flag.iteminfo"),
-    DYE(ItemStack.TooltipPart.DYE, "flag.dye"),
-    UPGRADES(ItemStack.TooltipPart.UPGRADES, "flag.upgrades");
+    DYE(ItemStack.TooltipPart.DYE, "flag.dye");
 
     private final ItemStack.TooltipPart tooltipPart;
     private final String translationKey;

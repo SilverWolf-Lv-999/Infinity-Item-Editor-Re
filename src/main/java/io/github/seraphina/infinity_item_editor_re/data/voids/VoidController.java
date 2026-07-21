@@ -130,9 +130,9 @@ public class VoidController {
         }
 
         if (Config.voidAddNotification && player != null) {
-            player.sendSystemMessage(Component.literal("Added ")
+            player.displayClientMessage(new net.minecraft.network.chat.TextComponent("Added ")
                     .append(savedStack.getHoverName())
-                    .append(Component.literal(" to Infinity Void.")));
+                    .append(new net.minecraft.network.chat.TextComponent(" to Infinity Void.")), false);
         }
 
         VoidElement element = new VoidElement(savedStack);

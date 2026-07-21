@@ -1,14 +1,14 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -143,7 +143,7 @@ protected void applySignToStack() {
         }
         cleanupEmptyTag();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_book_generation_updated"), next);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_book_generation_updated"), next);
         rebuildWidgets();
     }
 
@@ -160,7 +160,7 @@ protected void applySignToStack() {
         }
         cleanupEmptyTag();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_book_resolved_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_book_resolved_updated"));
         rebuildWidgets();
     }
 
@@ -196,7 +196,7 @@ protected void applySignToStack() {
         this.bookTitleValue = this.rememberedSignedBookData.getString(BOOK_TITLE_TAG);
         this.bookAuthorValue = this.rememberedSignedBookData.getString(BOOK_AUTHOR_TAG);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_book_unsigned"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_book_unsigned"));
         rebuildWidgets();
     }
 
@@ -233,7 +233,7 @@ protected void applySignToStack() {
         this.rememberedSignedBookData = null;
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_book_signed"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_book_signed"));
         rebuildWidgets();
     }
 
@@ -268,7 +268,7 @@ protected void applySignToStack() {
         if (!parsed.getString().equals(raw) || isProbablyJsonText(raw)) {
             return parsed;
         }
-        return Component.literal(raw);
+        return new net.minecraft.network.chat.TextComponent(raw);
     }
 
     protected boolean isProbablyJsonText(String raw) {
@@ -343,7 +343,7 @@ protected void applySignToStack() {
             this.headTextureSignatureBox.setValue("");
         }
         applyHeadToStack();
-        this.status = Component.translatable(messageKey("editor_head_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_head_cleared"));
     }
 
     protected void randomizeHeadUuid() {
@@ -352,7 +352,7 @@ protected void applySignToStack() {
             this.headUuidBox.setValue(this.headUuidValue);
         }
         applyHeadToStack();
-        this.status = Component.translatable(messageKey("editor_head_uuid_randomized"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_head_uuid_randomized"));
     }
 
     protected void toggleArmorStandFlag(String tagKey, String translationSuffix) {
@@ -367,8 +367,8 @@ protected void applySignToStack() {
             entityTag.putBoolean(tagKey, true);
         }
         cleanupArmorStandEntityTag(entityTag);
-        this.status = Component.translatable(messageKey("editor_armor_stand_updated"),
-                Component.translatable(key("armorstand." + translationSuffix + ".label")));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_armor_stand_updated"),
+                new net.minecraft.network.chat.TranslatableComponent(key("armorstand." + translationSuffix + ".label")));
         rebuildWidgets();
     }
 
@@ -394,7 +394,7 @@ protected void applySignToStack() {
         }
         cleanupEmptyTag();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_armor_stand_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_armor_stand_cleared"));
         rebuildWidgets();
     }
 
@@ -421,7 +421,7 @@ protected void applySignToStack() {
     }
 
     protected Component getArmorStandToggleText(String translationSuffix, String tagKey) {
-        return Component.translatable(key("armorstand." + translationSuffix + "." + (getArmorStandFlag(tagKey) ? 1 : 0)));
+        return new net.minecraft.network.chat.TranslatableComponent(key("armorstand." + translationSuffix + "." + (getArmorStandFlag(tagKey) ? 1 : 0)));
     }
 
     protected boolean getArmorStandFlag(String tagKey) {
@@ -441,7 +441,7 @@ protected void applySignToStack() {
         }
         fireworks.putByte(FIREWORK_FLIGHT_TAG, (byte) next);
         cleanupFireworksTag(fireworks);
-        this.status = Component.translatable(messageKey("editor_firework_flight_updated"), next);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_flight_updated"), next);
         rebuildWidgets();
     }
 
@@ -452,7 +452,7 @@ protected void applySignToStack() {
 
         this.fireworkExplosionType = Mth.positiveModulo(this.fireworkExplosionType + direction, FIREWORK_EXPLOSION_TYPES);
         applyFireworkControlsToStack();
-        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_updated"));
         rebuildWidgets();
     }
 
@@ -463,7 +463,7 @@ protected void applySignToStack() {
 
         this.fireworkFlicker = !this.fireworkFlicker;
         applyFireworkControlsToStack();
-        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_updated"));
         rebuildWidgets();
     }
 
@@ -474,7 +474,7 @@ protected void applySignToStack() {
 
         this.fireworkTrail = !this.fireworkTrail;
         applyFireworkControlsToStack();
-        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_updated"));
         rebuildWidgets();
     }
 
@@ -492,7 +492,7 @@ protected void applySignToStack() {
             this.fireworkColor = Mth.positiveModulo(this.fireworkColor + direction, colorCount);
         }
         applyFireworkControlsToStack();
-        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_updated"));
         rebuildWidgets();
     }
 
@@ -505,7 +505,7 @@ protected void applySignToStack() {
         this.fireworkColor = ThreadLocalRandom.current().nextInt(colorCount);
         this.fireworkFadeColor = ThreadLocalRandom.current().nextInt(colorCount + 1) - 1;
         applyFireworkControlsToStack();
-        this.status = Component.translatable(messageKey("editor_firework_updated"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_updated"));
         rebuildWidgets();
     }
 
@@ -524,7 +524,7 @@ protected void applySignToStack() {
         explosions.add(createFireworkExplosionTag());
         fireworks.put(FIREWORK_EXPLOSIONS_TAG, explosions);
         cleanupFireworksTag(fireworks);
-        this.status = Component.translatable(messageKey("editor_firework_explosion_added"), explosions.size());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_explosion_added"), explosions.size());
         rebuildWidgets();
     }
 
@@ -551,7 +551,7 @@ protected void applySignToStack() {
         }
         cleanupFireworksTag(fireworks);
         readFireworkFieldsFromStack(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_firework_explosion_removed"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_explosion_removed"));
         rebuildWidgets();
     }
 
@@ -573,7 +573,7 @@ protected void applySignToStack() {
         cleanupEmptyTag();
         this.rawNbtValue = getInitialNbt(this.previewStack);
         readFireworkFieldsFromStack(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_firework_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_firework_cleared"));
         rebuildWidgets();
     }
 
@@ -605,7 +605,7 @@ protected void applySignToStack() {
 
     protected CompoundTag createFireworkExplosionTag() {
         CompoundTag explosion = new CompoundTag();
-        getFireworkShape(this.fireworkExplosionType).save(explosion);
+        explosion.putByte("Type", (byte) getFireworkShape(this.fireworkExplosionType).getId());
         explosion.putIntArray(FIREWORK_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkColor))});
         if (this.fireworkFadeColor >= 0) {
             explosion.putIntArray(FIREWORK_FADE_COLORS_TAG, new int[]{getFireworkRgb(getFireworkDyeColor(this.fireworkFadeColor))});
@@ -661,13 +661,13 @@ protected void applySignToStack() {
             setContainerSlotItem(this.selectedContainerSlot, slotStack);
             this.containerSlotNbtValue = getContainerSlotNbt(slotStack);
             this.status = slotStack.isEmpty()
-                    ? Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1)
-                    : Component.translatable(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
+                    ? new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1)
+                    : new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_container_slot_updated"), this.selectedContainerSlot + 1, slotStack.getHoverName());
             rebuildWidgets();
         } catch (CommandSyntaxException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_nbt"), exception.getMessage());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_nbt"), exception.getMessage());
         } catch (IllegalArgumentException exception) {
-            this.status = Component.literal(exception.getMessage());
+            this.status = new net.minecraft.network.chat.TextComponent(exception.getMessage());
         }
     }
 
@@ -680,7 +680,7 @@ protected void applySignToStack() {
         CompoundTag itemTag = TagParser.parseTag(trimmed);
         ItemStack slotStack = ItemStack.of(itemTag);
         if (slotStack.isEmpty()) {
-            throw new IllegalArgumentException(Component.translatable(messageKey("editor_container_invalid_item")).getString());
+            throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_container_invalid_item")).getString());
         }
         return slotStack;
     }
@@ -692,7 +692,7 @@ protected void applySignToStack() {
 
         setContainerSlotItem(this.selectedContainerSlot, ItemStack.EMPTY);
         this.containerSlotNbtValue = "{}";
-        this.status = Component.translatable(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_container_slot_cleared"), this.selectedContainerSlot + 1);
         rebuildWidgets();
     }
 
@@ -710,7 +710,7 @@ protected void applySignToStack() {
         blockEntity.remove(CONTAINER_ITEMS_TAG);
         cleanupBlockEntityTag(tag, blockEntity);
         this.containerSlotNbtValue = "{}";
-        this.status = Component.translatable(messageKey("editor_container_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_container_cleared"));
         rebuildWidgets();
     }
 
@@ -820,7 +820,7 @@ protected void applySignToStack() {
     }
 
     protected MutableComponent createSignLineComponent(int line) {
-        MutableComponent component = Component.literal(getSignLineValue(line));
+        MutableComponent component = new net.minecraft.network.chat.TextComponent(getSignLineValue(line));
         if (line == 0) {
             String command = getNormalizedSignCommand();
             if (!command.isEmpty()) {

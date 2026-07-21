@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -84,7 +84,7 @@ protected void addSelectedBannerPattern() {
         List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
         clampBannerPatternSelection(patterns);
         if (patterns.isEmpty()) {
-            this.status = Component.translatable(key("banner.no_match"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(key("banner.no_match"));
             return;
         }
 
@@ -106,7 +106,7 @@ protected void addSelectedBannerPattern() {
         blockEntity.put(BANNER_PATTERNS_TAG, bannerPatterns);
         cleanupBlockEntityTag(tag, blockEntity);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_banner_pattern_added"), getBannerPatternName(entry, color));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_banner_pattern_added"), getBannerPatternName(entry, color));
         rebuildWidgets();
     }
 
@@ -134,7 +134,7 @@ protected void addSelectedBannerPattern() {
         }
         cleanupBlockEntityTag(tag, blockEntity);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_banner_pattern_removed"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_banner_pattern_removed"));
         rebuildWidgets();
     }
 
@@ -152,14 +152,14 @@ protected void addSelectedBannerPattern() {
         blockEntity.remove(BANNER_PATTERNS_TAG);
         cleanupBlockEntityTag(tag, blockEntity);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_banner_patterns_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_banner_patterns_cleared"));
         rebuildWidgets();
     }
 
     protected void cycleBannerBaseColor(int direction) {
         DyeColor color = DyeColor.byId(Mth.positiveModulo(getBannerBaseColor().getId() + direction, DyeColor.values().length));
         setBannerBaseColor(color);
-        this.status = Component.translatable(messageKey("editor_banner_base_updated"), getDyeColorName(color));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_banner_base_updated"), getDyeColorName(color));
         rebuildWidgets();
     }
 
@@ -239,7 +239,7 @@ protected void addSelectedBannerPattern() {
     }
 
     protected Component getBannerPatternName(BannerPatternEntry entry, DyeColor color) {
-        return Component.translatable("block.minecraft.banner." + entry.name() + "." + color.getName());
+        return new net.minecraft.network.chat.TranslatableComponent("block.minecraft.banner." + entry.name() + "." + color.getName());
     }
 
     protected void renderBannerPatternLayers(GuiGraphics guiGraphics) {
@@ -249,10 +249,10 @@ protected void addSelectedBannerPattern() {
         if (isSidebarUi()) {
             ModernUi.fillPanel(guiGraphics, x - 8, y - 8, x + 164, y + 94, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
-        guiGraphics.drawString(this.font, Component.translatable(key("banner.layers")), x, y,
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("banner.layers")), x, y,
                 isSidebarUi() ? ModernUi.TEXT_MUTED : MAIN_COLOR);
         if (patterns.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_layers")), x, y + 12,
+            guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("banner.no_layers")), x, y + 12,
                     isSidebarUi() ? ModernUi.TEXT_SECONDARY : ALT_COLOR);
             return;
         }
@@ -263,7 +263,7 @@ protected void addSelectedBannerPattern() {
             DyeColor color = DyeColor.byId(patternTag.getInt(BANNER_COLOR_TAG));
             BannerPatternEntry entry = getBannerPatternEntry(patternTag.getString(BANNER_PATTERN_TAG));
             Component name = entry == null
-                    ? Component.literal(patternTag.getString(BANNER_PATTERN_TAG))
+                    ? new net.minecraft.network.chat.TextComponent(patternTag.getString(BANNER_PATTERN_TAG))
                     : getBannerPatternName(entry, color);
             String text = (i + 1) + ". " + name.getString();
             guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(text, 150), x, y + 12 + (i - first) * 10,
@@ -290,7 +290,7 @@ protected void addSelectedBannerPattern() {
 
         this.bannerBaseColor = getBannerBaseColor().getId();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_banner_swapped"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_banner_swapped"));
         rebuildWidgets();
     }
 
@@ -351,7 +351,7 @@ protected void addSelectedBannerPattern() {
     }
 
     protected Component getDyeColorName(DyeColor color) {
-        return Component.translatable("color.minecraft." + color.getName());
+        return new net.minecraft.network.chat.TranslatableComponent("color.minecraft." + color.getName());
     }
 
     protected int getBannerPatternCount() {
@@ -385,12 +385,12 @@ protected void addSelectedBannerPattern() {
     protected void applySelectedSpawnEggEntity() {
         SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
         if (entry == null) {
-            this.status = Component.translatable(key("spawnegg.no_match"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.no_match"));
             return;
         }
 
         writeSpawnEggEntityId(entry);
-        this.status = Component.translatable(messageKey("editor_spawn_egg_entity_updated"), getSpawnEggEntityName(entry));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_entity_updated"), getSpawnEggEntityName(entry));
         readSpawnEggFieldsFromStack(this.previewStack);
         rebuildWidgets();
     }
@@ -402,13 +402,13 @@ protected void addSelectedBannerPattern() {
 
         SpawnEggEntityEntry entry = getSelectedSpawnEggEntityEntry();
         if (entry == null) {
-            this.status = Component.translatable(key("spawnegg.no_match"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.no_match"));
             return;
         }
 
         SpawnEggItem eggItem = SpawnEggItem.byId(entry.type());
         if (eggItem == null) {
-            this.status = Component.translatable(messageKey("editor_spawn_egg_no_matching_item"), getSpawnEggEntityName(entry));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_no_matching_item"), getSpawnEggEntityName(entry));
             return;
         }
 
@@ -416,7 +416,7 @@ protected void addSelectedBannerPattern() {
         writeSpawnEggEntityId(entry);
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_spawn_egg_synced"), getSpawnEggEntityName(entry));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_synced"), getSpawnEggEntityName(entry));
         rebuildWidgets();
     }
 
@@ -447,7 +447,7 @@ protected void addSelectedBannerPattern() {
         this.spawnEggOwnerValue = "";
         this.spawnEggNumberValueOverrides.clear();
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey(isSpawnerItem(this.previewStack)
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey(isSpawnerItem(this.previewStack)
                 ? "editor_spawner_tag_cleared"
                 : "editor_spawn_egg_tag_cleared"));
         readSpawnEggFieldsFromStack(this.previewStack);
@@ -466,8 +466,8 @@ protected void addSelectedBannerPattern() {
             putSpawnEggBooleanValue(entityTag, row.tagKey(), true);
         }
         cleanupSpawnEggEntityTag(entityTag);
-        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
-                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_field_updated"),
+                new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())));
         rebuildWidgets();
     }
 
@@ -481,7 +481,7 @@ protected void addSelectedBannerPattern() {
         if (normalized.isEmpty()) {
             entityTag.remove(ENTITY_CUSTOM_NAME_TAG);
         } else {
-            entityTag.putString(ENTITY_CUSTOM_NAME_TAG, Component.Serializer.toJson(Component.literal(value)));
+            entityTag.putString(ENTITY_CUSTOM_NAME_TAG, Component.Serializer.toJson(new net.minecraft.network.chat.TextComponent(value)));
         }
         cleanupSpawnEggEntityTag(entityTag);
     }
@@ -529,8 +529,8 @@ protected void addSelectedBannerPattern() {
                     ? Double.parseDouble(normalized)
                     : Long.parseLong(normalized);
             if (parsed < row.minValue() || parsed > row.maxValue()) {
-                this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
-                        Component.translatable(key("spawnegg." + row.translationSuffix())),
+                this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_invalid_number"),
+                        new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())),
                         formatSpawnEggNumber(row.minValue()),
                         formatSpawnEggNumber(row.maxValue()));
                 return;
@@ -540,8 +540,8 @@ protected void addSelectedBannerPattern() {
             putSpawnEggNumberValue(entityTag, row, storedValue);
             cleanupSpawnEggEntityTag(entityTag);
         } catch (NumberFormatException exception) {
-            this.status = Component.translatable(messageKey("editor_spawn_egg_invalid_number"),
-                    Component.translatable(key("spawnegg." + row.translationSuffix())),
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_invalid_number"),
+                    new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())),
                     formatSpawnEggNumber(row.minValue()),
                     formatSpawnEggNumber(row.maxValue()));
         }
@@ -565,8 +565,8 @@ protected void addSelectedBannerPattern() {
             putSpawnEggStringValue(entityTag, row.tagKey(), nextOption.value());
         }
         cleanupSpawnEggEntityTag(entityTag);
-        this.status = Component.translatable(messageKey("editor_spawn_egg_field_updated"),
-                Component.translatable(key("spawnegg." + row.translationSuffix())));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_spawn_egg_field_updated"),
+                new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())));
         rebuildWidgets();
     }
 
@@ -699,14 +699,14 @@ protected void addSelectedBannerPattern() {
     }
 
     protected Component getSpawnEggBooleanText(SpawnEggTagRow row) {
-        return Component.translatable(key("spawnegg.option_state"),
-                Component.translatable(key("spawnegg." + row.translationSuffix())),
-                Component.translatable(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
+        return new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.option_state"),
+                new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())),
+                new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.state." + (getSpawnEggBooleanValue(row) ? 1 : 0))));
     }
 
     protected Component getSpawnEggChoiceText(SpawnEggTagRow row) {
-        return Component.translatable(key("spawnegg.option_state"),
-                Component.translatable(key("spawnegg." + row.translationSuffix())),
+        return new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.option_state"),
+                new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())),
                 getSpawnEggChoiceOptionText(row));
     }
 
@@ -715,11 +715,11 @@ protected void addSelectedBannerPattern() {
         int index = getSpawnEggChoiceIndex(row, currentValue);
         if (index >= 0) {
             SpawnEggChoiceOption option = row.choices().get(index);
-            return Component.translatable(key("spawnegg." + row.translationSuffix() + "." + option.translationSuffix()));
+            return new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix() + "." + option.translationSuffix()));
         }
         return currentValue.isEmpty()
-                ? Component.translatable(key("spawnegg.choice.empty"))
-                : Component.literal(currentValue);
+                ? new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.choice.empty"))
+                : new net.minecraft.network.chat.TextComponent(currentValue);
     }
 
     protected String getSpawnEggChoiceValue(SpawnEggTagRow row) {
@@ -985,12 +985,12 @@ protected void addSelectedBannerPattern() {
     protected List<SpawnEggEntityEntry> getFilteredSpawnEggEntities() {
         String filter = this.spawnEggEntityFilterValue == null ? "" : this.spawnEggEntityFilterValue.trim().toLowerCase(Locale.ROOT);
         List<SpawnEggEntityEntry> entities = new ArrayList<>();
-        for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
+        for (EntityType<?> type : ForgeRegistries.ENTITIES.getValues()) {
             if (!type.canSummon()) {
                 continue;
             }
 
-            ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
+            ResourceLocation id = ForgeRegistries.ENTITIES.getKey(type);
             if (id == null) {
                 continue;
             }
@@ -1024,14 +1024,14 @@ protected void addSelectedBannerPattern() {
         }
 
         String rawId = getSpawnEggEntityIdOverride(this.previewStack);
-        return rawId.isEmpty() ? Component.translatable(key(getSpawnEditorDefaultEntityKey())) : Component.literal(rawId);
+        return rawId.isEmpty() ? new net.minecraft.network.chat.TranslatableComponent(key(getSpawnEditorDefaultEntityKey())) : new net.minecraft.network.chat.TextComponent(rawId);
     }
 
     protected EntityType<?> getCurrentSpawnEggEntityType(ItemStack stack) {
         String rawId = getSpawnEggEntityIdOverride(stack);
         if (!rawId.isEmpty()) {
             ResourceLocation id = ResourceLocation.tryParse(rawId);
-            EntityType<?> type = id == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(id);
+            EntityType<?> type = id == null ? null : ForgeRegistries.ENTITIES.getValue(id);
             if (type != null) {
                 return type;
             }

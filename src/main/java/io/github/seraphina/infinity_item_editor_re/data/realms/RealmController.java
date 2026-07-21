@@ -96,18 +96,18 @@ public class RealmController {
         ItemStack savedStack = stack.copy();
         for (ItemStack existingStack : stackList) {
             if (ItemStack.matches(existingStack, savedStack)) {
-                player.sendSystemMessage(Component.literal("Didn't add ")
+                player.displayClientMessage(new net.minecraft.network.chat.TextComponent("Didn't add ")
                         .append(savedStack.getHoverName())
-                        .append(Component.literal(", as it seems to already exist in the Infinity Realm.")));
+                        .append(new net.minecraft.network.chat.TextComponent(", as it seems to already exist in the Infinity Realm.")), false);
                 return false;
             }
         }
 
         stackList.add(savedStack);
         write();
-        player.sendSystemMessage(Component.literal("Added ")
+        player.displayClientMessage(new net.minecraft.network.chat.TextComponent("Added ")
                 .append(savedStack.getHoverName())
-                .append(Component.literal(" to Infinity Realm.")));
+                .append(new net.minecraft.network.chat.TextComponent(" to Infinity Realm.")), false);
         return true;
     }
 
@@ -120,9 +120,9 @@ public class RealmController {
             if (ItemStack.matches(existingStack, stack)) {
                 stackList.remove(existingStack);
                 write();
-                player.sendSystemMessage(Component.literal("Banished ")
+                player.displayClientMessage(new net.minecraft.network.chat.TextComponent("Banished ")
                         .append(stack.getHoverName())
-                        .append(Component.literal(" from the Infinity Realm.")));
+                        .append(new net.minecraft.network.chat.TextComponent(" from the Infinity Realm.")), false);
                 return true;
             }
         }

@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -78,6 +78,11 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final int MAX_POTION_SECONDS = 99999;
     protected static final int MAX_ATTRIBUTE_INTEGER = 99999999;
     protected static final int FOLDED_REGISTRY_ENTRY_LIMIT = 48;
+
+    protected void rebuildWidgets() {
+        clearWidgets();
+        init();
+    }
     protected static final int FIELD_HEIGHT = 20;
     protected static final int OLD_BUTTON_WIDTH = 60;
     protected static final int OLD_BUTTON_HEIGHT = 20;
@@ -147,27 +152,7 @@ abstract class ItemEditorScreenState extends Screen {
             DECORATED_POT_RIGHT_INDEX
     };
     protected static final Item[] DECORATED_POT_SHERD_ITEMS = {
-            Items.BRICK,
-            Items.ANGLER_POTTERY_SHERD,
-            Items.ARCHER_POTTERY_SHERD,
-            Items.ARMS_UP_POTTERY_SHERD,
-            Items.BLADE_POTTERY_SHERD,
-            Items.BREWER_POTTERY_SHERD,
-            Items.BURN_POTTERY_SHERD,
-            Items.DANGER_POTTERY_SHERD,
-            Items.EXPLORER_POTTERY_SHERD,
-            Items.FRIEND_POTTERY_SHERD,
-            Items.HEART_POTTERY_SHERD,
-            Items.HEARTBREAK_POTTERY_SHERD,
-            Items.HOWL_POTTERY_SHERD,
-            Items.MINER_POTTERY_SHERD,
-            Items.MOURNER_POTTERY_SHERD,
-            Items.PLENTY_POTTERY_SHERD,
-            Items.PRIZE_POTTERY_SHERD,
-            Items.SHEAF_POTTERY_SHERD,
-            Items.SHELTER_POTTERY_SHERD,
-            Items.SKULL_POTTERY_SHERD,
-            Items.SNORT_POTTERY_SHERD
+            Items.BRICK
     };
     protected static final String BOOK_TITLE_TAG = "title";
     protected static final String BOOK_FILTERED_TITLE_TAG = "filtered_title";
@@ -262,7 +247,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected final int parentTradeSlot;
     protected ItemStack previewStack;
     protected Panel activePanel = Panel.ITEM;
-    protected Component status = Component.empty();
+    protected Component status = new net.minecraft.network.chat.TextComponent("");
 
     protected String itemIdValue;
     protected String countValue;
@@ -403,7 +388,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected ColorSlider blueSlider;
 
     protected ItemEditorScreenState(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
-        super(Component.translatable(key("item")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("item")));
         this.originalStack = stack.copy();
         this.targetContainerSlot = targetContainerSlot;
         this.parentTradeScreen = parentTradeScreen;

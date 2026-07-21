@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -129,7 +129,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         this.selectedTradeIndex = recipes.size() - 1;
         scrollTradeSelectionIntoView(recipes);
         readTradeFieldsFromStack(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_trade_added"), recipes.size());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_added"), recipes.size());
         rebuildWidgets();
     }
 
@@ -152,7 +152,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         this.selectedTradeIndex = Mth.clamp(removedIndex, 0, Math.max(0, recipes.size() - 1));
         putVillagerTradeRecipes(recipes);
         readTradeFieldsFromStack(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_trade_removed"), removedIndex + 1);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_removed"), removedIndex + 1);
         rebuildWidgets();
     }
 
@@ -165,7 +165,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         this.selectedTradeIndex = 0;
         this.tradeScroll = 0;
         resetTradeFieldValues();
-        this.status = Component.translatable(messageKey("editor_trades_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trades_cleared"));
         rebuildWidgets();
     }
 
@@ -185,7 +185,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         try {
             ItemStack slotStack = parseTradeSlotItem(this.tradeItemNbtValue);
             if (slotStack.isEmpty() && this.selectedTradeSlot != TRADE_SLOT_SECOND_BUY) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_invalid_item")).getString());
             }
             putTradeSlotItem(recipe, this.selectedTradeSlot, slotStack);
             recipe.putInt(TRADE_USES_TAG, parseTradeIntField(this.tradeUsesValue, "uses", 0, 0, Integer.MAX_VALUE));
@@ -202,13 +202,13 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             recipes.set(this.selectedTradeIndex, recipe);
             putVillagerTradeRecipes(recipes);
             this.tradeItemNbtValue = getTradeSlotItemNbt(slotStack);
-            this.status = Component.translatable(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
             readTradeFieldsFromStack(this.previewStack);
             rebuildWidgets();
         } catch (CommandSyntaxException exception) {
-            this.status = Component.translatable(messageKey("editor_invalid_nbt"), exception.getMessage());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_nbt"), exception.getMessage());
         } catch (IllegalArgumentException exception) {
-            this.status = Component.literal(exception.getMessage());
+            this.status = new net.minecraft.network.chat.TextComponent(exception.getMessage());
         }
     }
 
@@ -224,7 +224,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         recipe.putBoolean(TRADE_REWARD_EXP_TAG, this.tradeRewardExp);
         recipes.set(this.selectedTradeIndex, recipe);
         putVillagerTradeRecipes(recipes);
-        this.status = Component.translatable(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_updated"), this.selectedTradeIndex + 1);
         rebuildWidgets();
     }
 
@@ -252,7 +252,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         this.selectedTradeIndex = Mth.clamp(index, 0, trades.size() - 1);
         this.selectedTradeSlot = TRADE_SLOT_FIRST_BUY;
         this.activePanel = Panel.TRADE;
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         readTradeFieldsFromStack(this.previewStack);
         rebuildWidgets();
     }
@@ -304,7 +304,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
         this.parentTradeScreen.setTradeSlotItem(this.parentTradeIndex, this.parentTradeSlot, this.previewStack.copy());
         this.parentTradeScreen.activePanel = Panel.TRADE;
-        this.parentTradeScreen.status = Component.empty();
+        this.parentTradeScreen.status = new net.minecraft.network.chat.TextComponent("");
         this.parentTradeScreen.rebuildWidgets();
         this.minecraft.setScreen(this.parentTradeScreen);
     }
@@ -467,7 +467,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         CompoundTag itemTag = TagParser.parseTag(trimmed);
         ItemStack stack = ItemStack.of(itemTag);
         if (stack.isEmpty()) {
-            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
+            throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_invalid_item")).getString());
         }
         return stack;
     }
@@ -492,8 +492,8 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             }
             return (int) parsed;
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_number"),
-                    Component.translatable(key("trades." + fieldSuffix)), minValue, maxValue).getString());
+            throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_invalid_number"),
+                    new net.minecraft.network.chat.TranslatableComponent(key("trades." + fieldSuffix)), minValue, maxValue).getString());
         }
     }
 
@@ -510,8 +510,8 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             }
             return parsed;
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_decimal"),
-                    Component.translatable(key("trades." + fieldSuffix))).getString());
+            throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_trade_invalid_decimal"),
+                    new net.minecraft.network.chat.TranslatableComponent(key("trades." + fieldSuffix))).getString());
         }
     }
 
@@ -536,7 +536,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
     protected String formatTradeStack(ItemStack stack) {
         if (stack.isEmpty()) {
-            return Component.translatable(key("trades.empty_slot")).getString();
+            return new net.minecraft.network.chat.TranslatableComponent(key("trades.empty_slot")).getString();
         }
         return stack.getHoverName().getString();
     }
@@ -576,7 +576,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
 
     protected boolean isMouseOverAddTrade(int mouseX, int mouseY) {
         int size = getVillagerTradeCount();
-        return isMouseOverCenteredText(mouseX, mouseY, Component.translatable(key("trades.addtrade")).getString(),
+        return isMouseOverCenteredText(mouseX, mouseY, new net.minecraft.network.chat.TranslatableComponent(key("trades.addtrade")).getString(),
                 this.midX, getTradeListRowY(size, size));
     }
 

@@ -33,7 +33,7 @@ final class NbtFormatter {
     static List<Component> prettyLines(Tag tag) {
         List<Component> lines = new ArrayList<>();
         for (String line : prettyJson(tag).split("\\n")) {
-            lines.add(Component.literal(ChatFormatting.DARK_PURPLE + line));
+            lines.add(new net.minecraft.network.chat.TextComponent(ChatFormatting.DARK_PURPLE + line));
         }
         return lines;
     }

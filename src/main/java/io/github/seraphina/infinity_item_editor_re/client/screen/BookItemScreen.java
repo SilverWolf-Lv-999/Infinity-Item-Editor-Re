@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.screen.legacy.LegacyTextEditBox;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -57,7 +57,7 @@ final class BookItemScreen extends Screen {
     private boolean modified;
 
     BookItemScreen(ItemEditorScreen lastScreen, ItemStack bookStack) {
-        super(Component.translatable(key("book.edit_pages")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("book.edit_pages")));
         this.lastScreen = lastScreen;
         this.bookStack = bookStack;
         readPagesFromStack();
@@ -70,7 +70,7 @@ final class BookItemScreen extends Screen {
         int pageX = left + PAGE_LEFT_OFFSET;
         for (int line = 0; line < PAGE_LINES; line++) {
             EditBox lineBox = new LegacyTextEditBox(this.font, pageX, PAGE_TOP_OFFSET + line * LINE_HEIGHT,
-                    TEXT_WIDTH, LINE_HEIGHT, Component.translatable(key("book.line"), line + 1));
+                    TEXT_WIDTH, LINE_HEIGHT, new net.minecraft.network.chat.TranslatableComponent(key("book.line"), line + 1));
             int lineIndex = line;
             lineBox.setBordered(false);
             lineBox.setTextColor(0);
@@ -84,7 +84,7 @@ final class BookItemScreen extends Screen {
         addRenderableWidget(new InfinityEditorButton(this.width / 2 + 2, 196, 98, 20,
                 CommonComponents.GUI_DONE, button -> returnToLastScreen()));
         this.deletePageButton = addRenderableWidget(new InfinityEditorButton(this.width / 2 - 100, 196, 98, 20,
-                Component.translatable(key("book.delete_page")), button -> deleteCurrentPage()));
+                new net.minecraft.network.chat.TranslatableComponent(key("book.delete_page")), button -> deleteCurrentPage()));
         this.forwardButton = addRenderableWidget(new PageButton(left + 116, 159, true, button -> pageForward(), true));
         this.backButton = addRenderableWidget(new PageButton(left + 43, 159, false, button -> pageBack(), true));
         addFormatButtons();
@@ -160,11 +160,15 @@ final class BookItemScreen extends Screen {
     }
 
     @Override
+    public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        render(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics);
         int left = getBookLeft();
         guiGraphics.blit(BookViewScreen.BOOK_LOCATION, left, 2, 0, 0, IMAGE_WIDTH, IMAGE_WIDTH);
-        Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
+        Component pageMsg = new net.minecraft.network.chat.TranslatableComponent("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
         guiGraphics.drawString(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18, 0, false);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -323,7 +327,7 @@ final class BookItemScreen extends Screen {
         }
         EditBox lineBox = this.lineBoxes.get(line);
         for (EditBox box : this.lineBoxes) {
-            box.setFocused(box == lineBox);
+            box.setFocus(box == lineBox);
         }
         setFocused(lineBox);
         this.lastFocusedLineBox = lineBox;
@@ -354,17 +358,17 @@ final class BookItemScreen extends Screen {
 
         addRenderableWidget(new InfinityEditorButton(startX + FORMAT_BUTTON_WIDTH, startY,
                 FORMAT_BUTTON_WIDTH, FORMAT_BUTTON_HEIGHT,
-                Component.literal(String.valueOf(ChatFormatting.PREFIX_CODE)), button -> insertFocusedText(String.valueOf(ChatFormatting.PREFIX_CODE))));
+                new net.minecraft.network.chat.TextComponent(String.valueOf(ChatFormatting.PREFIX_CODE)), button -> insertFocusedText(String.valueOf(ChatFormatting.PREFIX_CODE))));
         addRenderableWidget(new InfinityEditorButton(startX + FORMAT_BUTTON_WIDTH * 2, startY,
                 FORMAT_BUTTON_WIDTH, FORMAT_BUTTON_HEIGHT,
-                Component.literal(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting()));
+                new net.minecraft.network.chat.TextComponent(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting()));
 
         for (int i = 2; i < colorAmount; i++) {
             ChatFormatting format = formats[i - 2];
             int x = startX + FORMAT_BUTTON_WIDTH * ((i % columns) + 1);
             int y = startY + FORMAT_BUTTON_HEIGHT * (i / columns);
             addRenderableWidget(new InfinityEditorButton(x, y, FORMAT_BUTTON_WIDTH, FORMAT_BUTTON_HEIGHT,
-                    Component.literal(format.toString() + format.getChar()), button -> insertFocusedText(format.toString())));
+                    new net.minecraft.network.chat.TextComponent(format.toString() + format.getChar()), button -> insertFocusedText(format.toString())));
         }
     }
 

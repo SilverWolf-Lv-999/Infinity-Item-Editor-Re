@@ -3,10 +3,10 @@ package io.github.seraphina.infinity_item_editor_re;
 import com.mojang.logging.LogUtils;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
-import io.github.seraphina.infinity_item_editor_re.init.CreativeTabRegistry;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -20,18 +20,17 @@ import java.nio.file.Files;
 public class ModSource {
     public static final String MODID = "infinity_item_editor_re";
     public static final String NAME = "Infinity Item Editor Re";
-    public static final String VERSION = "0.1.0-B";
+    public static final String VERSION = "1.18.2-1.0.0-B";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static File dataDir;
     public static RealmController realmController;
     public static final VoidBuffer voidBuffer = new VoidBuffer();
 
-    public ModSource(FMLJavaModLoadingContext context) {
-        IEventBus modEventBus = context.getModEventBus();
-        CreativeTabRegistry.CREATIVE_TABS.register(modEventBus);
-        context.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> io.github.seraphina.infinity_item_editor_re.client.ConfigScreenRegistration.register(context));
+    public ModSource() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> io.github.seraphina.infinity_item_editor_re.client.ConfigScreenRegistration::register);
     }
 
     public static synchronized void initClientStorage(File minecraftDirectory) {

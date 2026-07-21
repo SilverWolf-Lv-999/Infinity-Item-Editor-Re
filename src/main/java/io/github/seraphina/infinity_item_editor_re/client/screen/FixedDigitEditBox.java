@@ -4,7 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -21,7 +21,7 @@ class FixedDigitEditBox extends EditBox {
     private int cursorFrame;
 
     FixedDigitEditBox(Font font, int x, int y, int width, int height, int digits, int minValue, int maxValue) {
-        super(font, x, y, width, height, Component.empty());
+        super(font, x, y, width, height, new net.minecraft.network.chat.TextComponent(""));
         this.font = font;
         this.digits = Math.max(1, digits);
         this.minValue = minValue;
@@ -30,6 +30,14 @@ class FixedDigitEditBox extends EditBox {
         super.setTextColor(InfinityEditorButton.MAIN_COLOR);
         super.setTextColorUneditable(DISABLED_COLOR);
         setFixedValue(minValue);
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
     }
 
     @Override
@@ -120,6 +128,10 @@ class FixedDigitEditBox extends EditBox {
     }
 
     @Override
+    public void renderButton(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        renderWidget(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!isVisible()) {
             return;

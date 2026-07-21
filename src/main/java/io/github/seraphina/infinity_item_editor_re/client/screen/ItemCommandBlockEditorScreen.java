@@ -2,7 +2,7 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -44,12 +44,12 @@ final class ItemCommandBlockEditorScreen extends Screen {
     private ItemJsonEditorScreen.JsonCodeEditBox commandBox;
     private InfinityEditorButton conditionButton;
     private InfinityEditorButton activationButton;
-    private Component status = Component.empty();
+    private Component status = new net.minecraft.network.chat.TextComponent("");
     private int statusColor = STATUS_NEUTRAL;
     private boolean discardArmed;
 
     ItemCommandBlockEditorScreen(ItemEditorScreen lastScreen, ItemStack stack) {
-        super(Component.translatable(key("commandblock")));
+        super(new net.minecraft.network.chat.TranslatableComponent(key("commandblock")));
         this.lastScreen = lastScreen;
         this.commandStack = stack.copy();
         this.supportsCommandBlockOptions = supportsCommandBlockOptions(this.commandStack);
@@ -78,7 +78,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
         int editorTop = this.supportsCommandBlockOptions ? EDITOR_TOP_WITH_OPTIONS : EDITOR_TOP;
         int editorHeight = Math.max(80, this.height - editorTop - EDITOR_BOTTOM_MARGIN);
         this.commandBox = addRenderableWidget(new ItemJsonEditorScreen.JsonCodeEditBox(this.font, EDITOR_MARGIN, editorTop,
-                editorWidth, editorHeight, Component.translatable(key("commandblock.placeholder"))));
+                editorWidth, editorHeight, new net.minecraft.network.chat.TranslatableComponent(key("commandblock.placeholder"))));
         this.commandBox.useCommandCompletions();
         this.commandBox.setValue(this.commandText);
         this.commandBox.setValueListener(value -> {
@@ -86,7 +86,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
             this.discardArmed = false;
         });
         setFocused(this.commandBox);
-        this.commandBox.setFocused(true);
+        this.commandBox.setFocus(true);
 
         int buttons = 4;
         int buttonWidth = Mth.clamp((this.width - EDITOR_MARGIN * 2 - (buttons - 1) * 4) / buttons, 58, 86);
@@ -94,13 +94,13 @@ final class ItemCommandBlockEditorScreen extends Screen {
         int x = (this.width - totalWidth) / 2;
         int buttonY = this.height - 28;
         addRenderableWidget(new InfinityEditorButton(x, buttonY, buttonWidth, BUTTON_HEIGHT,
-                Component.translatable(key("back")), button -> returnToLastScreen()));
+                new net.minecraft.network.chat.TranslatableComponent(key("back")), button -> returnToLastScreen()));
         addRenderableWidget(new InfinityEditorButton(x + (buttonWidth + 4), buttonY, buttonWidth, BUTTON_HEIGHT,
-                Component.translatable(key("reset")), button -> resetCommand()));
+                new net.minecraft.network.chat.TranslatableComponent(key("reset")), button -> resetCommand()));
         addRenderableWidget(new InfinityEditorButton(x + (buttonWidth + 4) * 2, buttonY, buttonWidth, BUTTON_HEIGHT,
-                Component.translatable(key("clear")), button -> clearCommand()));
+                new net.minecraft.network.chat.TranslatableComponent(key("clear")), button -> clearCommand()));
         addRenderableWidget(new InfinityEditorButton(x + (buttonWidth + 4) * 3, buttonY, buttonWidth, BUTTON_HEIGHT,
-                Component.translatable(key("commandblock.apply")), button -> applyCommand(false)));
+                new net.minecraft.network.chat.TranslatableComponent(key("commandblock.apply")), button -> applyCommand(false)));
     }
 
     @Override
@@ -135,12 +135,16 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     @Override
+    public void render(com.mojang.blaze3d.vertex.PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        render(GuiGraphics.wrap(poseStack), mouseX, mouseY, partialTick);
+    }
+
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(guiGraphics);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, InfinityEditorButton.MAIN_COLOR);
         guiGraphics.renderItem(this.commandStack, 20, 12);
         guiGraphics.renderItemDecorations(this.font, this.commandStack, 20, 12);
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("commandblock.target")),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("commandblock.target")),
                 this.width / 2, 26, InfinityEditorButton.ALT_COLOR);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         if (!this.status.getString().isEmpty()) {
@@ -191,7 +195,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
             this.commandBox.clearError();
         }
         syncOptionButtons();
-        this.status = Component.translatable(messageKey("editor_command_block_applied"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_command_block_applied"));
         this.statusColor = STATUS_GOOD;
         if (returnAfterApply) {
             returnToLastScreen();
@@ -212,7 +216,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
             this.commandBox.clearError();
         }
         syncOptionButtons();
-        this.status = Component.translatable(messageKey("editor_command_block_reset"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_command_block_reset"));
         this.statusColor = STATUS_NEUTRAL;
     }
 
@@ -223,18 +227,18 @@ final class ItemCommandBlockEditorScreen extends Screen {
             this.commandBox.setValue("");
             this.commandBox.clearError();
         }
-        this.status = Component.translatable(messageKey("editor_command_block_cleared"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_command_block_cleared"));
         this.statusColor = STATUS_NEUTRAL;
     }
 
     private void returnToLastScreen() {
         if (isDirty() && !this.discardArmed) {
             this.discardArmed = true;
-            this.status = Component.translatable(messageKey("editor_command_block_unsaved"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_command_block_unsaved"));
             this.statusColor = STATUS_NEUTRAL;
             if (this.commandBox != null) {
                 setFocused(this.commandBox);
-                this.commandBox.setFocused(true);
+                this.commandBox.setFocus(true);
             }
             return;
         }
@@ -263,7 +267,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
         if (this.font.width(text) <= maxWidth) {
             return this.status;
         }
-        return Component.literal(this.font.plainSubstrByWidth(text, maxWidth - this.font.width("...")) + "...");
+        return new net.minecraft.network.chat.TextComponent(this.font.plainSubstrByWidth(text, maxWidth - this.font.width("...")) + "...");
     }
 
     private String readCommand(ItemStack stack) {
@@ -372,13 +376,13 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     private Component conditionModeText() {
-        return Component.translatable(key("commandblock.condition_mode"),
-                Component.translatable(key(this.unconditional ? "commandblock.unconditional" : "commandblock.conditional")));
+        return new net.minecraft.network.chat.TranslatableComponent(key("commandblock.condition_mode"),
+                new net.minecraft.network.chat.TranslatableComponent(key(this.unconditional ? "commandblock.unconditional" : "commandblock.conditional")));
     }
 
     private Component activationModeText() {
-        return Component.translatable(key("commandblock.activation_mode"),
-                Component.translatable(key(this.alwaysActive ? "commandblock.always_active" : "commandblock.needs_redstone")));
+        return new net.minecraft.network.chat.TranslatableComponent(key("commandblock.activation_mode"),
+                new net.minecraft.network.chat.TranslatableComponent(key(this.alwaysActive ? "commandblock.always_active" : "commandblock.needs_redstone")));
     }
 
     private String dataTagKey(ItemStack stack) {

@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
@@ -9,7 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -133,27 +133,27 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     private Component activePanelTitle() {
         return switch (this.activePanel) {
-            case ITEM -> Component.translatable(key("item"));
-            case NBT -> Component.translatable(key("nbt"));
-            case NBT_ADVANCED -> Component.translatable(key("nbtadv"));
-            case HIDE_FLAGS -> Component.translatable(key("hideflags"));
-            case ENCHANTMENTS -> Component.translatable(key("enchanting"));
-            case POTION -> Component.translatable(key("potion"));
-            case ATTRIBUTES -> Component.translatable(key("attributes"));
-            case COLOR -> Component.translatable(key("color"));
-            case SIGN -> Component.translatable(key("sign"));
-            case HEAD -> Component.translatable(key("head"));
-            case ARMOR_STAND -> Component.translatable(key("armorstand"));
-            case FIREWORK -> Component.translatable(key("firework"));
-            case CONTAINER -> Component.translatable(key("container"));
-            case BANNER -> Component.translatable(key("banner"));
-            case DECORATED_POT -> Component.translatable(key("decorated_pot"));
-            case SPAWN_EGG -> Component.translatable(key(getSpawnEditorTitleKey()));
-            case TRADES -> Component.translatable(key("trades"));
-            case TRADE -> Component.translatable(key("trade"));
-            case BOOK -> Component.translatable(key("book"));
-            case LORE -> Component.translatable(key("lore"));
-            case LORE_PAINTER -> Component.translatable(key("lorepainter"));
+            case ITEM -> new net.minecraft.network.chat.TranslatableComponent(key("item"));
+            case NBT -> new net.minecraft.network.chat.TranslatableComponent(key("nbt"));
+            case NBT_ADVANCED -> new net.minecraft.network.chat.TranslatableComponent(key("nbtadv"));
+            case HIDE_FLAGS -> new net.minecraft.network.chat.TranslatableComponent(key("hideflags"));
+            case ENCHANTMENTS -> new net.minecraft.network.chat.TranslatableComponent(key("enchanting"));
+            case POTION -> new net.minecraft.network.chat.TranslatableComponent(key("potion"));
+            case ATTRIBUTES -> new net.minecraft.network.chat.TranslatableComponent(key("attributes"));
+            case COLOR -> new net.minecraft.network.chat.TranslatableComponent(key("color"));
+            case SIGN -> new net.minecraft.network.chat.TranslatableComponent(key("sign"));
+            case HEAD -> new net.minecraft.network.chat.TranslatableComponent(key("head"));
+            case ARMOR_STAND -> new net.minecraft.network.chat.TranslatableComponent(key("armorstand"));
+            case FIREWORK -> new net.minecraft.network.chat.TranslatableComponent(key("firework"));
+            case CONTAINER -> new net.minecraft.network.chat.TranslatableComponent(key("container"));
+            case BANNER -> new net.minecraft.network.chat.TranslatableComponent(key("banner"));
+            case DECORATED_POT -> new net.minecraft.network.chat.TranslatableComponent(key("decorated_pot"));
+            case SPAWN_EGG -> new net.minecraft.network.chat.TranslatableComponent(key(getSpawnEditorTitleKey()));
+            case TRADES -> new net.minecraft.network.chat.TranslatableComponent(key("trades"));
+            case TRADE -> new net.minecraft.network.chat.TranslatableComponent(key("trade"));
+            case BOOK -> new net.minecraft.network.chat.TranslatableComponent(key("book"));
+            case LORE -> new net.minecraft.network.chat.TranslatableComponent(key("lore"));
+            case LORE_PAINTER -> new net.minecraft.network.chat.TranslatableComponent(key("lorepainter"));
         };
     }
 
@@ -207,14 +207,14 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 40);
-        drawPanelTitle(guiGraphics, Component.translatable(key("item")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item")));
 
-        drawRightLabel(guiGraphics, Component.translatable(key("item.id")), this.midX - 5, 61);
-        drawRightLabel(guiGraphics, Component.translatable(key("item.count")), this.midX - 5, 91);
-        drawRightLabel(guiGraphics, Component.translatable(key("item.meta")), this.midX - 5, 121);
+        drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.id")), this.midX - 5, 61);
+        drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.count")), this.midX - 5, 91);
+        drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.meta")), this.midX - 5, 121);
 
-        guiGraphics.drawString(this.font, Component.translatable(key("item.name")), this.width - 110, 35, MAIN_COLOR);
-        guiGraphics.drawString(this.font, Component.translatable(key("item.lore")), this.width - 110, 80, MAIN_COLOR);
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("item.name")), this.width - 110, 35, MAIN_COLOR);
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("item.lore")), this.width - 110, 80, MAIN_COLOR);
     }
 
     private void renderSidebarItemPanel(GuiGraphics guiGraphics) {
@@ -223,22 +223,22 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         renderSidebarItemDrawers(guiGraphics);
 
-        drawPanelTitle(guiGraphics, Component.translatable(key("item")));
-        drawFieldLabel(guiGraphics, Component.translatable(key("item.id")), this.itemIdBox);
-        drawFieldLabel(guiGraphics, Component.translatable(key("item.count")), this.countBox);
-        drawFieldLabel(guiGraphics, Component.translatable(key("item.meta")), this.damageBox);
-        drawFieldLabel(guiGraphics, Component.translatable(key("item.name")), this.nameBox);
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item")));
+        drawFieldLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.id")), this.itemIdBox);
+        drawFieldLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.count")), this.countBox);
+        drawFieldLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.meta")), this.damageBox);
+        drawFieldLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("item.name")), this.nameBox);
 
         if (!this.loreBoxes.isEmpty()) {
             for (int i = 0; i < this.loreBoxes.size(); i++) {
                 EditBox loreBox = this.loreBoxes.get(i);
-                guiGraphics.drawString(this.font, Component.literal("Lore " + (i + 1)),
-                        loreBox.getX(), loreBox.getY() - 9, ModernUi.TEXT_MUTED, false);
+                guiGraphics.drawString(this.font, new net.minecraft.network.chat.TextComponent("Lore " + (i + 1)),
+                        loreBox.x, loreBox.y - 9, ModernUi.TEXT_MUTED, false);
             }
         }
 
         if (canShowSidebarActionGrid()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("ui.actions")),
+            guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("ui.actions")),
                     getActionGridX(), getActionGridY() - 12, ModernUi.TEXT_MUTED, false);
         }
     }
@@ -246,19 +246,19 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     private void renderSidebarItemDrawers(GuiGraphics guiGraphics) {
         if (this.itemIdBox != null && this.countBox != null && this.damageBox != null) {
             int left = safeLeft() + 8;
-            int right = Math.min(safeRight() - 8, Math.max(this.itemIdBox.getX() + this.itemIdBox.getWidth(),
-                    this.damageBox.getX() + this.damageBox.getWidth()) + 12);
-            int top = Math.max(42, this.itemIdBox.getY() - 20);
-            int bottom = this.damageBox.getY() + this.damageBox.getHeight() + 12;
+            int right = Math.min(safeRight() - 8, Math.max(this.itemIdBox.x + this.itemIdBox.getWidth(),
+                    this.damageBox.x + this.damageBox.getWidth()) + 12);
+            int top = Math.max(42, this.itemIdBox.y - 20);
+            int bottom = this.damageBox.y + this.damageBox.getHeight() + 12;
             if (right > left && bottom > top) {
                 ModernUi.fillToolDrawer(guiGraphics, left, top, right, bottom, false);
             }
         }
 
         if (this.nameBox != null) {
-            int left = Math.max(safeLeft(), this.nameBox.getX() - SIDEBAR_DRAWER_PADDING);
-            int right = Math.min(safeRight(), this.nameBox.getX() + this.nameBox.getWidth() + 58);
-            int top = Math.max(42, this.nameBox.getY() - 20);
+            int left = Math.max(safeLeft(), this.nameBox.x - SIDEBAR_DRAWER_PADDING);
+            int right = Math.min(safeRight(), this.nameBox.x + this.nameBox.getWidth() + 58);
+            int top = Math.max(42, this.nameBox.y - 20);
             int bottom = Math.min(sidebarBottomButtonY() - 8, sidebarNameCardBottom() + 10);
             if (right > left && bottom > top) {
                 ModernUi.fillToolDrawer(guiGraphics, left, top, right, bottom, false);
@@ -279,7 +279,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     private void drawFieldLabel(GuiGraphics guiGraphics, Component text, EditBox box) {
         if (box != null) {
-            guiGraphics.drawString(this.font, text, box.getX(), box.getY() - 9, ModernUi.TEXT_MUTED, false);
+            guiGraphics.drawString(this.font, text, box.x, box.y - 9, ModernUi.TEXT_MUTED, false);
         }
     }
 
@@ -287,7 +287,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 38);
-        drawPanelTitle(guiGraphics, Component.translatable(key("nbt")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("nbt")));
         if (!this.nbtFeedback.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, 130, this.nbtFeedbackGood ? GOOD_GREEN : BAD_RED);
         }
@@ -302,7 +302,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             guiGraphics.fill(18, 40, 20, this.height - 20, mainColor);
             guiGraphics.fill(this.width - 20, 40, this.width - 18, this.height - 20, mainColor);
             guiGraphics.fill(18, this.height - 20, this.width - 18, this.height - 18, mainColor);
-            guiGraphics.drawString(this.font, ModSource.MODID + " - " + Component.translatable(key("nbtadv")).getString(), 25, 26, CYAN);
+            guiGraphics.drawString(this.font, ModSource.MODID + " - " + new net.minecraft.network.chat.TranslatableComponent(key("nbtadv")).getString(), 25, 26, CYAN);
 
             List<NbtRow> rows = buildNbtRows();
             int visibleRows = getNbtAdvancedVisibleRows();
@@ -316,7 +316,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 guiGraphics.drawString(this.font, row.displayText(), x, y, color);
             }
 
-            String unfinished = Component.translatable(key("nbtadv.unfinished")).getString();
+            String unfinished = new net.minecraft.network.chat.TranslatableComponent(key("nbtadv.unfinished")).getString();
             guiGraphics.drawString(this.font, unfinished, this.width - this.font.width(unfinished) - 25, this.height - 30, 0xFFFFFF32);
             return;
         }
@@ -328,7 +328,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         ModernUi.fillGlassPanel(guiGraphics, left, top, right, bottom, 8);
         guiGraphics.fillGradient(left + 1, top + 1, right - 1, top + 22,
                 ModernUi.alpha(0xFFB347, 64), ModernUi.alpha(0x62D1C7, 18));
-        guiGraphics.drawString(this.font, ModSource.MODID + " / " + Component.translatable(key("nbtadv")).getString(),
+        guiGraphics.drawString(this.font, ModSource.MODID + " / " + new net.minecraft.network.chat.TranslatableComponent(key("nbtadv")).getString(),
                 left + 9, top + 8, ModernUi.TEXT_PRIMARY, false);
 
         List<NbtRow> rows = buildNbtRows();
@@ -346,7 +346,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             guiGraphics.drawString(this.font, row.displayText(), x, y, color, false);
         }
 
-        String unfinished = Component.translatable(key("nbtadv.unfinished")).getString();
+        String unfinished = new net.minecraft.network.chat.TranslatableComponent(key("nbtadv.unfinished")).getString();
         guiGraphics.drawString(this.font, unfinished, right - this.font.width(unfinished) - 10, bottom - 13, ModernUi.WARM);
     }
 
@@ -358,14 +358,14 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     protected void renderBookPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 40);
-        drawPanelTitle(guiGraphics, Component.translatable(key("book")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("book")));
         if (this.bookTitleBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("book.title")), this.bookTitleBox.getX() - 5, this.bookTitleBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("book.title")), this.bookTitleBox.x - 5, this.bookTitleBox.y + 6);
         }
         if (this.bookAuthorBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("book.author")), this.bookAuthorBox.getX() - 5, this.bookAuthorBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("book.author")), this.bookAuthorBox.x - 5, this.bookAuthorBox.y + 6);
         }
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("book.pages"), getBookPageCount()),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("book.pages"), getBookPageCount()),
                 this.midX, 128, panelAccentColor());
     }
 
@@ -373,19 +373,19 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 36);
-        drawPanelTitle(guiGraphics, Component.translatable(key("head")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("head")));
         if (this.headOwnerBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("head.owner")), this.headOwnerBox.getX() - 5, this.headOwnerBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("head.owner")), this.headOwnerBox.x - 5, this.headOwnerBox.y + 6);
         }
         if (this.headUuidBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("head.uuid")), this.headUuidBox.getX() - 5, this.headUuidBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("head.uuid")), this.headUuidBox.x - 5, this.headUuidBox.y + 6);
         }
         if (this.headTextureBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("head.texture")), this.headTextureBox.getX() - 5, this.headTextureBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("head.texture")), this.headTextureBox.x - 5, this.headTextureBox.y + 6);
         }
         if (this.headTextureSignatureBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("head.signature")),
-                    this.headTextureSignatureBox.getX() - 5, this.headTextureSignatureBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("head.signature")),
+                    this.headTextureSignatureBox.x - 5, this.headTextureSignatureBox.y + 6);
         }
     }
 
@@ -393,30 +393,30 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 36);
-        drawPanelTitle(guiGraphics, Component.translatable(key("armorstand")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("armorstand")));
     }
 
     protected void renderFireworkPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
         renderPrettyNbt(guiGraphics);
         renderSmallItem(guiGraphics, this.midX, 36);
-        drawPanelTitle(guiGraphics, Component.translatable(key("firework")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("firework")));
         int infoX = Math.min(this.width - 155, this.midX + 96);
-        guiGraphics.drawString(this.font, Component.translatable(key("firework.explosions"), getFireworkExplosionCount()),
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("firework.explosions"), getFireworkExplosionCount()),
                 infoX, 58, panelAccentColor());
     }
 
     protected void renderSimpleItemPanelTitle(GuiGraphics guiGraphics, String titleKey, int itemY) {
         renderSmallItem(guiGraphics, this.midX, itemY);
-        drawPanelTitle(guiGraphics, Component.translatable(key(titleKey)));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key(titleKey)));
     }
 
     protected void renderEnchantmentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int centerX = contentMidX();
-        drawPanelTitle(guiGraphics, Component.translatable(key("enchanting")));
-        drawCenteredLabel(guiGraphics, Component.translatable(key("enchanting.search")),
-                this.enchantFilterBox.getX() + this.enchantFilterBox.getWidth() / 2,
-                this.enchantFilterBox.getY() - 12);
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("enchanting")));
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("enchanting.search")),
+                this.enchantFilterBox.x + this.enchantFilterBox.getWidth() / 2,
+                this.enchantFilterBox.y - 12);
         renderActiveEnchantments(guiGraphics);
         updateMouseDistance(mouseX, mouseY);
         renderLargePreviewItem(guiGraphics);
@@ -432,7 +432,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 double groupAngle = rotation + angle * i;
                 int x = (int) (centerX + radius * Math.cos(groupAngle));
                 int y = (int) (this.midY + radius * Math.sin(groupAngle));
-                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.enchantments().size()).getString();
+                String label = new net.minecraft.network.chat.TranslatableComponent(key("registry_group.entry"), group.namespace(), group.enchantments().size()).getString();
                 guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
                 guiGraphics.renderItem(this.enchantBook, x - 8, y - 8);
                 guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
@@ -441,7 +441,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (filteredEnchantments.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_enchantment_matches")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("no_enchantment_matches")),
                     centerX, this.midY + 34, panelAccentColor());
             return;
         }
@@ -460,14 +460,14 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (isMouseOverCenter(mouseX, mouseY)) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("enchanting.addall")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("enchanting.addall")),
                     centerX, this.midY, panelAccentColor());
         }
     }
 
     protected void renderPotionPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int centerX = contentMidX();
-        drawPanelTitle(guiGraphics, Component.translatable(key("potion")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("potion")));
         List<MobEffectInstance> activeEffects = getCustomPotionEffects();
         int start = this.midY - 5 * activeEffects.size();
         for (int i = 0; i < activeEffects.size(); i++) {
@@ -481,11 +481,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             guiGraphics.drawString(this.font, formatPotionEffect(effect), editorListTextLeft(), rowY, color, false);
         }
 
-        drawCenteredLabel(guiGraphics, Component.translatable(key("enchanting.search")),
-                this.potionFilterBox.getX() + this.potionFilterBox.getWidth() / 2,
-                this.potionFilterBox.getY() - 12);
-        guiGraphics.drawString(this.font, Component.translatable(key("potion.time")), editorControlLeft() + 47, this.height - 56, panelLabelColor());
-        guiGraphics.drawString(this.font, Component.translatable(key("potion.level")), editorControlLeft() + 47, this.height - 29, panelLabelColor());
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("enchanting.search")),
+                this.potionFilterBox.x + this.potionFilterBox.getWidth() / 2,
+                this.potionFilterBox.y - 12);
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("potion.time")), editorControlLeft() + 47, this.height - 56, panelLabelColor());
+        guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("potion.level")), editorControlLeft() + 47, this.height - 29, panelLabelColor());
 
         updateMouseDistance(mouseX, mouseY);
         renderLargePreviewItem(guiGraphics);
@@ -501,7 +501,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 double groupAngle = rotation + angle * i;
                 int x = (int) (centerX + radius * Math.cos(groupAngle));
                 int y = (int) (this.midY + radius * Math.sin(groupAngle));
-                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.effects().size()).getString();
+                String label = new net.minecraft.network.chat.TranslatableComponent(key("registry_group.entry"), group.namespace(), group.effects().size()).getString();
                 guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
                 guiGraphics.renderItem(this.potionIcon, x - 8, y - 8);
                 guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
@@ -510,7 +510,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (filteredEffects.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_potion_matches")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("no_potion_matches")),
                     centerX, this.midY + 34, panelAccentColor());
             return;
         }
@@ -529,17 +529,17 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (isMouseOverCenter(mouseX, mouseY)) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("enchanting.addall")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("enchanting.addall")),
                     centerX, this.midY, panelAccentColor());
         }
     }
 
     protected void renderAttributesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         int centerX = contentMidX();
-        drawPanelTitle(guiGraphics, Component.translatable(key("attributes")));
-        drawCenteredLabel(guiGraphics, Component.translatable(key("enchanting.search")),
-                this.attributeFilterBox.getX() + this.attributeFilterBox.getWidth() / 2,
-                this.attributeFilterBox.getY() - 12);
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("attributes")));
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("enchanting.search")),
+                this.attributeFilterBox.x + this.attributeFilterBox.getWidth() / 2,
+                this.attributeFilterBox.y - 12);
         List<AttributeEntry> entries = getAttributeModifierEntries();
         int start = this.midY - 5 * entries.size();
         for (int i = 0; i < entries.size(); i++) {
@@ -566,7 +566,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 double groupAngle = rotation + angle * i;
                 int x = (int) (centerX + radius * Math.cos(groupAngle));
                 int y = (int) (this.midY + radius * Math.sin(groupAngle));
-                String label = Component.translatable(key("registry_group.entry"), group.namespace(), group.attributes().size()).getString();
+                String label = new net.minecraft.network.chat.TranslatableComponent(key("registry_group.entry"), group.namespace(), group.attributes().size()).getString();
                 guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(label, 118), x, y - 17, panelTitleColor());
                 guiGraphics.renderItem(this.attributeIcon, x - 8, y - 8);
                 guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
@@ -575,7 +575,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         if (attributes.isEmpty()) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("no_attribute_matches")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("no_attribute_matches")),
                     centerX, this.midY + 34, panelAccentColor());
             return;
         }
@@ -588,7 +588,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             double attributeAngle = rotation + angle * i;
             int x = (int) (centerX + radius * Math.cos(attributeAngle));
             int y = (int) (this.midY + radius * Math.sin(attributeAngle));
-            guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(Component.translatable(attribute.getDescriptionId()).getString(), 118),
+            guiGraphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(new net.minecraft.network.chat.TranslatableComponent(attribute.getDescriptionId()).getString(), 118),
                     x, y - 17, panelTitleColor());
             guiGraphics.renderItem(this.attributeIcon, x - 8, y - 8);
             guiGraphics.fill(x - 1, y - 1, x + 1, y + 1, isSidebarUi() ? ModernUi.ACCENT_HOVER : 0xFFFFFFFF);
@@ -604,43 +604,43 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         guiGraphics.renderItem(this.previewStack, isSidebarUi() ? this.midX / 4 - 8 : this.width / 8 - 8, 5);
         guiGraphics.pose().popPose();
 
-        drawPanelTitle(guiGraphics, Component.translatable(key("color")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("color")));
 
         int color = getEditorColor();
         if (this.redSlider != null && this.greenSlider != null && this.blueSlider != null) {
             if (isSidebarUi()) {
-                ModernUi.fillPanel(guiGraphics, this.redSlider.getX() - 9, this.redSlider.getY() - 9,
-                        this.blueSlider.getX() + this.blueSlider.getWidth() + 9,
-                        this.blueSlider.getY() + this.blueSlider.getHeight() + 9,
+                ModernUi.fillPanel(guiGraphics, this.redSlider.x - 9, this.redSlider.y - 9,
+                        this.blueSlider.x + this.blueSlider.getWidth() + 9,
+                        this.blueSlider.y + this.blueSlider.getHeight() + 9,
                         8, ModernUi.lerpColor(ModernUi.SURFACE_SOFT, argb(110, color), 0.35F), ModernUi.BORDER);
-                guiGraphics.fill(this.redSlider.getX() - 2, this.redSlider.getY() - 2,
-                        this.redSlider.getX() + this.redSlider.getWidth() + 2,
-                        this.redSlider.getY() + this.redSlider.getHeight() + 2,
+                guiGraphics.fill(this.redSlider.x - 2, this.redSlider.y - 2,
+                        this.redSlider.x + this.redSlider.getWidth() + 2,
+                        this.redSlider.y + this.redSlider.getHeight() + 2,
                         argb(120, getRed(color) << 16));
-                guiGraphics.fill(this.greenSlider.getX() - 2, this.greenSlider.getY() - 2,
-                        this.greenSlider.getX() + this.greenSlider.getWidth() + 2,
-                        this.greenSlider.getY() + this.greenSlider.getHeight() + 2,
+                guiGraphics.fill(this.greenSlider.x - 2, this.greenSlider.y - 2,
+                        this.greenSlider.x + this.greenSlider.getWidth() + 2,
+                        this.greenSlider.y + this.greenSlider.getHeight() + 2,
                         argb(120, getGreen(color) << 8));
-                guiGraphics.fill(this.blueSlider.getX() - 2, this.blueSlider.getY() - 2,
-                        this.blueSlider.getX() + this.blueSlider.getWidth() + 2,
-                        this.blueSlider.getY() + this.blueSlider.getHeight() + 2,
+                guiGraphics.fill(this.blueSlider.x - 2, this.blueSlider.y - 2,
+                        this.blueSlider.x + this.blueSlider.getWidth() + 2,
+                        this.blueSlider.y + this.blueSlider.getHeight() + 2,
                         argb(120, getBlue(color)));
             } else {
-                guiGraphics.fill(this.redSlider.getX() - 5, this.redSlider.getY() - 5,
-                        this.blueSlider.getX() + this.blueSlider.getWidth() + 5,
-                        this.blueSlider.getY() + this.blueSlider.getHeight() + 5,
+                guiGraphics.fill(this.redSlider.x - 5, this.redSlider.y - 5,
+                        this.blueSlider.x + this.blueSlider.getWidth() + 5,
+                        this.blueSlider.y + this.blueSlider.getHeight() + 5,
                         argb(100, color));
-                guiGraphics.fill(this.redSlider.getX() - 2, this.redSlider.getY() - 2,
-                        this.redSlider.getX() + this.redSlider.getWidth() + 2,
-                        this.redSlider.getY() + this.redSlider.getHeight() + 2,
+                guiGraphics.fill(this.redSlider.x - 2, this.redSlider.y - 2,
+                        this.redSlider.x + this.redSlider.getWidth() + 2,
+                        this.redSlider.y + this.redSlider.getHeight() + 2,
                         argb(255, getRed(color) << 16));
-                guiGraphics.fill(this.greenSlider.getX() - 2, this.greenSlider.getY() - 2,
-                        this.greenSlider.getX() + this.greenSlider.getWidth() + 2,
-                        this.greenSlider.getY() + this.greenSlider.getHeight() + 2,
+                guiGraphics.fill(this.greenSlider.x - 2, this.greenSlider.y - 2,
+                        this.greenSlider.x + this.greenSlider.getWidth() + 2,
+                        this.greenSlider.y + this.greenSlider.getHeight() + 2,
                         argb(255, getGreen(color) << 8));
-                guiGraphics.fill(this.blueSlider.getX() - 2, this.blueSlider.getY() - 2,
-                        this.blueSlider.getX() + this.blueSlider.getWidth() + 2,
-                        this.blueSlider.getY() + this.blueSlider.getHeight() + 2,
+                guiGraphics.fill(this.blueSlider.x - 2, this.blueSlider.y - 2,
+                        this.blueSlider.x + this.blueSlider.getWidth() + 2,
+                        this.blueSlider.y + this.blueSlider.getHeight() + 2,
                         argb(255, getBlue(color)));
             }
             renderDyeGrid(guiGraphics);
@@ -649,21 +649,21 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderSignPanel(GuiGraphics guiGraphics) {
         renderSmallItem(guiGraphics, this.midX, 35);
-        drawPanelTitle(guiGraphics, Component.translatable(key("sign")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("sign")));
 
         for (int i = 0; i < SIGN_LINES && i < this.signBoxes.size(); i++) {
             EditBox box = this.signBoxes.get(i);
-            drawRightLabel(guiGraphics, Component.translatable(key("sign.line"), i + 1), box.getX() - 5, box.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("sign.line"), i + 1), box.x - 5, box.y + 6);
         }
         if (this.signCommandBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("sign.command")),
-                    this.signCommandBox.getX() - 5, this.signCommandBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("sign.command")),
+                    this.signCommandBox.x - 5, this.signCommandBox.y + 6);
         }
     }
 
     protected void renderContainerPanel(GuiGraphics guiGraphics) {
         renderSmallItem(guiGraphics, this.midX, 34);
-        drawPanelTitle(guiGraphics, Component.translatable(key("container")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("container")));
 
         int gridX = getContainerGridX();
         int gridY = getContainerGridY();
@@ -690,23 +690,23 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             }
         }
 
-        Component selected = Component.translatable(key("container.slot"), this.selectedContainerSlot + 1);
-        Component itemCount = Component.translatable(key("container.items"), getContainerItemCount());
+        Component selected = new net.minecraft.network.chat.TranslatableComponent(key("container.slot"), this.selectedContainerSlot + 1);
+        Component itemCount = new net.minecraft.network.chat.TranslatableComponent(key("container.items"), getContainerItemCount());
         int infoY = gridY + CONTAINER_ROWS * CONTAINER_SLOT_PIXEL_SIZE + 6;
         guiGraphics.drawString(this.font, selected, gridX, infoY, isSidebarUi() ? ModernUi.TEXT_PRIMARY : MAIN_COLOR);
         guiGraphics.drawString(this.font, itemCount,
                 gridX + CONTAINER_COLUMNS * CONTAINER_SLOT_PIXEL_SIZE - this.font.width(itemCount), infoY,
                 isSidebarUi() ? ModernUi.TEXT_MUTED : ALT_COLOR);
         if (this.containerSlotNbtBox != null) {
-            drawCenteredLabel(guiGraphics, Component.translatable(key("container.slot_nbt")),
-                    this.containerSlotNbtBox.getX() + this.containerSlotNbtBox.getWidth() / 2,
-                    this.containerSlotNbtBox.getY() - 12);
+            drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("container.slot_nbt")),
+                    this.containerSlotNbtBox.x + this.containerSlotNbtBox.getWidth() / 2,
+                    this.containerSlotNbtBox.y - 12);
         }
     }
 
     protected void renderBannerPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
-        drawPanelTitle(guiGraphics, Component.translatable(key("banner")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("banner")));
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.midX, 78, 100.0F);
@@ -714,9 +714,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         guiGraphics.renderItem(this.previewStack, -8, -8);
         guiGraphics.pose().popPose();
 
-        drawCenteredLabel(guiGraphics, Component.translatable(key("banner.search")),
-                this.bannerPatternFilterBox.getX() + this.bannerPatternFilterBox.getWidth() / 2,
-                this.bannerPatternFilterBox.getY() - 12);
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("banner.search")),
+                this.bannerPatternFilterBox.x + this.bannerPatternFilterBox.getWidth() / 2,
+                this.bannerPatternFilterBox.y - 12);
 
         List<BannerPatternEntry> patterns = getFilteredBannerPatterns();
         clampBannerPatternSelection(patterns);
@@ -727,7 +727,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     getBannerPatternRowY(BANNER_PATTERN_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         if (patterns.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("banner.no_match")),
+            guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("banner.no_match")),
                     listX + 2, getBannerPatternRowY(0), BAD_RED);
         } else {
             int end = Math.min(patterns.size(), this.bannerPatternScroll + BANNER_PATTERN_ROWS);
@@ -745,9 +745,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         Component selected = patterns.isEmpty()
-                ? Component.translatable(key("banner.no_match"))
+                ? new net.minecraft.network.chat.TranslatableComponent(key("banner.no_match"))
                 : getBannerPatternName(patterns.get(this.selectedBannerPatternIndex), getBannerPatternColor());
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("banner.selected"), selected),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("banner.selected"), selected),
                 this.midX, this.height - 78, panelTitleColor());
 
         renderBannerPatternLayers(guiGraphics);
@@ -755,7 +755,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderDecoratedPotPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
-        drawPanelTitle(guiGraphics, Component.translatable(key("decorated_pot")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("decorated_pot")));
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.midX, 78, 100.0F);
@@ -772,13 +772,13 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     8, ModernUi.SURFACE, ModernUi.BORDER);
         }
 
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.patterns")),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("decorated_pot.patterns")),
                 this.midX, firstY - 17, panelLabelColor());
     }
 
     protected void renderSpawnEggPanel(GuiGraphics guiGraphics) {
         renderItemTooltipPreview(guiGraphics);
-        drawPanelTitle(guiGraphics, Component.translatable(key(getSpawnEditorTitleKey())));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key(getSpawnEditorTitleKey())));
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(this.midX, 78, 100.0F);
@@ -786,9 +786,9 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         guiGraphics.renderItem(this.previewStack, -8, -8);
         guiGraphics.pose().popPose();
 
-        drawCenteredLabel(guiGraphics, Component.translatable(key("spawnegg.search")),
-                this.spawnEggEntityFilterBox.getX() + this.spawnEggEntityFilterBox.getWidth() / 2,
-                this.spawnEggEntityFilterBox.getY() - 12);
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.search")),
+                this.spawnEggEntityFilterBox.x + this.spawnEggEntityFilterBox.getWidth() / 2,
+                this.spawnEggEntityFilterBox.y - 12);
 
         List<SpawnEggEntityEntry> entities = getFilteredSpawnEggEntities();
         clampSpawnEggEntitySelection(entities);
@@ -799,7 +799,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     getSpawnEggEntityRowY(SPAWN_EGG_ENTITY_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         if (entities.isEmpty()) {
-            guiGraphics.drawString(this.font, Component.translatable(key("spawnegg.no_match")),
+            guiGraphics.drawString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.no_match")),
                     listX + 2, getSpawnEggEntityRowY(0), BAD_RED);
         } else {
             int end = Math.min(entities.size(), this.spawnEggEntityScroll + SPAWN_EGG_ENTITY_ROWS);
@@ -816,15 +816,15 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         Component selected = entities.isEmpty()
-                ? Component.translatable(key("spawnegg.no_match"))
+                ? new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.no_match"))
                 : getSpawnEggEntityName(entities.get(this.selectedSpawnEggEntityIndex));
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.selected"), selected),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.selected"), selected),
                 this.midX, this.height - 78, panelTitleColor());
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("spawnegg.current"), getCurrentSpawnEggEntityName()),
+        guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.current"), getCurrentSpawnEggEntityName()),
                 this.midX, 120, panelSecondaryColor());
 
         int controlsX = getSpawnEggControlsX();
-        drawCenteredLabel(guiGraphics, Component.translatable(key("spawnegg.tags")),
+        drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg.tags")),
                 controlsX + getSpawnEggControlsWidth() / 2, getSpawnEggTagRowY(0) - 12);
 
         List<SpawnEggTagRow> rows = getSpawnEggTagRows();
@@ -833,7 +833,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         for (int i = this.spawnEggTagScroll; i < end; i++) {
             SpawnEggTagRow row = rows.get(i);
             if (row.type() != SpawnEggTagRowType.BOOLEAN && row.type() != SpawnEggTagRowType.CHOICE) {
-                drawRightLabel(guiGraphics, Component.translatable(key("spawnegg." + row.translationSuffix())),
+                drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("spawnegg." + row.translationSuffix())),
                         controlsX + 66, getSpawnEggTagRowY(i - this.spawnEggTagScroll) + 6);
             }
         }
@@ -841,7 +841,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderTradesPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
-        drawPanelTitle(guiGraphics, Component.translatable(key("trades")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades")));
 
         ListTag trades = getVillagerTradeRecipes();
         int size = trades.size();
@@ -869,7 +869,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                             : (hovered ? CONTRAST_COLOR : MAIN_COLOR));
         }
 
-        Component addTrade = Component.translatable(key("trades.addtrade"));
+        Component addTrade = new net.minecraft.network.chat.TranslatableComponent(key("trades.addtrade"));
         String addTradeText = addTrade.getString();
         boolean addHovered = !foundHover && isMouseOverCenteredText(mouseX, mouseY, addTradeText,
                 this.midX, getTradeListRowY(size, size));
@@ -881,12 +881,12 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderTradePanel(GuiGraphics guiGraphics) {
         renderSmallItem(guiGraphics, this.midX, 35);
-        drawPanelTitle(guiGraphics, Component.translatable(key("trade")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trade")));
 
         if (this.tradeItemNbtBox != null) {
-            drawCenteredLabel(guiGraphics, Component.translatable(key("trades.item_nbt")),
-                    this.tradeItemNbtBox.getX() + this.tradeItemNbtBox.getWidth() / 2,
-                    this.tradeItemNbtBox.getY() - this.font.lineHeight - 4);
+            drawCenteredLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.item_nbt")),
+                    this.tradeItemNbtBox.x + this.tradeItemNbtBox.getWidth() / 2,
+                    this.tradeItemNbtBox.y - this.font.lineHeight - 4);
         }
         drawTradeFieldLabels(guiGraphics);
 
@@ -896,14 +896,14 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                     contentMidX() + Math.min(190, contentWidth() / 2), this.midY + 42, 8, ModernUi.SURFACE, ModernUi.BORDER);
         }
         for (int slot = 0; slot < TRADE_SLOT_COUNT; slot++) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades.slot." + slot)),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("trades.slot." + slot)),
                     getSingleTradeSlotX(slot) + 8, this.midY - 10,
                     slot == TRADE_SLOT_SELL ? panelTitleColor() : panelAccentColor());
         }
 
         CompoundTag recipe = getSelectedTradeRecipe();
         if (recipe == null) {
-            guiGraphics.drawCenteredString(this.font, Component.translatable(key("trades.no_trades")),
+            guiGraphics.drawCenteredString(this.font, new net.minecraft.network.chat.TranslatableComponent(key("trades.no_trades")),
                     this.midX, this.midY + 26, panelAccentColor());
             return;
         }
@@ -915,7 +915,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void renderLorePanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         renderSmallItem(guiGraphics, this.midX, 35);
-        drawPanelTitle(guiGraphics, Component.translatable(key("lore")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("lore")));
         int spaces = loreLineSpaces();
         int size = this.loreValues.size();
         this.loreScroll = Mth.clamp(this.loreScroll, 0, Math.max(0, size - spaces));
@@ -965,7 +965,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             paintLorePainterAt(mouseX, mouseY);
         }
 
-        drawPanelTitle(guiGraphics, Component.translatable(key("lorepainter")));
+        drawPanelTitle(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("lorepainter")));
 
         int gridX = getLorePainterGridX();
         int gridY = getLorePainterGridY();
@@ -1004,7 +1004,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         String symbols = buildLorePainterSymbols();
         guiGraphics.drawString(this.font, symbols, 0, 0, 0xFFFFFFFF, false);
-        guiGraphics.drawString(this.font, this.currentLorePixel.format() + Component.translatable(key("lorepainter.symbol." + this.currentLorePixel.symbol.nameKey())).getString(),
+        guiGraphics.drawString(this.font, this.currentLorePixel.format() + new net.minecraft.network.chat.TranslatableComponent(key("lorepainter.symbol." + this.currentLorePixel.symbol.nameKey())).getString(),
                 2, 10, 0xFFFFFFFF, false);
 
         String colors = buildLorePainterColors();
@@ -1083,8 +1083,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 guiGraphics.renderTooltip(this.font, this.previewStack, mouseX, mouseY);
             }
             if (this.itemIdBox != null && this.itemIdBox.getValue().length() > 9
-                    && isMouseIn(mouseX, mouseY, this.itemIdBox.getX(), this.itemIdBox.getY(), this.itemIdBox.getWidth(), this.itemIdBox.getHeight())) {
-                guiGraphics.renderTooltip(this.font, Component.literal(this.itemIdBox.getValue()), mouseX, mouseY);
+                    && isMouseIn(mouseX, mouseY, this.itemIdBox.x, this.itemIdBox.y, this.itemIdBox.getWidth(), this.itemIdBox.getHeight())) {
+                guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TextComponent(this.itemIdBox.getValue()), mouseX, mouseY);
             }
             int dropX = isSidebarUi() ? itemPanelDropButtonX() : this.midX + 30;
             int dropY = isSidebarUi() ? sidebarBottomButtonY() : this.height - 35;
@@ -1092,15 +1092,15 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
             int dropHeight = isSidebarUi() ? SIDEBAR_BUTTON_HEIGHT : OLD_BUTTON_HEIGHT;
             if (isMouseIn(mouseX, mouseY, dropX, dropY, dropWidth, dropHeight)) {
                 guiGraphics.renderComponentTooltip(this.font, List.of(
-                        Component.translatable(key("item.drop.tooltip.1")),
-                        Component.translatable(key("item.drop.tooltip.2"))), mouseX, mouseY);
+                        new net.minecraft.network.chat.TranslatableComponent(key("item.drop.tooltip.1")),
+                        new net.minecraft.network.chat.TranslatableComponent(key("item.drop.tooltip.2"))), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.LORE) {
             for (EditBox box : this.loreBoxes) {
-                if (isMouseIn(mouseX, mouseY, box.getX(), box.getY(), box.getWidth(), box.getHeight())) {
+                if (isMouseIn(mouseX, mouseY, box.x, box.y, box.getWidth(), box.getHeight())) {
                     String value = box.getValue().replace(ChatFormatting.PREFIX_CODE, '&');
                     if (!value.isEmpty()) {
-                        guiGraphics.renderTooltip(this.font, Component.literal(value), mouseX, mouseY);
+                        guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TextComponent(value), mouseX, mouseY);
                     }
                     return;
                 }
@@ -1117,20 +1117,20 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 if (!slotStack.isEmpty()) {
                     guiGraphics.renderTooltip(this.font, slotStack, mouseX, mouseY);
                 } else {
-                    guiGraphics.renderTooltip(this.font, Component.translatable(key("container.empty_slot")), mouseX, mouseY);
+                    guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TranslatableComponent(key("container.empty_slot")), mouseX, mouseY);
                 }
                 return;
             }
             if (this.containerSlotNbtBox != null && this.containerSlotNbtBox.getValue().length() > 20
-                    && isMouseIn(mouseX, mouseY, this.containerSlotNbtBox.getX(), this.containerSlotNbtBox.getY(),
+                    && isMouseIn(mouseX, mouseY, this.containerSlotNbtBox.x, this.containerSlotNbtBox.y,
                     this.containerSlotNbtBox.getWidth(), this.containerSlotNbtBox.getHeight())) {
-                guiGraphics.renderTooltip(this.font, Component.literal(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
+                guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TextComponent(this.containerSlotNbtBox.getValue()), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.TRADES) {
             if (getHoveredTradeListIndex(mouseX, mouseY) >= 0) {
                 guiGraphics.renderComponentTooltip(this.font, List.of(
-                        Component.translatable(key("trades.leftclick")),
-                        Component.translatable(key("trades.rightclick"))), mouseX, mouseY);
+                        new net.minecraft.network.chat.TranslatableComponent(key("trades.leftclick")),
+                        new net.minecraft.network.chat.TranslatableComponent(key("trades.rightclick"))), mouseX, mouseY);
                 return;
             }
             int resetX = this.midX - 30;
@@ -1145,7 +1145,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 resetHeight = SIDEBAR_BUTTON_HEIGHT;
             }
             if (isMouseIn(mouseX, mouseY, resetX, resetY, resetWidth, resetHeight)) {
-                guiGraphics.renderTooltip(this.font, Component.translatable(key("trades.reset")), mouseX, mouseY);
+                guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TranslatableComponent(key("trades.reset")), mouseX, mouseY);
             }
         } else if (this.activePanel == Panel.TRADE) {
             int slot = getHoveredSingleTradeSlot(mouseX, mouseY);
@@ -1155,24 +1155,24 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 if (!stack.isEmpty()) {
                     guiGraphics.renderTooltip(this.font, stack, mouseX, mouseY);
                 }
-                guiGraphics.renderTooltip(this.font, Component.translatable(key("trade.click_to_edit")), mouseX, mouseY - 16);
+                guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TranslatableComponent(key("trade.click_to_edit")), mouseX, mouseY - 16);
             }
         } else if (this.activePanel == Panel.LORE_PAINTER) {
             if (this.lorePainterScaleButton != null && isMouseIn(mouseX, mouseY,
-                    this.lorePainterScaleButton.getX(), this.lorePainterScaleButton.getY(),
+                    this.lorePainterScaleButton.x, this.lorePainterScaleButton.y,
                     this.lorePainterScaleButton.getWidth(), this.lorePainterScaleButton.getHeight())
                     && this.minecraft != null) {
-                guiGraphics.renderTooltip(this.font, Component.literal(String.valueOf(this.minecraft.options.guiScale().get())), mouseX, mouseY);
+                guiGraphics.renderTooltip(this.font, new net.minecraft.network.chat.TextComponent(String.valueOf(this.minecraft.options.guiScale)), mouseX, mouseY);
                 return;
             }
             boolean hoveringPreview = this.lorePainterPreviewButton != null && isMouseIn(mouseX, mouseY,
-                    this.lorePainterPreviewButton.getX(), this.lorePainterPreviewButton.getY(),
+                    this.lorePainterPreviewButton.x, this.lorePainterPreviewButton.y,
                     this.lorePainterPreviewButton.getWidth(), this.lorePainterPreviewButton.getHeight());
             if (this.lorePainterPreview || hoveringPreview) {
                 List<Component> lines = new ArrayList<>();
-                lines.add(Component.translatable(key("lorepainter")));
+                lines.add(new net.minecraft.network.chat.TranslatableComponent(key("lorepainter")));
                 for (List<LorePixel> row : this.lorePainterRows) {
-                    lines.add(Component.literal(buildLorePainterRow(row)));
+                    lines.add(new net.minecraft.network.chat.TextComponent(buildLorePainterRow(row)));
                 }
                 guiGraphics.renderComponentTooltip(this.font, lines, mouseX, mouseY);
             }
@@ -1197,28 +1197,28 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
     protected void drawTradeFieldLabels(GuiGraphics guiGraphics) {
         if (this.tradeUsesBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.uses")),
-                    this.tradeUsesBox.getX() - 5, this.tradeUsesBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.uses")),
+                    this.tradeUsesBox.x - 5, this.tradeUsesBox.y + 6);
         }
         if (this.tradeMaxUsesBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.max_uses")),
-                    this.tradeMaxUsesBox.getX() - 5, this.tradeMaxUsesBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.max_uses")),
+                    this.tradeMaxUsesBox.x - 5, this.tradeMaxUsesBox.y + 6);
         }
         if (this.tradeXpBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.xp")),
-                    this.tradeXpBox.getX() - 5, this.tradeXpBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.xp")),
+                    this.tradeXpBox.x - 5, this.tradeXpBox.y + 6);
         }
         if (this.tradeSpecialPriceBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.special_price")),
-                    this.tradeSpecialPriceBox.getX() - 5, this.tradeSpecialPriceBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.special_price")),
+                    this.tradeSpecialPriceBox.x - 5, this.tradeSpecialPriceBox.y + 6);
         }
         if (this.tradeDemandBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.demand")),
-                    this.tradeDemandBox.getX() - 5, this.tradeDemandBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.demand")),
+                    this.tradeDemandBox.x - 5, this.tradeDemandBox.y + 6);
         }
         if (this.tradePriceMultiplierBox != null) {
-            drawRightLabel(guiGraphics, Component.translatable(key("trades.price_multiplier")),
-                    this.tradePriceMultiplierBox.getX() - 5, this.tradePriceMultiplierBox.getY() + 6);
+            drawRightLabel(guiGraphics, new net.minecraft.network.chat.TranslatableComponent(key("trades.price_multiplier")),
+                    this.tradePriceMultiplierBox.x - 5, this.tradePriceMultiplierBox.y + 6);
         }
     }
 
@@ -1268,7 +1268,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         int columns = dyeGridColumns();
         int cellSize = dyeGridCellSize();
         int gridX = dyeGridX(columns, cellSize);
-        int gridY = this.blueSlider.getY() + this.blueSlider.getHeight() + 10;
+        int gridY = this.blueSlider.y + this.blueSlider.getHeight() + 10;
         if (!isMouseIn(mouseX, mouseY, gridX, gridY, columns * cellSize, dyeGridRows(columns) * cellSize)) {
             return false;
         }
@@ -1283,7 +1283,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
 
         addDyeToColor(colors[index]);
         syncColorControlsFromStack();
-        this.status = Component.translatable(messageKey("editor_color_updated"), this.colorHexValue);
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_color_updated"), this.colorHexValue);
         return true;
     }
 

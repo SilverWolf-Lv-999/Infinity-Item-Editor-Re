@@ -1,14 +1,14 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.math.Axis;
+import io.github.seraphina.infinity_item_editor_re.client.compat.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.nbt.CompoundTag;
@@ -86,7 +86,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             applyMainFieldsToStack(false);
         }
         this.activePanel = panel;
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         rebuildWidgets();
     }
 
@@ -97,7 +97,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (!applyMainFieldsToStack(true) || !isContainerEditableItem(this.previewStack)) {
             return;
         }
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
@@ -109,7 +109,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (!applyMainFieldsToStack(true) || !isBookEditableItem(this.previewStack)) {
             return;
         }
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
     }
@@ -121,7 +121,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (!applyMainFieldsToStack(true)) {
             return;
         }
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
@@ -133,21 +133,13 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (!applyMainFieldsToStack(true) || !isCommandBlockEditableItem(this.previewStack)) {
             return;
         }
-        this.status = Component.empty();
+        this.status = new net.minecraft.network.chat.TextComponent("");
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
     protected void openArmorTrimEditor() {
-        if (this.minecraft == null) {
-            return;
-        }
-        if (!applyMainFieldsToStack(true) || !isArmorTrimApplicable(this.previewStack)) {
-            return;
-        }
-        this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.minecraft.setScreen(new ArmorTrimEditorScreen((ItemEditorScreen) this, this.previewStack));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_feature_unavailable_in_version"));
     }
 
     protected void openItemPicker() {
@@ -208,7 +200,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
-        this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_json_applied"), this.previewStack.getHoverName());
     }
 
     void applyCommandBlockEditedStack(ItemStack stack) {
@@ -219,7 +211,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
-        this.status = Component.translatable(messageKey("editor_command_block_applied"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_command_block_applied"));
     }
 
     void applyArmorTrimEditedStack(ItemStack stack) {
@@ -230,7 +222,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         readMainFieldsFromStack(this.previewStack);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.nbtFeedback = "";
-        this.status = Component.translatable(messageKey("editor_armor_trim_applied"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_armor_trim_applied"));
     }
 
     protected void goBack() {
@@ -273,13 +265,13 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
         ItemStack inventoryStack = this.previewStack.copy();
         if (!PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, inventoryStack)) {
-            this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_target_slot"));
             return;
         }
 
         if (this.minecraft.hasSingleplayerServer()) {
             setSingleplayerServerStack(containerSlot, inventoryStack);
-            this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_applied"), inventoryStack.getHoverName());
             return;
         }
 
@@ -288,12 +280,12 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
 
         if (!this.minecraft.player.getAbilities().instabuild) {
-            this.status = Component.translatable(messageKey("editor_requires_creative"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_requires_creative"));
             return;
         }
 
         this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), containerSlot);
-        this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_applied"), inventoryStack.getHoverName());
     }
 
     private void setSingleplayerServerStack(int containerSlot, ItemStack stack) {
@@ -327,13 +319,13 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
 
         if (this.minecraft.player == null || !this.minecraft.player.getAbilities().instabuild) {
-            this.status = Component.translatable(messageKey("editor_requires_creative"));
+            this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_requires_creative"));
             return;
         }
 
         ItemStack dropped = this.previewStack.copy();
         this.minecraft.gameMode.handleCreativeModeItemDrop(dropped);
-        this.status = Component.translatable(messageKey("editor_dropped"), dropped.getHoverName());
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_dropped"), dropped.getHoverName());
     }
 
     protected void copyGiveCommand() {
@@ -341,7 +333,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.minecraft.keyboardHandler.setClipboard(GiveHelper.getStringFromItemStack(this.previewStack));
-        this.status = Component.translatable(messageKey("editor_copied"));
+        this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_copied"));
     }
 
     protected void resetStack() {
@@ -374,7 +366,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         if (realmController != null) {
             if (realmController.addItemStack(this.minecraft.player, this.previewStack.copy())) {
                 CreativeTabRefresher.refreshRealm(this.minecraft);
-                this.status = Component.translatable(messageKey("editor_saved"), this.previewStack.getHoverName());
+                this.status = new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_saved"), this.previewStack.getHoverName());
             }
         }
     }
@@ -403,7 +395,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return true;
         } catch (IllegalArgumentException exception) {
             if (updateStatus) {
-                this.status = Component.literal(exception.getMessage());
+                this.status = new net.minecraft.network.chat.TextComponent(exception.getMessage());
             }
             return false;
         }
@@ -415,7 +407,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         Item item = id == null ? null : ForgeRegistries.ITEMS.getValue(id);
         if (item == null || item == Items.AIR && !"minecraft:air".equals(idText)) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_item"), idText).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_item"), idText).getString());
             }
             return false;
         }
@@ -447,7 +439,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         String value = this.countBox == null ? this.countValue : this.countBox.getValue();
         if (value == null || value.isBlank()) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_count"), MAX_COUNT).getString());
             }
             return;
         }
@@ -457,13 +449,13 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             count = Integer.parseInt(value);
         } catch (NumberFormatException exception) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_count"), MAX_COUNT).getString());
             }
             return;
         }
         if (count < 1 || count > MAX_COUNT) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_count"), MAX_COUNT).getString());
             }
             return;
         }
@@ -476,7 +468,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         String value = this.damageBox == null ? this.damageValue : this.damageBox.getValue();
         if (value == null || value.isBlank()) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_damage"), getDamageMaxForField(this.previewStack)).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_damage"), getDamageMaxForField(this.previewStack)).getString());
             }
             return;
         }
@@ -485,7 +477,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         int maxDamage = getDamageMaxForField(this.previewStack);
         if (damage < 0 || damage > maxDamage) {
             if (throwOnError) {
-                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_damage"), maxDamage).getString());
+                throw new IllegalArgumentException(new net.minecraft.network.chat.TranslatableComponent(messageKey("editor_invalid_damage"), maxDamage).getString());
             }
             return;
         }
@@ -509,7 +501,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        this.previewStack.setHoverName(Component.literal(value));
+        this.previewStack.setHoverName(new net.minecraft.network.chat.TextComponent(value));
     }
 
     protected void clearCustomName() {
@@ -529,7 +521,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         } else {
             ListTag lore = new ListTag();
             for (String line : this.loreValues) {
-                lore.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal(line))));
+                lore.add(StringTag.valueOf(Component.Serializer.toJson(new net.minecraft.network.chat.TextComponent(line))));
             }
             display.put(LORE_TAG, lore);
         }
