@@ -4,15 +4,9 @@
 
 **Infinity Item Editor Re** is a client-side creative item editor for multiple Minecraft versions:
 
-- **Fabric 26.1.2**
-- **Fabric 26.2**
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
-- **NeoForge 26.1.2**
-- **NeoForge 26.2**
+- **Forge 1.18.2 / 1.20.1**
+- **Fabric 1.20.1 / 26.1.2 / 26.2**
+- **NeoForge 1.21.1 / 1.21.4 / 1.21.10 / 1.21.11 / 26.1.2 / 26.2**
 
 It is an independent remake and port inspired by the old Infinity Item Editor mod. It is not an official update from the original author.
 
@@ -23,10 +17,11 @@ Infinity Item Editor Re lets you edit held items, copy items from the world, sav
 Current features include:
 
 - Open the item editor with the default `U` key, including hovered player-inventory slots inside container screens.
-- Edit item ID, count, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
+- Edit item ID, count up to the signed 32-bit range, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
 - Switch between the legacy editor layout and the newer sidebar layout.
 - Copy `/give` commands, drop edited items, save items to Infinity Realm, and pick items from registry, Realm, Void, or inventory sources.
-- Edit enchantments, potion effects, custom attributes, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, trial spawners, villager trades, books, command blocks, and lore.
+- Edit categorized data components with search, presets, typed controls, and raw values.
+- Edit enchantments, potion effects, and registered attributes with mod-namespace grouping, plus armor trims, bundles, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, trial spawners, villager trades, books, command blocks, and lore.
 - Use Lore Painter to draw colored tooltip art with text characters.
 - Copy targeted blocks, mobs, players, and armor stands with the default `V` key.
 - Save custom items into Infinity Realm with the default `G` key.
@@ -49,7 +44,7 @@ The mod adds helper creative tabs. NeoForge provides searchable tabs, while Fabr
 
 Use the jar that matches your Minecraft version and loader.
 
-- Forge 1.20.1 builds require Java 17.
+- Forge 1.18.2/1.20.1 and Fabric 1.20.1 builds require Java 17.
 - NeoForge 1.21.x builds require Java 21.
 - Fabric and NeoForge 26.1.2/26.2 builds require Java 25.
 
@@ -67,7 +62,7 @@ Build the universal jar with Java 25:
 .\gradlew.bat build
 ```
 
-The distributable file is `build/libs/infinity_item_editor_re-26.2.0-1.1.0-B.jar`. Run either development client with:
+The distributable file is `build/libs/infinity_item_editor_re-26.2.0-1.2.0-B.jar`. Run either development client with:
 
 ```powershell
 .\gradlew.bat :fabric:runClient
@@ -76,7 +71,7 @@ The distributable file is `build/libs/infinity_item_editor_re-26.2.0-1.1.0-B.jar
 
 ### Status
 
-This is still a work-in-progress remake/port. Most common editor panels, creative tabs, JSON editing, command block editing, book page editing, decorated pot/trial spawner editing, and the main shortcut workflows are implemented. The Advanced NBT Browser can browse, expand, collapse, and scroll NBT structures, but it is not yet a full graphical NBT editor.
+The 26.2 universal workspace includes categorized data-component editing, mod-grouped registry lists, armor trims, the dedicated bundle-entry editor, decorated pots, trial spawners, both platform creative-tab integrations, JSON/command-block/book editing, and the main shortcut workflows. The Advanced NBT Browser remains a read-only structural browser.
 
 ### Credits
 
@@ -94,15 +89,9 @@ Thanks to the original author and contributors. Please respect the original proj
 
 **Infinity Item Editor Re** 是一个支持多个 Minecraft 版本的客户端创造物品编辑 Mod：
 
-- **Fabric 26.1.2**
-- **Fabric 26.2**
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
-- **NeoForge 26.1.2**
-- **NeoForge 26.2**
+- **Forge 1.18.2 / 1.20.1**
+- **Fabric 1.20.1 / 26.1.2 / 26.2**
+- **NeoForge 1.21.1 / 1.21.4 / 1.21.10 / 1.21.11 / 26.1.2 / 26.2**
 
 它复刻并移植了旧版 Infinity Item Editor 的使用体验。本项目不是原作者的官方更新版，而是独立维护的新版适配/复刻项目。
 
@@ -113,10 +102,11 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 当前功能包括：
 
 - 默认按 `U` 打开物品编辑器，也可以在容器界面编辑鼠标悬停的玩家物品栏槽位。
-- 编辑物品 ID、数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
+- 编辑物品 ID、最高 32 位有符号整数范围的数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
 - 支持旧版布局和新版侧边栏布局切换。
 - 复制 `/give` 命令、丢出编辑后的物品、保存到 Infinity Realm，并可从注册物品、Realm、Void 或物品栏来源选择物品。
-- 编辑附魔、药水效果、自定义属性、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、试炼刷怪笼、村民交易、书本、命令方块和 Lore。
+- 分类浏览和搜索数据组件，并使用预设、类型化控件或原始值编辑。
+- 编辑附魔、药水效果和注册表属性，并可按 Mod 命名空间分组；同时支持盔甲纹饰、收纳袋、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、试炼刷怪笼、村民交易、书本、命令方块和 Lore。
 - 使用 Lore Painter 通过字符和颜色绘制物品提示文本图案。
 - 默认按 `V` 复制准星指向的方块、生物、玩家或盔甲架。
 - 默认按 `G` 将自定义物品保存到 Infinity Realm。
@@ -139,7 +129,7 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 请下载与 Minecraft 版本和加载器匹配的 jar。
 
-- Forge 1.20.1 版本使用 Java 17。
+- Forge 1.18.2/1.20.1 与 Fabric 1.20.1 版本使用 Java 17。
 - NeoForge 1.21.x 版本使用 Java 21。
 - Fabric 与 NeoForge 26.1.2/26.2 版本使用 Java 25。
 
@@ -157,7 +147,7 @@ Fabric 端必须安装 Fabric API，因为平台入口使用了 Fabric API 的 T
 .\gradlew.bat build
 ```
 
-最终分发文件为 `build/libs/infinity_item_editor_re-26.2.0-1.1.0-B.jar`。开发环境可分别启动两个加载器：
+最终分发文件为 `build/libs/infinity_item_editor_re-26.2.0-1.2.0-B.jar`。开发环境可分别启动两个加载器：
 
 ```powershell
 .\gradlew.bat :fabric:runClient
@@ -166,7 +156,7 @@ Fabric 端必须安装 Fabric API，因为平台入口使用了 Fabric API 的 T
 
 ### 当前状态
 
-本项目仍处于复刻/移植开发阶段。大部分常用编辑面板、创造标签页、JSON 编辑器、命令方块编辑器、书本页面编辑器、饰纹陶罐/试炼刷怪笼编辑和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。
+26.2 通用工作区已包含分类化数据组件编辑、按 Mod 分组的注册表列表、盔甲纹饰、独立收纳袋条目编辑器、饰纹陶罐、试炼刷怪笼、两种加载器的创造标签页集成、JSON/命令方块/书本编辑和主要快捷键工作流。高级 NBT 浏览器仍是只读结构浏览器。
 
 ### 致谢
 
