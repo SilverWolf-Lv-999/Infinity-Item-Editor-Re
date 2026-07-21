@@ -341,7 +341,8 @@ public final class CreativeTabRegistry {
     private static void addUncategorizedRegistryItems(List<ItemStack> stacks) {
         Set<Item> categorizedItems = new HashSet<>();
         for (CreativeModeTab tab : CreativeModeTab.TABS) {
-            if (tab == null || tab == REALM || tab == UNAVAILABLE || tab == BANNERS || tab == SKULLS
+            if (tab == null || tab == CreativeModeTab.TAB_HOTBAR
+                    || tab == REALM || tab == UNAVAILABLE || tab == BANNERS || tab == SKULLS
                     || tab == THIEF || tab == FIREWORKS || tab == VOID) {
                 continue;
             }
