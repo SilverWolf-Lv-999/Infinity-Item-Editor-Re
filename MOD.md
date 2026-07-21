@@ -4,12 +4,9 @@
 
 **Infinity Item Editor Re** is a client-side creative item editor for multiple Minecraft versions:
 
-- **Fabric 1.20.1**
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
+- **Forge 1.18.2 / 1.20.1**
+- **Fabric 1.20.1 / 26.1.2 / 26.2**
+- **NeoForge 1.21.1 / 1.21.4 / 1.21.10 / 1.21.11 / 26.1.2 / 26.2**
 
 It is an independent remake and port inspired by the old Infinity Item Editor mod. It is not an official update from the original author.
 
@@ -20,10 +17,10 @@ Infinity Item Editor Re lets you edit held items, copy items from the world, sav
 Current features include:
 
 - Open the item editor with the default `U` key, including hovered player-inventory slots inside container screens.
-- Edit item ID, count, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
+- Edit item ID, count up to the signed 32-bit range, custom name, lore, NBT, JSON, hide flags, unbreakable state, and common display data.
 - Switch between the legacy editor layout and the newer sidebar layout.
 - Copy `/give` commands, drop edited items, save items to Infinity Realm, and pick items from registry, Realm, Void, or inventory sources.
-- Edit enchantments, potion effects, custom attributes, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, trial spawners, villager trades, books, command blocks, and lore.
+- Edit enchantments, potion effects, and registered attributes with mod-namespace grouping, plus armor trims, colors, signs, player heads, armor stands, fireworks, containers, banners/shields, decorated pots, spawn eggs, spawners, villager trades, books, command blocks, and lore.
 - Use Lore Painter to draw colored tooltip art with text characters.
 - Copy targeted blocks, mobs, players, and armor stands with the default `V` key.
 - Save custom items into Infinity Realm with the default `G` key.
@@ -32,7 +29,7 @@ Current features include:
 
 ### Creative Tabs
 
-The mod adds searchable creative tabs:
+The Fabric build adds helper tabs through the vanilla/Fabric creative-tab API; it does not use the NeoForge branch's custom search field:
 
 - **Infinity - Realm**: player-saved custom items.
 - **Infinity - Unavailable**: command blocks, barrier, structure blocks, spawners, potions, enchanted books, and other items not fully exposed by normal creative tabs.
@@ -46,14 +43,17 @@ The mod adds searchable creative tabs:
 
 Use the jar that matches your Minecraft version and loader.
 
-- Fabric and Forge 1.20.1 builds require Java 17.
+- Forge 1.18.2/1.20.1 and Fabric 1.20.1 builds require Java 17.
 - NeoForge 1.21.x builds require Java 21.
+- Fabric and NeoForge 26.1.2/26.2 builds require Java 25.
+
+This workspace targets Fabric Loader `0.19.3` and Fabric API `0.92.9+1.20.1` on Minecraft `1.20.1`. Fabric API is required. The build is `build/libs/infinity_item_editor_re-Fabric-1.20.1-1.1.0-A.jar`.
 
 This is mainly a client-side tool. Servers normally do not need to install it, but inventory-writing and entity-equipment-copying features require creative mode permissions and may be limited by server rules.
 
 ### Status
 
-This is still a work-in-progress remake/port. Most common editor panels, creative tabs, JSON editing, command block editing, book page editing, decorated pot/trial spawner editing, and the main shortcut workflows are implemented. The Advanced NBT Browser can browse, expand, collapse, and scroll NBT structures, but it is not yet a full graphical NBT editor.
+The Fabric 1.20.1 workspace includes expanded item counts, mod-grouped registry lists, the full armor-trim editor, decorated pots, Fabric creative tabs, JSON/command-block/book editing, and the main shortcut workflows. Data components and trial spawners are unavailable because they do not exist in Minecraft 1.20.1. The Advanced NBT Browser remains a read-only structural browser.
 
 ### Credits
 
@@ -71,12 +71,9 @@ Thanks to the original author and contributors. Please respect the original proj
 
 **Infinity Item Editor Re** 是一个支持多个 Minecraft 版本的客户端创造物品编辑 Mod：
 
-- **Fabric 1.20.1**
-- **Forge 1.20.1**
-- **NeoForge 1.21.1**
-- **NeoForge 1.21.4**
-- **NeoForge 1.21.10**
-- **NeoForge 1.21.11**
+- **Forge 1.18.2 / 1.20.1**
+- **Fabric 1.20.1 / 26.1.2 / 26.2**
+- **NeoForge 1.21.1 / 1.21.4 / 1.21.10 / 1.21.11 / 26.1.2 / 26.2**
 
 它复刻并移植了旧版 Infinity Item Editor 的使用体验。本项目不是原作者的官方更新版，而是独立维护的新版适配/复刻项目。
 
@@ -87,10 +84,10 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 当前功能包括：
 
 - 默认按 `U` 打开物品编辑器，也可以在容器界面编辑鼠标悬停的玩家物品栏槽位。
-- 编辑物品 ID、数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
+- 编辑物品 ID、最高 32 位有符号整数范围的数量、自定义名称、Lore、NBT、JSON、隐藏标签、无法破坏状态和常用显示数据。
 - 支持旧版布局和新版侧边栏布局切换。
 - 复制 `/give` 命令、丢出编辑后的物品、保存到 Infinity Realm，并可从注册物品、Realm、Void 或物品栏来源选择物品。
-- 编辑附魔、药水效果、自定义属性、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、试炼刷怪笼、村民交易、书本、命令方块和 Lore。
+- 编辑附魔、药水效果和注册表属性，并可按 Mod 命名空间分组；同时支持盔甲纹饰、颜色、告示牌、玩家头颅、盔甲架、烟花、容器、旗帜/盾牌、饰纹陶罐、刷怪蛋、刷怪箱、村民交易、书本、命令方块和 Lore。
 - 使用 Lore Painter 通过字符和颜色绘制物品提示文本图案。
 - 默认按 `V` 复制准星指向的方块、生物、玩家或盔甲架。
 - 默认按 `G` 将自定义物品保存到 Infinity Realm。
@@ -99,7 +96,7 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 ### 创造模式标签页
 
-本 Mod 会添加多个带搜索栏的创造模式标签页：
+Fabric 版本通过原版/Fabric 创造标签页 API 添加辅助标签页，不使用 NeoForge 分支的自定义搜索栏：
 
 - **Infinity - Realm**：玩家保存的自定义物品。
 - **Infinity - Unavailable**：命令方块、屏障、结构方块、刷怪笼、药水、附魔书等常规创造物品栏中不直接提供或不完整提供的物品。
@@ -113,14 +110,17 @@ Infinity Item Editor Re 可以编辑手中的物品、从世界中复制物品�
 
 请下载与 Minecraft 版本和加载器匹配的 jar。
 
-- Fabric 和 Forge 1.20.1 版本使用 Java 17。
+- Forge 1.18.2/1.20.1 与 Fabric 1.20.1 版本使用 Java 17。
 - NeoForge 1.21.x 版本使用 Java 21。
+- Fabric 与 NeoForge 26.1.2/26.2 版本使用 Java 25。
+
+当前工作区面向 Minecraft `1.20.1`，使用 Fabric Loader `0.19.3` 和 Fabric API `0.92.9+1.20.1`。Fabric API 是必需依赖，构建产物为 `build/libs/infinity_item_editor_re-Fabric-1.20.1-1.1.0-A.jar`。
 
 这是一个主要面向客户端的工具，服务端通常不需要安装。但写入玩家物品栏、复制实体装备等功能需要创造模式权限，也可能受到服务器规则限制。
 
 ### 当前状态
 
-本项目仍处于复刻/移植开发阶段。大部分常用编辑面板、创造标签页、JSON 编辑器、命令方块编辑器、书本页面编辑器、饰纹陶罐/试炼刷怪笼编辑和主要快捷键工作流已经实现。高级 NBT 浏览器目前支持结构浏览、展开/折叠和滚动查看，但还不是完整的图形化 NBT 编辑器。
+Fabric 1.20.1 工作区已包含放宽后的物品数量、按 Mod 分组的注册表列表、完整盔甲纹饰编辑器、饰纹陶罐、Fabric 创造标签页、JSON/命令方块/书本编辑和主要快捷键工作流。Minecraft 1.20.1 尚无数据组件和试炼刷怪笼，因此不提供对应入口。高级 NBT 浏览器仍是只读结构浏览器。
 
 ### 致谢
 
