@@ -5,6 +5,7 @@ import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -17,7 +18,9 @@ import net.minecraft.world.item.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class RealmController {
@@ -25,6 +28,7 @@ public class RealmController {
 
     private final File dataFile;
     private final NonNullList<ItemStack> stackList = NonNullList.create();
+    private final List<CompoundTag> unresolvedStackTags = new ArrayList<>();
 
     public RealmController(File dataDir) {
         this.dataFile = new File(dataDir, "realm.nbt");
@@ -32,9 +36,14 @@ public class RealmController {
     }
 
     public void read() {
-        stackList.clear();
+        read(ItemStackNbt.provider());
+    }
+
+    public synchronized void read(HolderLookup.Provider provider) {
 
         if (!dataFile.exists()) {
+            stackList.clear();
+            unresolvedStackTags.clear();
             return;
         }
 
@@ -44,21 +53,25 @@ public class RealmController {
                 return;
             }
 
+            NonNullList<ItemStack> loadedStacks = NonNullList.create();
+            List<CompoundTag> unresolvedTags = new ArrayList<>();
             ListTag realm = NbtCompat.getList(root, "realm", Tag.TAG_COMPOUND);
             for (Tag tag : realm) {
                 if (tag instanceof CompoundTag stackTag) {
-                    ItemStack stack = ItemStackNbt.parse(stackTag);
-                    if (!stack.isEmpty()) {
-                        stackList.add(stack);
-                    }
+                    decodeOrKeep(stackTag, provider, loadedStacks, unresolvedTags);
                 }
             }
+
+            stackList.clear();
+            stackList.addAll(loadedStacks);
+            unresolvedStackTags.clear();
+            unresolvedStackTags.addAll(unresolvedTags);
         } catch (Exception exception) {
             ModSource.LOGGER.error("Failed to load infinity realm from {}", dataFile.getAbsolutePath(), exception);
         }
     }
 
-    public void write() {
+    public synchronized void write() {
         try {
             File parent = dataFile.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -72,6 +85,9 @@ public class RealmController {
 
             for (ItemStack itemStack : stackList) {
                 realm.add(ItemStackNbt.save(itemStack));
+            }
+            for (CompoundTag unresolvedStackTag : unresolvedStackTags) {
+                realm.add(unresolvedStackTag.copy());
             }
 
             NbtIo.writeCompressed(root, dataFile.toPath());
@@ -98,6 +114,7 @@ public class RealmController {
             return false;
         }
 
+        resolveUnresolvedStacks(player.level().registryAccess());
         ItemStack savedStack = stack.copy();
         for (ItemStack existingStack : stackList) {
             if (ItemStack.matches(existingStack, savedStack)) {
@@ -121,6 +138,7 @@ public class RealmController {
             return false;
         }
 
+        resolveUnresolvedStacks(player.level().registryAccess());
         for (ItemStack existingStack : stackList) {
             if (ItemStack.matches(existingStack, stack)) {
                 stackList.remove(existingStack);
@@ -134,7 +152,42 @@ public class RealmController {
         return false;
     }
 
-    public List<ItemStack> getStackList() {
+    public synchronized List<ItemStack> getStackList() {
+        return getStackList(ItemStackNbt.provider());
+    }
+
+    public synchronized List<ItemStack> getStackList(HolderLookup.Provider provider) {
+        resolveUnresolvedStacks(provider);
         return Collections.unmodifiableList(stackList);
+    }
+
+    private void resolveUnresolvedStacks(HolderLookup.Provider provider) {
+        Iterator<CompoundTag> iterator = unresolvedStackTags.iterator();
+        while (iterator.hasNext()) {
+            CompoundTag stackTag = iterator.next();
+            try {
+                ItemStack stack = ItemStackNbt.parse(stackTag, provider);
+                if (!stack.isEmpty()) {
+                    stackList.add(stack);
+                    iterator.remove();
+                }
+            } catch (Exception exception) {
+                ModSource.LOGGER.debug("Could not resolve an infinity realm item yet", exception);
+            }
+        }
+    }
+
+    private void decodeOrKeep(CompoundTag stackTag, HolderLookup.Provider provider,
+                              List<ItemStack> loadedStacks, List<CompoundTag> unresolvedTags) {
+        try {
+            ItemStack stack = ItemStackNbt.parse(stackTag, provider);
+            if (!stack.isEmpty()) {
+                loadedStacks.add(stack);
+                return;
+            }
+        } catch (Exception exception) {
+            ModSource.LOGGER.debug("Could not decode an infinity realm item yet", exception);
+        }
+        unresolvedTags.add(stackTag.copy());
     }
 }

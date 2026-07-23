@@ -113,7 +113,7 @@ public final class CreativeTabRegistry {
         List<ItemStack> stacks = new ArrayList<>();
 
         if (realmController != null) {
-            for (ItemStack stack : realmController.getStackList()) {
+            for (ItemStack stack : realmController.getStackList(parameters.holders())) {
                 addUnique(stacks, normalizedTabStack(stack));
             }
         }
