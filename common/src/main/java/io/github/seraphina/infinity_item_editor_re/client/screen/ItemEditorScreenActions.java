@@ -310,7 +310,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         int containerSlot = this.targetContainerSlot >= 0
                 ? this.targetContainerSlot
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
-        ItemStack inventoryStack = this.previewStack.copy();
+        ItemStack inventoryStack = ItemStackNbt.rebind(this.previewStack, ItemStackNbt.provider());
         if (MinecraftCompat.isSingleplayer(this.minecraft)) {
             if (!applySingleplayerInventoryStack(containerSlot, inventoryStack)) {
                 this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
