@@ -29,6 +29,7 @@ public class RealmController {
     private final File dataFile;
     private final NonNullList<ItemStack> stackList = NonNullList.create();
     private final List<CompoundTag> unresolvedStackTags = new ArrayList<>();
+    private HolderLookup.Provider loadedProvider;
 
     public RealmController(File dataDir) {
         this.dataFile = new File(dataDir, "realm.nbt");
@@ -44,6 +45,7 @@ public class RealmController {
         if (!dataFile.exists()) {
             stackList.clear();
             unresolvedStackTags.clear();
+            loadedProvider = provider;
             return;
         }
 
@@ -66,6 +68,7 @@ public class RealmController {
             stackList.addAll(loadedStacks);
             unresolvedStackTags.clear();
             unresolvedStackTags.addAll(unresolvedTags);
+            loadedProvider = provider;
         } catch (Exception exception) {
             ModSource.LOGGER.error("Failed to load infinity realm from {}", dataFile.getAbsolutePath(), exception);
         }
@@ -114,6 +117,7 @@ public class RealmController {
             return false;
         }
 
+        refreshForProvider(player.level().registryAccess());
         resolveUnresolvedStacks(player.level().registryAccess());
         ItemStack savedStack = stack.copy();
         for (ItemStack existingStack : stackList) {
@@ -138,6 +142,7 @@ public class RealmController {
             return false;
         }
 
+        refreshForProvider(player.level().registryAccess());
         resolveUnresolvedStacks(player.level().registryAccess());
         for (ItemStack existingStack : stackList) {
             if (ItemStack.matches(existingStack, stack)) {
@@ -157,8 +162,15 @@ public class RealmController {
     }
 
     public synchronized List<ItemStack> getStackList(HolderLookup.Provider provider) {
+        refreshForProvider(provider);
         resolveUnresolvedStacks(provider);
         return Collections.unmodifiableList(stackList);
+    }
+
+    private void refreshForProvider(HolderLookup.Provider provider) {
+        if (provider != null && provider != loadedProvider) {
+            read(provider);
+        }
     }
 
     private void resolveUnresolvedStacks(HolderLookup.Provider provider) {
