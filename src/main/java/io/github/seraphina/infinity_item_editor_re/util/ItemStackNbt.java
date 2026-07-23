@@ -259,6 +259,10 @@ public final class ItemStackNbt {
     public static HolderLookup.Provider provider() {
         try {
             Minecraft minecraft = Minecraft.getInstance();
+            var connection = minecraft.getConnection();
+            if (connection != null) {
+                return connection.registryAccess();
+            }
             if (minecraft.level != null) {
                 return minecraft.level.registryAccess();
             }
