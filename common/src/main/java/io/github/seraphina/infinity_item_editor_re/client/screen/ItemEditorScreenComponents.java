@@ -968,7 +968,7 @@ abstract class ItemEditorScreenComponents extends ItemEditorScreenActions {
     }
 
     private boolean canEditSelectedComponentRawValue() {
-        return hasSelectedComponent() && !isVanillaComponent(this.selectedComponentKey);
+        return hasSelectedComponent();
     }
 
     private Component componentValueBoxLabel() {
