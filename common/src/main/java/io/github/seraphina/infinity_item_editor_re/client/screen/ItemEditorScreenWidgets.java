@@ -112,7 +112,7 @@ protected void addItemPanel() {
 
         int editorButtonWidth = 72;
         int editorButtonGap = 4;
-        int editorButtonLeft = this.midX - (editorButtonWidth * 4 + editorButtonGap * 3) / 2;
+        int editorButtonLeft = this.midX - (editorButtonWidth * 5 + editorButtonGap * 4) / 2;
         addRenderableWidget(new InfinityEditorButton(editorButtonLeft, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
         addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap), 145, editorButtonWidth, FIELD_HEIGHT,
@@ -121,6 +121,8 @@ protected void addItemPanel() {
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
         addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 3, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("json")), button -> openJsonEditor()));
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 4, 145, editorButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("special_components.entry")), button -> openSpecialComponentEditor()));
         addRenderableWidget(new InfinityEditorButton(this.width - 75, 74, 70, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
         addRenderableWidget(new InfinityEditorButton(this.width / 8 - 40, this.midY - 45, 80, FIELD_HEIGHT,
@@ -178,6 +180,9 @@ protected void addItemPanel() {
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("components")), button -> switchPanel(Panel.COMPONENTS)));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("special_components.entry")), button -> openSpecialComponentEditor()));
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));

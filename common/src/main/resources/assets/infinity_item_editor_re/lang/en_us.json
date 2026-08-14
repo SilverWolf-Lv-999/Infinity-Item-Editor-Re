@@ -960,5 +960,22 @@
   "screen.infinity_item_editor_re.armortrim.material_select": "Material",
   "screen.infinity_item_editor_re.armortrim.pattern_select": "Pattern",
   "screen.infinity_item_editor_re.armortrim.current": "Current: %s / %s",
-  "screen.infinity_item_editor_re.armortrim.appended": "#%s: %s / %s"
+  "screen.infinity_item_editor_re.armortrim.appended": "#%s: %s / %s",
+  "screen.infinity_item_editor_re.special_components.entry": "Component Tools",
+  "screen.infinity_item_editor_re.special_components.select": "Vanilla Component Editor",
+  "screen.infinity_item_editor_re.special_components.search": "Search components",
+  "screen.infinity_item_editor_re.special_components.search_action": "Search",
+  "screen.infinity_item_editor_re.special_components.hint": "Choose a vanilla component for dedicated editing",
+  "screen.infinity_item_editor_re.special_components.no_results": "No matching components",
+  "screen.infinity_item_editor_re.special_components.previous": "Previous",
+  "screen.infinity_item_editor_re.special_components.next": "Next",
+  "screen.infinity_item_editor_re.special_components.page": "Page %s / %s",
+  "screen.infinity_item_editor_re.special_components.editor": "Edit: %s",
+  "screen.infinity_item_editor_re.special_components.default": "Default",
+  "screen.infinity_item_editor_re.special_components.remove": "Remove",
+  "screen.infinity_item_editor_re.special_components.apply": "Apply",
+  "screen.infinity_item_editor_re.special_components.marker_hint": "This is a marker component. Apply to add it.",
+  "screen.infinity_item_editor_re.special_components.updated": "Updated %s",
+  "screen.infinity_item_editor_re.special_components.removed": "Removed %s",
+  "message.infinity_item_editor_re.editor_special_component_applied": "Applied dedicated component edits to %s."
 }

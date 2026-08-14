@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.client.screen.component.SpecialComponentSelectionScreen;
+
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
@@ -133,6 +135,18 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         MinecraftCompat.setScreen(this.minecraft, new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
+    protected void openSpecialComponentEditor() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true)) {
+            return;
+        }
+        this.status = Component.empty();
+        syncNbtEditorValuesFromStack();
+        MinecraftCompat.setScreen(this.minecraft, new SpecialComponentSelectionScreen((ItemEditorScreen) this, this.previewStack));
+    }
+
     protected void openCommandBlockEditor() {
         if (this.minecraft == null) {
             return;
@@ -248,6 +262,17 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
+    }
+
+    public void applySpecialComponentEditedStack(ItemStack stack) {
+        if (stack == null) {
+            return;
+        }
+        this.previewStack = stack.copy();
+        readMainFieldsFromStack(this.previewStack);
+        syncNbtEditorValuesFromStack();
+        this.nbtFeedback = "";
+        this.status = Component.translatable(messageKey("editor_special_component_applied"), this.previewStack.getHoverName());
     }
 
     void applyCommandBlockEditedStack(ItemStack stack) {
