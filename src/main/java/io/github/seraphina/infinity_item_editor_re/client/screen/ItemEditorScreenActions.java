@@ -316,23 +316,48 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         });
     }
 
+    private boolean dropSingleplayerStack(ItemStack stack) {
+        MinecraftServer server = this.minecraft.getSingleplayerServer();
+        if (server == null || this.minecraft.player == null) {
+            return false;
+        }
+
+        UUID playerId = this.minecraft.player.getUUID();
+        ItemStack serverStack = stack.copy();
+        server.execute(() -> {
+            ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
+            if (serverPlayer != null) {
+                serverPlayer.drop(serverStack, true);
+            }
+        });
+        return true;
+    }
+
     protected void dropEditedStack() {
         if (Screen.hasShiftDown()) {
             copyGiveCommand();
             return;
         }
 
-        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null || this.minecraft.gameMode == null) {
-            return;
-        }
-
-        if (this.minecraft.player == null || !this.minecraft.player.getAbilities().instabuild) {
-            this.status = Component.translatable(messageKey("editor_requires_creative"));
+        if (!applyMainFieldsToStack(true) || this.previewStack.isEmpty() || this.minecraft == null) {
             return;
         }
 
         ItemStack dropped = this.previewStack.copy();
-        this.minecraft.gameMode.handleCreativeModeItemDrop(dropped);
+        if (this.minecraft.hasSingleplayerServer()) {
+            if (!dropSingleplayerStack(dropped)) {
+                return;
+            }
+        } else {
+            if (this.minecraft.gameMode == null) {
+                return;
+            }
+            if (this.minecraft.player == null || !this.minecraft.player.getAbilities().instabuild) {
+                this.status = Component.translatable(messageKey("editor_requires_creative"));
+                return;
+            }
+            this.minecraft.gameMode.handleCreativeModeItemDrop(dropped);
+        }
         this.status = Component.translatable(messageKey("editor_dropped"), dropped.getHoverName());
     }
 
