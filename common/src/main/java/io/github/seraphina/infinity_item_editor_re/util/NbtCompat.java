@@ -6,6 +6,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
@@ -150,6 +151,10 @@ public final class NbtCompat {
 
     public static CompoundTag parseTag(String value) throws CommandSyntaxException {
         return TagParser.parseCompoundFully(value);
+    }
+
+    public static Tag parseAnyTag(String value) throws CommandSyntaxException {
+        return TagParser.create(NbtOps.INSTANCE).parseFully(value);
     }
 
     public static String asString(Tag tag) {

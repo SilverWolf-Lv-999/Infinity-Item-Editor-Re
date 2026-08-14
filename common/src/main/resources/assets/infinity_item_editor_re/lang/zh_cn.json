@@ -940,5 +940,22 @@
   "screen.infinity_item_editor_re.armortrim.material_select": "材料",
   "screen.infinity_item_editor_re.armortrim.pattern_select": "样式",
   "screen.infinity_item_editor_re.armortrim.current": "当前：%s / %s",
-  "screen.infinity_item_editor_re.armortrim.appended": "#%s：%s / %s"
+  "screen.infinity_item_editor_re.armortrim.appended": "#%s：%s / %s",
+  "screen.infinity_item_editor_re.special_components.entry": "专用组件",
+  "screen.infinity_item_editor_re.special_components.select": "原版组件专用编辑",
+  "screen.infinity_item_editor_re.special_components.search": "搜索组件",
+  "screen.infinity_item_editor_re.special_components.search_action": "搜索",
+  "screen.infinity_item_editor_re.special_components.hint": "选择一个原版组件进入专用编辑",
+  "screen.infinity_item_editor_re.special_components.no_results": "没有匹配的组件",
+  "screen.infinity_item_editor_re.special_components.previous": "上一页",
+  "screen.infinity_item_editor_re.special_components.next": "下一页",
+  "screen.infinity_item_editor_re.special_components.page": "第 %s / %s 页",
+  "screen.infinity_item_editor_re.special_components.editor": "编辑：%s",
+  "screen.infinity_item_editor_re.special_components.default": "默认",
+  "screen.infinity_item_editor_re.special_components.remove": "移除",
+  "screen.infinity_item_editor_re.special_components.apply": "应用",
+  "screen.infinity_item_editor_re.special_components.marker_hint": "这是标记型组件；应用即可添加。",
+  "screen.infinity_item_editor_re.special_components.updated": "已更新 %s",
+  "screen.infinity_item_editor_re.special_components.removed": "已移除 %s",
+  "message.infinity_item_editor_re.editor_special_component_applied": "已应用 %s 的专用组件编辑。"
 }
