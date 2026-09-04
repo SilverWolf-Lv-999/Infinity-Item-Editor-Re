@@ -1,0 +1,68 @@
+name: build
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      java: ${{ steps.detect.outputs.java }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        name: Detect required Java for this branch
+        shell: bash
+        run: |
+          case "${{ github.ref_name }}" in
+            neoforge-*) java=21 ;;
+            26.*)       java=25 ;;
+            *)          java=17 ;;
+          esac
+          echo "java=$java" >> "$GITHUB_OUTPUT"
+          echo "branch=${{ github.ref_name }} java=$java"
+
+  build:
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ needs.detect.outputs.java }}
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ github.ref_name }}-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', 'gradle.properties', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ github.ref_name }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Build with Gradle
+        shell: bash
+        run: bash gradlew build --no-daemon --console=plain
+        env:
+          CI: "true"
+
+      - name: Upload build jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.ref_name }}-${{ github.sha }}-jars
+          path: |
+            build/libs/*.jar
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
+            common/build/libs/*.jar
+          if-no-files-found: error
