@@ -149,7 +149,7 @@ public final class ItemStackNbt {
         }
 
         ResourceLocation id = ResourceLocation.tryParse(tag.getString("id"));
-        Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.get(id);
+        Item item = id == null ? Items.AIR : BuiltInRegistries.ITEM.getValue(id);
         if (item == Items.AIR) {
             return ItemStack.EMPTY;
         }

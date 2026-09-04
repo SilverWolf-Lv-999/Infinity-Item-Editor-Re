@@ -133,9 +133,9 @@ public class VoidController {
         }
 
         if (Config.voidAddNotification && player != null) {
-            player.sendSystemMessage(Component.literal("Added ")
+            player.displayClientMessage(Component.literal("Added ")
                     .append(savedStack.getHoverName())
-                    .append(Component.literal(" to Infinity Void.")));
+                    .append(Component.literal(" to Infinity Void.")), false);
         }
 
         VoidElement element = new VoidElement(savedStack);

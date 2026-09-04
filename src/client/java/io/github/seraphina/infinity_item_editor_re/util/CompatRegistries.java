@@ -12,8 +12,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.armortrim.TrimMaterial;
-import net.minecraft.world.item.armortrim.TrimPattern;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
 import net.minecraft.world.level.block.Block;
 
 import java.util.Collection;
@@ -44,7 +44,7 @@ public final class CompatRegistries {
         }
 
         public T getValue(ResourceLocation id) {
-            return this.registry.get(id);
+            return this.registry.getValue(id);
         }
 
         public Holder<T> getHolder(T value) {
@@ -52,11 +52,11 @@ public final class CompatRegistries {
         }
 
         public Holder<T> getHolder(ResourceLocation id) {
-            return this.registry.getHolder(id).orElse(null);
+            return this.registry.get(id).orElse(null);
         }
 
         public Collection<Holder.Reference<T>> getHolders() {
-            return this.registry.holders().toList();
+            return this.registry.listElements().toList();
         }
 
         public Collection<T> getValues() {
@@ -78,7 +78,7 @@ public final class CompatRegistries {
 
         public T getValue(ResourceLocation id) {
             Registry<T> registry = registry();
-            return registry == null ? null : registry.get(id);
+            return registry == null ? null : registry.getValue(id);
         }
 
         public Holder<T> getHolder(T value) {
@@ -88,12 +88,12 @@ public final class CompatRegistries {
 
         public Holder<T> getHolder(ResourceLocation id) {
             Registry<T> registry = registry();
-            return registry == null ? null : registry.getHolder(id).orElse(null);
+            return registry == null ? null : registry.get(id).orElse(null);
         }
 
         public Collection<Holder.Reference<T>> getHolders() {
             Registry<T> registry = registry();
-            return registry == null ? List.of() : registry.holders().toList();
+            return registry == null ? List.of() : registry.listElements().toList();
         }
 
         public Collection<T> getValues() {
@@ -103,7 +103,7 @@ public final class CompatRegistries {
 
         private Registry<T> registry() {
             RegistryAccess access = ItemStackNbt.registryAccess();
-            return access.registry(this.key).orElse(null);
+            return access.lookup(this.key).orElse(null);
         }
     }
 }

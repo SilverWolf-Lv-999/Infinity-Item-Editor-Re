@@ -14,17 +14,17 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Zombie;
-import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.armortrim.ArmorTrim;
-import net.minecraft.world.item.armortrim.TrimMaterial;
-import net.minecraft.world.item.armortrim.TrimPattern;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -926,7 +926,7 @@ final class ArmorTrimEditorScreen extends Screen {
         }
 
         List<ItemStack> previousEquipment = new ArrayList<>();
-        for (EquipmentSlot equipmentSlot : EquipmentSlot.values()) {
+        for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
             previousEquipment.add(this.minecraft.player.getItemBySlot(equipmentSlot));
         }
 
@@ -934,9 +934,8 @@ final class ArmorTrimEditorScreen extends Screen {
             setPreviewEquipment(this.minecraft.player, slot, trimmed);
             renderLivingEntity(guiGraphics, left, top, right, bottom, this.minecraft.player);
         } finally {
-            EquipmentSlot[] slots = EquipmentSlot.values();
-            for (int i = 0; i < slots.length; i++) {
-                this.minecraft.player.setItemSlot(slots[i], previousEquipment.get(i));
+            for (int i = 0; i < EquipmentSlot.VALUES.size(); i++) {
+                this.minecraft.player.setItemSlot(EquipmentSlot.VALUES.get(i), previousEquipment.get(i));
             }
         }
     }
@@ -948,7 +947,7 @@ final class ArmorTrimEditorScreen extends Screen {
 
         if (this.previewEntity == PREVIEW_ZOMBIE) {
             if (this.zombiePreview == null || this.zombiePreview.level() != this.minecraft.level) {
-                this.zombiePreview = EntityType.ZOMBIE.create(this.minecraft.level);
+                this.zombiePreview = EntityType.ZOMBIE.create(this.minecraft.level, EntitySpawnReason.LOAD);
             }
             return this.zombiePreview;
         }
@@ -964,7 +963,7 @@ final class ArmorTrimEditorScreen extends Screen {
     }
 
     private void setPreviewEquipment(LivingEntity entity, EquipmentSlot slot, ItemStack trimmed) {
-        for (EquipmentSlot equipmentSlot : EquipmentSlot.values()) {
+        for (EquipmentSlot equipmentSlot : EquipmentSlot.VALUES) {
             entity.setItemSlot(equipmentSlot, ItemStack.EMPTY);
         }
         entity.setItemSlot(slot, trimmed);
@@ -985,10 +984,11 @@ final class ArmorTrimEditorScreen extends Screen {
     }
 
     private static EquipmentSlot getArmorTrimEquipmentSlot(ItemStack stack) {
-        if (!(stack.getItem() instanceof ArmorItem armorItem) || !isArmorTrimSlot(armorItem.getEquipmentSlot())) {
+        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        if (equippable == null || !isArmorTrimSlot(equippable.slot())) {
             return null;
         }
-        return armorItem.getEquipmentSlot();
+        return equippable.slot();
     }
 
     private static boolean isArmorTrimSlot(EquipmentSlot slot) {

@@ -21,7 +21,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -34,6 +33,7 @@ import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.Blocks;
 
@@ -77,6 +77,7 @@ public final class CreativeTabRegistry {
         return Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath(ModSource.MODID, name),
                 searchTab(name, () -> icon, generator));
     }
+
     private static final String[] MHF_HEADS = {
             "MHF_Alex", "MHF_Blaze", "MHF_CaveSpider", "MHF_Chicken", "MHF_Cow", "MHF_Creeper",
             "MHF_Enderman", "MHF_Ghast", "MHF_Golem", "MHF_Herobrine", "MHF_LavaSlime", "MHF_MushroomCow",
@@ -93,7 +94,6 @@ public final class CreativeTabRegistry {
         return CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                 .title(Component.translatable("itemGroup." + ModSource.MODID + "." + name))
                 .icon(icon)
-
                 .displayItems(generator)
                 .build();
     }
@@ -172,7 +172,7 @@ public final class CreativeTabRegistry {
         for (DyeColor color : DyeColor.values()) {
             addUnique(banners, normalizedTabStack(shield(color)));
         }
-        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addBannerVariants(banners);
+            io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addBannerVariants(banners);
         output.acceptAll(banners);
     }
 
@@ -182,7 +182,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> heads = new ArrayList<>();
-        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addPlayerHeads(heads);
+            io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addPlayerHeads(heads);
         for (String owner : MHF_HEADS) {
             addUnique(heads, createPlayerHead(owner));
         }
@@ -195,7 +195,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> stacks = new ArrayList<>();
-        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addThiefItems(stacks);
+            io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addThiefItems(stacks);
         if (stacks.isEmpty()) {
             output.accept(Items.FEATHER);
             return;
@@ -219,7 +219,7 @@ public final class CreativeTabRegistry {
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 1)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 2)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 3)));
-        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addFireworkVariants(fireworks);
+            io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addFireworkVariants(fireworks);
         output.acceptAll(fireworks);
     }
 
@@ -317,7 +317,7 @@ public final class CreativeTabRegistry {
                 .forEach(enchantmentHolder -> {
                     Enchantment enchantment = enchantmentHolder.value();
                     for (int level = enchantment.getMinLevel(); level <= enchantment.getMaxLevel(); level++) {
-                        addUnique(stacks, normalizedTabStack(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantmentHolder, level))));
+                        addUnique(stacks, normalizedTabStack(EnchantmentHelper.createBook(new EnchantmentInstance(enchantmentHolder, level))));
                     }
                 });
     }
