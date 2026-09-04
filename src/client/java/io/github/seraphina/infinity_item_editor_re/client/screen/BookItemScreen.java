@@ -88,13 +88,6 @@ final class BookItemScreen extends Screen {
     }
 
     @Override
-    public void tick() {
-        for (EditBox lineBox : this.lineBoxes) {
-            lineBox.tick();
-        }
-    }
-
-    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == 256) {
             returnToLastScreen();
@@ -156,7 +149,7 @@ final class BookItemScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         int left = getBookLeft();
         guiGraphics.blit(BookViewScreen.BOOK_LOCATION, left, 2, 0, 0, IMAGE_WIDTH, IMAGE_WIDTH);
         Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));

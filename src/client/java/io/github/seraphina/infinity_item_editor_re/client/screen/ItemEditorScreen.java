@@ -175,10 +175,6 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public void tick() {
-        for (EditBox box : this.tickingBoxes) {
-            box.tick();
-        }
-
         if ((this.activePanel == Panel.ENCHANTMENTS || this.activePanel == Panel.POTION || this.activePanel == Panel.ATTRIBUTES)
                 && Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             this.rotOff++;
@@ -189,14 +185,14 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
             if (isSidebarUi()) {
-                renderEditorBackground(guiGraphics);
+                renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
             }
             renderNbtAdvancedPanel(guiGraphics, mouseX, mouseY);
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
 
-        renderEditorBackground(guiGraphics);
+        renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         switch (this.activePanel) {
             case ITEM -> renderItemPanel(guiGraphics, mouseX, mouseY);
@@ -323,37 +319,37 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
             int rows = buildNbtRows().size();
             int visible = getNbtAdvancedVisibleRows();
-            this.advancedScroll = Mth.clamp(this.advancedScroll - (int) Math.signum(delta), 0, Math.max(0, rows - visible));
+            this.advancedScroll = Mth.clamp(this.advancedScroll - (int) Math.signum(scrollY), 0, Math.max(0, rows - visible));
             return true;
         }
 
         if (this.activePanel == Panel.LORE) {
-            setLoreScroll(this.loreScroll - (int) Math.signum(delta));
+            setLoreScroll(this.loreScroll - (int) Math.signum(scrollY));
             return true;
         }
 
         if (this.activePanel == Panel.BANNER) {
-            setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(delta));
+            setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(scrollY));
             return true;
         }
 
         if (this.activePanel == Panel.SPAWN_EGG) {
             if (isMouseIn(mouseX, mouseY, spawnEggEntityListX(), getSpawnEggEntityRowY(0) - 1,
                     spawnEggEntityListWidth(), SPAWN_EGG_ENTITY_ROWS * 10 + 2)) {
-                setSpawnEggEntityScroll(this.spawnEggEntityScroll - (int) Math.signum(delta));
+                setSpawnEggEntityScroll(this.spawnEggEntityScroll - (int) Math.signum(scrollY));
                 rebuildWidgets();
             } else {
-                setSpawnEggTagScroll(this.spawnEggTagScroll - (int) Math.signum(delta));
+                setSpawnEggTagScroll(this.spawnEggTagScroll - (int) Math.signum(scrollY));
                 rebuildWidgets();
             }
             return true;
         }
 
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override

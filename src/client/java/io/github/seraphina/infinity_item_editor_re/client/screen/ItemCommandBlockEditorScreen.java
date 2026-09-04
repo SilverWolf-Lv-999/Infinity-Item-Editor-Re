@@ -131,7 +131,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, InfinityEditorButton.MAIN_COLOR);
         guiGraphics.renderItem(this.commandStack, 20, 12);
         guiGraphics.renderItemDecorations(this.font, this.commandStack, 20, 12);
