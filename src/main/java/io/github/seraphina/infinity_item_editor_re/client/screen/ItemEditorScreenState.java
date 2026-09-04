@@ -68,9 +68,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 abstract class ItemEditorScreenState extends CompatScreen {
-    protected static final int MAX_COUNT = 64;
-    protected static final int MAX_ENCHANTMENT_LEVEL = 255;
-    protected static final int MAX_POTION_LEVEL = 127;
+    protected static final int MAX_COUNT = Integer.MAX_VALUE;
+    protected static final int MAX_ENCHANTMENT_LEVEL = Integer.MAX_VALUE;
+    protected static final int MAX_POTION_LEVEL = Integer.MAX_VALUE;
     protected static final int MAX_POTION_SECONDS = 99999;
     protected static final int MAX_ATTRIBUTE_INTEGER = 99999999;
     protected static final int FIELD_HEIGHT = 20;
@@ -79,6 +79,7 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected static final int ITEM_SIZE = 16;
     protected static final int RING_ICON_HIT_RADIUS = 10;
     protected static final int RING_HOVER_WIDTH = 16;
+    protected static final int FOLDED_REGISTRY_ENTRY_LIMIT = 48;
     protected static final int CENTER_HIT_RADIUS = 15;
     protected static final int MAIN_COLOR = InfinityEditorButton.MAIN_COLOR;
     protected static final int ALT_COLOR = InfinityEditorButton.ALT_COLOR;
@@ -250,11 +251,14 @@ abstract class ItemEditorScreenState extends CompatScreen {
     protected String componentValueFilterValue = "";
     protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
+    protected String selectedEnchantmentNamespace = "";
     protected String enchantLevelValue = "1";
     protected String potionFilterValue = "";
+    protected String selectedPotionNamespace = "";
     protected String potionLevelValue = "1";
     protected String potionTimeValue = "1";
     protected String attributeFilterValue = "";
+    protected String selectedAttributeNamespace = "";
     protected String attributeAmountValue = "0";
     protected String attributeDecimalValue = "0";
     protected String colorHexValue;
@@ -588,9 +592,13 @@ abstract class ItemEditorScreenState extends CompatScreen {
 
     protected abstract void openBookItemEditor();
 
+    protected abstract void openArmorTrimEditor();
+
     abstract void refreshAfterContainerEdit();
 
     abstract void refreshAfterBookEdit();
+
+    abstract void applyArmorTrimEditedStack(ItemStack stack);
 
     protected abstract void goBack();
 

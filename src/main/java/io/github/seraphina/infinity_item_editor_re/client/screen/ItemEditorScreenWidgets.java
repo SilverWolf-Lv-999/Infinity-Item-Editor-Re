@@ -90,7 +90,9 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.itemIdBox);
 
-        this.countBox = addTrackedBox(numberBox(this.midX, 85, 20, FIELD_HEIGHT, 2, this.countValue, 1, MAX_COUNT));
+        int countDigits = Integer.toString(MAX_COUNT).length();
+        this.countBox = addTrackedBox(numberBox(this.midX, 85, Math.max(10 * countDigits, 20), FIELD_HEIGHT,
+                countDigits, this.countValue, 1, MAX_COUNT));
         this.countBox.setResponder(value -> {
             this.countValue = value;
             tryApplyCount(false);
@@ -145,7 +147,9 @@ protected void addItemPanel() {
         });
         this.mainTextBoxes.add(this.itemIdBox);
 
-        this.countBox = addTrackedBox(numberBox(fieldX, sidebarItemCountY(), 48, FIELD_HEIGHT, 2, this.countValue, 1, MAX_COUNT));
+        int countDigits = Integer.toString(MAX_COUNT).length();
+        this.countBox = addTrackedBox(numberBox(fieldX, sidebarItemCountY(), Math.min(fieldWidth, Math.max(10 * countDigits, 48)), FIELD_HEIGHT,
+                countDigits, this.countValue, 1, MAX_COUNT));
         this.countBox.setResponder(value -> {
             this.countValue = value;
             tryApplyCount(false);
@@ -328,6 +332,11 @@ protected void addItemPanel() {
                     Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND));
         }
 
+        if (isArmorTrimApplicable(this.previewStack)) {
+            index = addSidebarActionButton(x, y, width, index,
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor());
+        }
+
         if (isFireworkEditableItem(this.previewStack)) {
             index = addSidebarActionButton(x, y, width, index,
                     Component.translatable(key("firework")), button -> switchPanel(Panel.FIREWORK));
@@ -479,6 +488,12 @@ protected void addItemPanel() {
         if (isArmorStandItem(this.previewStack)) {
             addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
                     Component.translatable(key("armorstand")), button -> switchPanel(Panel.ARMOR_STAND)));
+            y += 30;
+        }
+
+        if (isArmorTrimApplicable(this.previewStack)) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 50, y, 100, FIELD_HEIGHT,
+                    Component.translatable(key("armortrim")), button -> openArmorTrimEditor()));
             y += 30;
         }
 
@@ -637,17 +652,30 @@ protected void addItemPanel() {
     protected void addEnchantmentsPanel() {
         this.enchantFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("enchantment_filter"))));
-        this.enchantFilterBox.setMaxLength(20);
-        this.enchantFilterBox.setFilter(value -> value.matches("[a-z]*"));
+        this.enchantFilterBox.setMaxLength(48);
+        this.enchantFilterBox.setFilter(value -> value.matches("[a-z0-9_:.\\-]*"));
         this.enchantFilterBox.setTextColor(MAIN_COLOR);
         this.enchantFilterBox.setValue(this.enchantFilterValue);
         this.enchantFilterBox.setResponder(value -> {
-            this.enchantFilterValue = value.toLowerCase(Locale.ROOT);
+            String normalized = value.toLowerCase(Locale.ROOT);
+            if (!Objects.equals(this.enchantFilterValue, normalized)) {
+                this.selectedEnchantmentNamespace = "";
+            }
+            this.enchantFilterValue = normalized;
         });
 
         int controlLeft = editorControlLeft();
-        this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 5,
-                this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
+        if (!this.selectedEnchantmentNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 93, 90, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all")), button -> {
+                this.selectedEnchantmentNamespace = "";
+                rebuildWidgets();
+            }));
+        }
+
+        int enchantLevelDigits = Integer.toString(MAX_ENCHANTMENT_LEVEL).length();
+        this.enchantLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, Math.max(10 * enchantLevelDigits, 40), 18,
+                enchantLevelDigits, this.enchantLevelValue, 1, MAX_ENCHANTMENT_LEVEL));
         this.enchantLevelBox.setResponder(value -> this.enchantLevelValue = value);
 
         addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 63, 90, OLD_BUTTON_HEIGHT,
@@ -658,15 +686,30 @@ protected void addItemPanel() {
     protected void addPotionPanel() {
         this.potionFilterBox = addTrackedBox(plainTextBox(searchFilterX(), searchFilterY(), searchFilterWidth(), 18,
                 Component.translatable(key("potion_filter"))));
-        this.potionFilterBox.setMaxLength(20);
-        this.potionFilterBox.setFilter(value -> value.matches("[a-z]*"));
+        this.potionFilterBox.setMaxLength(48);
+        this.potionFilterBox.setFilter(value -> value.matches("[a-z0-9_:.\\-]*"));
         this.potionFilterBox.setTextColor(MAIN_COLOR);
         this.potionFilterBox.setValue(this.potionFilterValue);
-        this.potionFilterBox.setResponder(value -> this.potionFilterValue = value.toLowerCase(Locale.ROOT));
+        this.potionFilterBox.setResponder(value -> {
+            String normalized = value.toLowerCase(Locale.ROOT);
+            if (!Objects.equals(this.potionFilterValue, normalized)) {
+                this.selectedPotionNamespace = "";
+            }
+            this.potionFilterValue = normalized;
+        });
 
         int controlLeft = editorControlLeft();
-        this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, 40, 18, 3,
-                this.potionLevelValue, 1, MAX_POTION_LEVEL));
+        if (!this.selectedPotionNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 150, 90, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all")), button -> {
+                this.selectedPotionNamespace = "";
+                rebuildWidgets();
+            }));
+        }
+
+        int potionLevelDigits = Integer.toString(MAX_POTION_LEVEL).length();
+        this.potionLevelBox = addTrackedBox(numberBox(controlLeft, this.height - 33, Math.max(10 * potionLevelDigits, 40), 18,
+                potionLevelDigits, this.potionLevelValue, 1, MAX_POTION_LEVEL));
         this.potionLevelBox.setResponder(value -> this.potionLevelValue = value);
 
         this.potionTimeBox = addTrackedBox(numberBox(controlLeft, this.height - 60, 40, 18, 5,
@@ -1179,7 +1222,21 @@ protected void addItemPanel() {
         this.attributeFilterBox.setMaxLength(48);
         this.attributeFilterBox.setTextColor(MAIN_COLOR);
         this.attributeFilterBox.setValue(this.attributeFilterValue);
-        this.attributeFilterBox.setResponder(value -> this.attributeFilterValue = value.toLowerCase(Locale.ROOT));
+        this.attributeFilterBox.setResponder(value -> {
+            String normalized = value.toLowerCase(Locale.ROOT);
+            if (!Objects.equals(this.attributeFilterValue, normalized)) {
+                this.selectedAttributeNamespace = "";
+            }
+            this.attributeFilterValue = normalized;
+        });
+
+        if (!this.selectedAttributeNamespace.isBlank()) {
+            addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 153, 80, OLD_BUTTON_HEIGHT,
+                    Component.translatable(key("registry_group.all")), button -> {
+                this.selectedAttributeNamespace = "";
+                rebuildWidgets();
+            }));
+        }
 
         this.attributeInfinityButton = addRenderableWidget(new InfinityEditorButton(controlLeft, this.height - 123, 80, OLD_BUTTON_HEIGHT,
                 Component.translatable(key("attributes.infinity." + (this.attributeInfinity ? 1 : 0))),
