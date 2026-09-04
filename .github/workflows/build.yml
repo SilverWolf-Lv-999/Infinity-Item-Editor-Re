@@ -52,9 +52,27 @@ jobs:
 
       - name: Build with Gradle
         shell: bash
-        run: bash gradlew build --no-daemon --console=plain
-        env:
-          CI: "true"
+        run: |
+          set +e
+          bash gradlew build --no-daemon --console=plain > build.log 2>&1
+          code=$?
+          tail -n 200 build.log > build-tail.log
+          grep -nE 'error:' build.log | head -n 300 > compile-errors.txt
+          exit $code
+
+      - name: Show build tail
+        if: failure()
+        run: cat build-tail.log
+
+      - name: Upload compile errors
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.ref_name }}-compile-errors
+          path: |
+            compile-errors.txt
+            build-tail.log
+          if-no-files-found: ignore
 
       - name: Upload build jars
         uses: actions/upload-artifact@v4
