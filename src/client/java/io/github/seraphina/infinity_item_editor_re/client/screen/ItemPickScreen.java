@@ -215,7 +215,7 @@ final class ItemPickScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         renderSelectedStack(guiGraphics);
         guiGraphics.drawCenteredString(this.font, this.title, this.midX, 15, InfinityEditorButton.MAIN_COLOR);
         renderPickContents(guiGraphics, mouseX, mouseY);

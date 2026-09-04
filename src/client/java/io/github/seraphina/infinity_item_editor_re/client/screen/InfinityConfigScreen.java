@@ -62,7 +62,7 @@ public class InfinityConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 12, TEXT_COLOR);
         if (!this.status.getString().isEmpty()) {
@@ -134,10 +134,8 @@ public class InfinityConfigScreen extends Screen {
     }
     private static final class ConfigList extends ObjectSelectionList<ConfigEntry> {
         private ConfigList(InfinityConfigScreen screen, Minecraft minecraft, int width, int height, int top, int bottom) {
-            super(minecraft, width, height, top, bottom, ROW_HEIGHT);
+            super(minecraft, width, bottom - top, top, ROW_HEIGHT);
             this.setRenderBackground(false);
-            this.setRenderTopAndBottom(false);
-            this.setRenderSelection(false);
             this.addEntry(new ConfigEntry(screen, null));
             for (Config.BooleanEntry entry : Config.booleanEntries()) {
                 this.addEntry(new ConfigEntry(screen, entry));
