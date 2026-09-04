@@ -4,6 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -69,7 +70,7 @@ public class RealmController {
                 realm.add(itemStack.save(new CompoundTag()));
             }
 
-            NbtIo.writeCompressed(root, dataFile);
+            NbtIo.writeCompressed(root, dataFile.toPath());
         } catch (Exception exception) {
             ModSource.LOGGER.error("Failed to save infinity realm to {}", dataFile.getAbsolutePath(), exception);
         }
@@ -77,10 +78,10 @@ public class RealmController {
 
     private CompoundTag readRootTag() throws IOException {
         try {
-            return NbtIo.readCompressed(dataFile);
+            return NbtIo.readCompressed(dataFile.toPath(), NbtAccounter.unlimitedHeap());
         } catch (IOException compressedException) {
             try {
-                return NbtIo.read(dataFile);
+                return NbtIo.read(dataFile.toPath());
             } catch (IOException uncompressedException) {
                 compressedException.addSuppressed(uncompressedException);
                 throw compressedException;

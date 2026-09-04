@@ -71,8 +71,8 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
 
-    protected void renderEditorBackground(GuiGraphics guiGraphics) {
-        renderBackground(guiGraphics);
+    protected void renderEditorBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         if (!isSidebarUi()) {
             return;

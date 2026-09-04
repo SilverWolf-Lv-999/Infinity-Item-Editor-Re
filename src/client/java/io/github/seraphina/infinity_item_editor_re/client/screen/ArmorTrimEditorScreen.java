@@ -109,7 +109,7 @@ final class ArmorTrimEditorScreen extends Screen {
         this.lastMouseY = mouseY;
         TrimEditorLayout layout = layout();
 
-        renderBackground(guiGraphics);
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, InfinityEditorButton.MAIN_COLOR);
 
         renderTrimList(guiGraphics, layout, mouseX, mouseY);
@@ -134,8 +134,8 @@ final class ArmorTrimEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        int direction = -(int) Math.signum(delta);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        int direction = -(int) Math.signum(scrollY);
         if (direction == 0) {
             return true;
         }
@@ -154,7 +154,7 @@ final class ArmorTrimEditorScreen extends Screen {
             return true;
         }
 
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
@@ -996,12 +996,9 @@ final class ArmorTrimEditorScreen extends Screen {
         int scale = this.previewEntity == PREVIEW_ARMOR_STAND
                 ? Mth.clamp(height / 3, 24, 38)
                 : Mth.clamp(height / 2, 34, 48);
-        int width = Math.max(1, right - left);
-        int centerX = left + width / 2;
-        int baseY = bottom - 8;
-        float mouseX = (float) centerX - this.lastMouseX;
-        float mouseY = (float) (top + height / 2) - this.lastMouseY;
-        InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, centerX, baseY, scale, mouseX, mouseY, entity);
+        float yOffset = this.previewEntity == PREVIEW_ARMOR_STAND ? 0.05F : 0.0F;
+        InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, left, top, right, bottom,
+                scale, yOffset, this.lastMouseX, this.lastMouseY, entity);
     }
 
     private static boolean isArmorTrimApplicable(ItemStack stack) {
