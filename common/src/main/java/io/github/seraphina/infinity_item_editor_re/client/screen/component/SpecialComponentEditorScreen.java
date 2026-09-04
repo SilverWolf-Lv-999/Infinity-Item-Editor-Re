@@ -54,7 +54,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
 
     SpecialComponentEditorScreen(ItemEditorScreen lastScreen, SpecialComponentSelectionScreen selectionScreen,
                                  ItemStack stack, ComponentEditorDefinition definition) {
-        super(Component.literal(definition.title()));
+        super(definition.displayName());
         this.thisLastScreen = lastScreen;
         this.thisSelectionScreen = selectionScreen;
         this.thisEditingStack = stack.copy();
@@ -144,7 +144,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         for (int index = first; index < end; index++) {
             ComponentEditorField field = this.thisDefinition.fields().get(index);
             int y = FIELD_START_Y + (index - first) * FIELD_ROW_HEIGHT;
-            guiGraphics.text(this.font, Component.literal(field.label()), formX, y + 6, 0xFFE5EDE8, false);
+            guiGraphics.text(this.font, Component.translatable(field.label()), formX, y + 6, 0xFFE5EDE8, false);
         }
         if (this.thisDefinition.fields().isEmpty()) {
             guiGraphics.centeredText(this.font, Component.translatable(key("special_components.marker_hint")),
@@ -196,7 +196,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             }
             default -> {
                 FilteredEditBox box = addRenderableWidget(new FilteredEditBox(this.font, fieldX, y, fieldWidth,
-                        BUTTON_HEIGHT, Component.literal(field.label())));
+                        BUTTON_HEIGHT, Component.translatable(field.label())));
                 box.setMaxLength(4096);
                 box.setValue(this.thisTextValues.getOrDefault(field.key(), field.defaultValue()));
                 box.setResponder(value -> this.thisTextValues.put(field.key(), value == null ? "" : value));
@@ -295,8 +295,8 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             case MARKER -> new CompoundTag();
             case ROOT_COMPONENT_TEXT -> StringTag.valueOf(componentTextJson(this.thisDefinition.fields().get(0).defaultValue()));
             case ROOT_STRING -> StringTag.valueOf(this.thisDefinition.fields().get(0).defaultValue());
-            case ROOT_INTEGER -> IntTag.valueOf(parseInteger(this.thisDefinition.fields().get(0).defaultValue(), "默认数值"));
-            case ROOT_DECIMAL -> FloatTag.valueOf(parseDecimal(this.thisDefinition.fields().get(0).defaultValue(), "默认数值"));
+            case ROOT_INTEGER -> IntTag.valueOf(parseInteger(this.thisDefinition.fields().get(0).defaultValue(), fieldLabelText(this.thisDefinition.fields().get(0))));
+            case ROOT_DECIMAL -> FloatTag.valueOf(parseDecimal(this.thisDefinition.fields().get(0).defaultValue(), fieldLabelText(this.thisDefinition.fields().get(0))));
             case ROOT_BOOLEAN -> ByteTag.valueOf((byte) (Boolean.parseBoolean(this.thisDefinition.fields().get(0).defaultValue()) ? 1 : 0));
             case ROOT_ITEM -> itemTag(this.thisDefinition.fields().get(0).defaultValue());
             case ROOT_ITEM_LIST -> itemListTag(this.thisDefinition.fields().get(0).defaultValue());
@@ -307,7 +307,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             case ROOT_BEE_LIST -> beeListTag(this.thisDefinition.fields().get(0).defaultValue());
             case ROOT_STRING_MAP -> stringMapTag(this.thisDefinition.fields().get(0).defaultValue());
             case ROOT_SNBT_COMPOUND -> parseSnbtCompound(this.thisDefinition.fields().get(0).defaultValue(),
-                    this.thisDefinition.fields().get(0).label());
+                    fieldLabelText(this.thisDefinition.fields().get(0)));
             case COMPOUND -> {
                 CompoundTag value = new CompoundTag();
                 for (ComponentEditorField field : this.thisDefinition.fields()) {
@@ -343,12 +343,12 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         return switch (this.thisDefinition.shape()) {
             case ROOT_COMPONENT_TEXT -> StringTag.valueOf(componentTextJson(value));
             case ROOT_STRING -> StringTag.valueOf(value);
-            case ROOT_INTEGER -> IntTag.valueOf(parseInteger(value, field.label()));
-            case ROOT_DECIMAL -> FloatTag.valueOf(parseDecimal(value, field.label()));
+            case ROOT_INTEGER -> IntTag.valueOf(parseInteger(value, fieldLabelText(field)));
+            case ROOT_DECIMAL -> FloatTag.valueOf(parseDecimal(value, fieldLabelText(field)));
             case ROOT_BOOLEAN -> ByteTag.valueOf((byte) (Boolean.parseBoolean(value) ? 1 : 0));
             case ROOT_ITEM, ROOT_ITEM_LIST, ROOT_STRING_LIST, ROOT_TEXT_LIST, ROOT_EFFECT_LIST, ROOT_PATTERN_LIST,
                     ROOT_BEE_LIST, ROOT_STRING_MAP -> createFieldTag(field, value);
-            case ROOT_SNBT_COMPOUND -> parseSnbtCompound(value, field.label());
+            case ROOT_SNBT_COMPOUND -> parseSnbtCompound(value, fieldLabelText(field));
             default -> throw new IllegalStateException("Unsupported component value shape");
         };
     }
@@ -357,9 +357,9 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         return switch (field.kind()) {
             case TEXT, IDENTIFIER, ENUM -> StringTag.valueOf(rawValue.trim());
             case TEXT_COMPONENT -> StringTag.valueOf(componentTextJson(rawValue));
-            case INTEGER -> IntTag.valueOf(parseInteger(rawValue, field.label()));
-            case LONG -> LongTag.valueOf(parseLong(rawValue, field.label()));
-            case DECIMAL -> FloatTag.valueOf(parseDecimal(rawValue, field.label()));
+            case INTEGER -> IntTag.valueOf(parseInteger(rawValue, fieldLabelText(field)));
+            case LONG -> LongTag.valueOf(parseLong(rawValue, fieldLabelText(field)));
+            case DECIMAL -> FloatTag.valueOf(parseDecimal(rawValue, fieldLabelText(field)));
             case BOOLEAN -> ByteTag.valueOf((byte) (Boolean.parseBoolean(rawValue) ? 1 : 0));
             case STRING_LIST -> stringListTag(rawValue, false);
             case TEXT_LIST -> stringListTag(rawValue, true);
@@ -378,9 +378,9 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             case PATTERN_LIST -> patternListTag(rawValue);
             case BEE_LIST -> beeListTag(rawValue);
             case UUID -> uuidTag(rawValue);
-            case SNBT_TAG -> parseSnbtTag(rawValue, field.label());
-            case SNBT_COMPOUND -> parseSnbtCompound(rawValue, field.label());
-            case SNBT_LIST -> parseSnbtList(rawValue, field.label());
+            case SNBT_TAG -> parseSnbtTag(rawValue, fieldLabelText(field));
+            case SNBT_COMPOUND -> parseSnbtCompound(rawValue, fieldLabelText(field));
+            case SNBT_LIST -> parseSnbtList(rawValue, fieldLabelText(field));
         };
     }
 
@@ -435,11 +435,11 @@ final class SpecialComponentEditorScreen extends CompatScreen {
     }
 
     private Component booleanMessage(ComponentEditorField field, boolean value) {
-        return Component.literal(field.label() + ": " + (value ? "开" : "关"));
+        return Component.translatable(key("special_components.field_value"), Component.translatable(field.label()), Component.translatable(key(value ? "special_components.on" : "special_components.off")));
     }
 
     private Component enumMessage(ComponentEditorField field, String value) {
-        return Component.literal(field.label() + ": " + value);
+        return Component.translatable(key("special_components.field_value"), Component.translatable(field.label()), value);
     }
 
     private String nextEnumValue(ComponentEditorField field, String current) {
@@ -461,7 +461,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(label + "必须是整数");
+            throw error("integer", label);
         }
     }
 
@@ -469,7 +469,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         try {
             return Long.parseLong(value.trim());
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(label + "必须是长整数");
+            throw error("long", label);
         }
     }
 
@@ -477,7 +477,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         try {
             return Float.parseFloat(value.trim());
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(label + "必须是数值");
+            throw error("decimal", label);
         }
     }
 
@@ -485,7 +485,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         try {
             return NbtCompat.parseAnyTag(value.trim());
         } catch (CommandSyntaxException exception) {
-            throw new IllegalArgumentException(label + "不是有效 SNBT");
+            throw error("snbt", label);
         }
     }
 
@@ -494,7 +494,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         if (tag instanceof CompoundTag compoundTag) {
             return compoundTag;
         }
-        throw new IllegalArgumentException(label + "必须是 SNBT 复合标签");
+        throw error("snbt_compound", label);
     }
 
     private static ListTag parseSnbtList(String value, String label) {
@@ -502,7 +502,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         if (tag instanceof ListTag listTag) {
             return listTag;
         }
-        throw new IllegalArgumentException(label + "必须是 SNBT 列表");
+        throw error("snbt_list", label);
     }
 
     private static String snbt(Tag tag) {
@@ -534,7 +534,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
     private static ListTag integerListTag(String value) {
         ListTag list = new ListTag();
         for (String entry : splitEntries(value, ",")) {
-            list.add(IntTag.valueOf(parseInteger(entry, "列表数值")));
+            list.add(IntTag.valueOf(parseInteger(entry, labelText("list_value"))));
         }
         return list;
     }
@@ -542,7 +542,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
     private static ListTag decimalListTag(String value) {
         ListTag list = new ListTag();
         for (String entry : splitEntries(value, ",")) {
-            list.add(FloatTag.valueOf(parseDecimal(entry, "列表数值")));
+            list.add(FloatTag.valueOf(parseDecimal(entry, labelText("list_value"))));
         }
         return list;
     }
@@ -558,7 +558,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
     private static CompoundTag itemTag(String value) {
         String[] parts = value.trim().split("\\*", 2);
         String id = parts.length == 0 || parts[0].isBlank() ? "minecraft:air" : parts[0].trim();
-        int count = parts.length < 2 || parts[1].isBlank() ? 1 : parseInteger(parts[1], "物品数量");
+        int count = parts.length < 2 || parts[1].isBlank() ? 1 : parseInteger(parts[1], labelText("item_count"));
         CompoundTag item = new CompoundTag();
         item.putString("id", id);
         item.putInt("count", Math.max(1, count));
@@ -578,11 +578,11 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         for (String entry : splitEntries(value, ",")) {
             String[] parts = entry.split(":", 3);
             if (parts.length < 2) {
-                throw new IllegalArgumentException("映射条目必须为 ID:数值");
+                throw error("map_id_format");
             }
             String id = parts.length == 2 ? parts[0] : parts[0] + ":" + parts[1];
             String number = parts.length == 2 ? parts[1] : parts[2];
-            map.putInt(id, parseInteger(number, "映射数值"));
+            map.putInt(id, parseInteger(number, labelText("map_value")));
         }
         return map;
     }
@@ -592,7 +592,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         for (String entry : splitEntries(value, ",")) {
             String[] parts = entry.split("=", 2);
             if (parts.length != 2 || parts[0].isBlank()) {
-                throw new IllegalArgumentException("映射条目必须为 键=值");
+                throw error("map_key_format");
             }
             map.putString(parts[0].trim(), parts[1].trim());
         }
@@ -615,7 +615,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             String[] parts = entry.split("\\|", -1);
             CompoundTag rule = new CompoundTag();
             rule.putString("blocks", parts[0].trim());
-            rule.putFloat("speed", parts.length > 1 && !parts[1].isBlank() ? parseDecimal(parts[1], "规则速度") : 1);
+            rule.putFloat("speed", parts.length > 1 && !parts[1].isBlank() ? parseDecimal(parts[1], labelText("rule_speed")) : 1);
             rule.putBoolean("correct_for_drops", parts.length <= 2 || Boolean.parseBoolean(parts[2].trim()));
             list.add(rule);
         }
@@ -628,9 +628,9 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             String[] parts = entry.split("\\|", -1);
             CompoundTag effect = new CompoundTag();
             effect.putString("id", parts[0].trim());
-            effect.putInt("duration", parts.length > 1 && !parts[1].isBlank() ? parseInteger(parts[1], "效果时长") : 200);
-            effect.putInt("amplifier", parts.length > 2 && !parts[2].isBlank() ? parseInteger(parts[2], "效果等级") : 0);
-            effect.putFloat("probability", parts.length > 3 && !parts[3].isBlank() ? parseDecimal(parts[3], "效果概率") : 1);
+            effect.putInt("duration", parts.length > 1 && !parts[1].isBlank() ? parseInteger(parts[1], labelText("effect_duration")) : 200);
+            effect.putInt("amplifier", parts.length > 2 && !parts[2].isBlank() ? parseInteger(parts[2], labelText("effect_amplifier")) : 0);
+            effect.putFloat("probability", parts.length > 3 && !parts[3].isBlank() ? parseDecimal(parts[3], labelText("effect_probability")) : 1);
             list.add(effect);
         }
         return list;
@@ -641,11 +641,11 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         for (String entry : splitEntries(value, ",")) {
             String[] parts = entry.split("\\|", -1);
             if (parts.length < 2) {
-                throw new IllegalArgumentException("属性条目必须为 属性|数值|操作|槽位");
+                throw error("attribute_format");
             }
             CompoundTag modifier = new CompoundTag();
             modifier.putString("type", parts[0].trim());
-            modifier.putDouble("amount", parseDecimal(parts[1], "属性数值"));
+            modifier.putDouble("amount", parseDecimal(parts[1], labelText("attribute_amount")));
             modifier.putString("operation", parts.length > 2 && !parts[2].isBlank() ? parts[2].trim() : "add_value");
             if (parts.length > 3 && !parts[3].isBlank()) {
                 modifier.putString("slot", parts[3].trim());
@@ -675,7 +675,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         for (String entry : splitEntries(value, ",")) {
             String[] parts = entry.split(":", 3);
             if (parts.length < 2) {
-                throw new IllegalArgumentException("旗帜图案条目必须为 图案:颜色");
+                throw error("pattern_format");
             }
             String pattern = parts.length == 2 ? parts[0] : parts[0] + ":" + parts[1];
             String color = parts.length == 2 ? parts[1] : parts[2];
@@ -695,8 +695,8 @@ final class SpecialComponentEditorScreen extends CompatScreen {
             CompoundTag entityData = new CompoundTag();
             entityData.putString("id", parts[0].trim());
             bee.put("entity_data", entityData);
-            bee.putInt("ticks_in_hive", parts.length > 1 && !parts[1].isBlank() ? parseInteger(parts[1], "蜜蜂时间") : 0);
-            bee.putInt("min_ticks_in_hive", parts.length > 2 && !parts[2].isBlank() ? parseInteger(parts[2], "蜜蜂最短时间") : 600);
+            bee.putInt("ticks_in_hive", parts.length > 1 && !parts[1].isBlank() ? parseInteger(parts[1], labelText("bee_time")) : 0);
+            bee.putInt("min_ticks_in_hive", parts.length > 2 && !parts[2].isBlank() ? parseInteger(parts[2], labelText("bee_min_time")) : 600);
             list.add(bee);
         }
         return list;
@@ -707,7 +707,7 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         try {
             uuid = UUID.fromString(value.trim());
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("UUID格式不正确");
+            throw error("uuid_format");
         }
         CompoundTag holder = new CompoundTag();
         NbtCompat.putUUID(holder, "value", uuid);
@@ -909,6 +909,21 @@ final class SpecialComponentEditorScreen extends CompatScreen {
         return "{\"text\":\"" + escaped + "\"}";
     }
 
+    private Component fieldLabel(ComponentEditorField field) {
+        return Component.translatable(field.label());
+    }
+
+    private String fieldLabelText(ComponentEditorField field) {
+        return fieldLabel(field).getString();
+    }
+
+    private static String labelText(String suffix) {
+        return Component.translatable(key("special_components.label." + suffix)).getString();
+    }
+
+    private static IllegalArgumentException error(String suffix, Object... args) {
+        return new IllegalArgumentException(Component.translatable(key("special_components.error." + suffix), args).getString());
+    }
     private static String key(String suffix) {
         return "screen." + ModSource.MODID + "." + suffix;
     }
