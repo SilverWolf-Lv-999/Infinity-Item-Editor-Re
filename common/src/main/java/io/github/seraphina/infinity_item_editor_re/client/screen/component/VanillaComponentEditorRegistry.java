@@ -492,6 +492,11 @@ public final class VanillaComponentEditorRegistry {
 
 record ComponentEditorDefinition(String id, String category, String title, ComponentValueShape shape,
                                  List<ComponentEditorField> fields) {
+    @Override
+    public String title() {
+        return Component.translatable(this.title).getString();
+    }
+
     Component displayName() {
         return Component.translatable(this.title);
     }
