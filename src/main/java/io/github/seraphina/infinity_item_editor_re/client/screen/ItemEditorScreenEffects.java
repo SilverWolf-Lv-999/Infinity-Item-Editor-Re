@@ -48,7 +48,6 @@ import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -209,7 +208,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected boolean tryAddRingEnchantment(double mouseX, double mouseY) {
-        List<Enchantment> filteredEnchantments = getFilteredEnchantments(this.previewStack);
+        List<Enchantment> filteredEnchantments = getVisibleEnchantments(this.previewStack);
         if (filteredEnchantments.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -249,7 +248,11 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected void addMatchingEnchantments() {
-        List<Enchantment> enchantments = getFilteredEnchantments(this.previewStack);
+        List<Enchantment> enchantments = getVisibleEnchantments(this.previewStack);
+        if (!getFoldedEnchantmentGroups(this.previewStack).isEmpty()) {
+            this.status = Component.translatable(messageKey("editor_select_enchantment_group"));
+            return;
+        }
         if (enchantments.isEmpty()) {
             this.status = Component.translatable(messageKey("editor_no_enchantment_match"));
             return;
@@ -279,13 +282,10 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
             return -1;
         }
         this.enchantLevelValue = Integer.toString(level);
-        return enchantment.getMaxLevel() == 1 ? 1 : level;
+        return level;
     }
 
     protected int getDisplayLevel(Enchantment enchantment) {
-        if (enchantment.getMaxLevel() == 1) {
-            return 1;
-        }
         try {
             int level = Integer.parseInt(this.enchantLevelValue);
             return Math.max(1, Math.min(MAX_ENCHANTMENT_LEVEL, level));
@@ -303,7 +303,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         int index = findEnchantmentIndex(enchantments, id);
         CompoundTag enchantmentTag = new CompoundTag();
         enchantmentTag.putString("id", id.toString());
-        enchantmentTag.putShort("lvl", (short) level);
+        enchantmentTag.putInt("lvl", level);
         if (index >= 0) {
             enchantments.set(index, enchantmentTag);
         } else {
@@ -369,6 +369,92 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         return enchantments;
     }
 
+    protected List<Enchantment> getVisibleEnchantments(ItemStack stack) {
+        List<Enchantment> enchantments = getFilteredEnchantments(stack);
+        if (this.selectedEnchantmentNamespace.isBlank()) {
+            return enchantments;
+        }
+
+        List<Enchantment> visibleEnchantments = new ArrayList<>();
+        for (Enchantment enchantment : enchantments) {
+            Identifier id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
+            if (id != null && this.selectedEnchantmentNamespace.equals(id.getNamespace())) {
+                visibleEnchantments.add(enchantment);
+            }
+        }
+
+        if (visibleEnchantments.isEmpty()) {
+            this.selectedEnchantmentNamespace = "";
+            return enchantments;
+        }
+        return visibleEnchantments;
+    }
+
+    protected List<EnchantmentGroupEntry> getFoldedEnchantmentGroups(ItemStack stack) {
+        if (!this.selectedEnchantmentNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<Enchantment> enchantments = getFilteredEnchantments(stack);
+        Map<String, List<Enchantment>> groupedEnchantments = new HashMap<>();
+        for (Enchantment enchantment : enchantments) {
+            Identifier id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
+            if (id != null) {
+                groupedEnchantments.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(enchantment);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(enchantments.size(), groupedEnchantments)) {
+            return List.of();
+        }
+
+        List<EnchantmentGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<Enchantment>> entry : groupedEnchantments.entrySet()) {
+            groups.add(new EnchantmentGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(EnchantmentGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingEnchantmentGroup(double mouseX, double mouseY) {
+        List<EnchantmentGroupEntry> groups = getFoldedEnchantmentGroups(this.previewStack);
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        EnchantmentGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedEnchantmentNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_enchantment_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
+    }
+
+    protected boolean shouldFoldRegistryEntries(int entryCount, Map<String, ?> groupedEntries) {
+        if (entryCount <= FOLDED_REGISTRY_ENTRY_LIMIT || groupedEntries.isEmpty()) {
+            return false;
+        }
+        return groupedEntries.size() > 1 || !groupedEntries.containsKey("minecraft");
+    }
+
     protected boolean canApplyEnchantment(ItemStack stack, Enchantment enchantment) {
         return enchantment.canEnchant(stack)
                 || stack.is(Items.BOOK)
@@ -415,7 +501,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected boolean tryAddRingPotionEffect(double mouseX, double mouseY) {
-        List<MobEffect> filteredEffects = getFilteredPotionEffects();
+        List<MobEffect> filteredEffects = getVisiblePotionEffects();
         if (filteredEffects.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -445,7 +531,11 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected void addMatchingPotionEffects() {
-        List<MobEffect> effects = getFilteredPotionEffects();
+        List<MobEffect> effects = getVisiblePotionEffects();
+        if (!getFoldedPotionGroups().isEmpty()) {
+            this.status = Component.translatable(messageKey("editor_select_potion_group"));
+            return;
+        }
         if (effects.isEmpty()) {
             this.status = Component.translatable(messageKey("editor_no_potion_match"));
             return;
@@ -517,6 +607,85 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
         return effects;
     }
 
+    protected List<MobEffect> getVisiblePotionEffects() {
+        List<MobEffect> effects = getFilteredPotionEffects();
+        if (this.selectedPotionNamespace.isBlank()) {
+            return effects;
+        }
+
+        List<MobEffect> visibleEffects = new ArrayList<>();
+        for (MobEffect effect : effects) {
+            Identifier id = CompatRegistries.MOB_EFFECTS.getKey(effect);
+            if (id != null && this.selectedPotionNamespace.equals(id.getNamespace())) {
+                visibleEffects.add(effect);
+            }
+        }
+
+        if (visibleEffects.isEmpty()) {
+            this.selectedPotionNamespace = "";
+            return effects;
+        }
+        return visibleEffects;
+    }
+
+    protected List<PotionGroupEntry> getFoldedPotionGroups() {
+        if (!this.selectedPotionNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<MobEffect> effects = getFilteredPotionEffects();
+        Map<String, List<MobEffect>> groupedEffects = new HashMap<>();
+        for (MobEffect effect : effects) {
+            Identifier id = CompatRegistries.MOB_EFFECTS.getKey(effect);
+            if (id != null) {
+                groupedEffects.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(effect);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(effects.size(), groupedEffects)) {
+            return List.of();
+        }
+
+        List<PotionGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<MobEffect>> entry : groupedEffects.entrySet()) {
+            groups.add(new PotionGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(PotionGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingPotionGroup(double mouseX, double mouseY) {
+        List<PotionGroupEntry> groups = getFoldedPotionGroups();
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        PotionGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedPotionNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_potion_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
+    }
+
     protected int parsePotionLevel() {
         try {
             int level = Integer.parseInt(this.potionLevelBox == null ? this.potionLevelValue : this.potionLevelBox.getValue());
@@ -552,7 +721,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
 
     protected String formatPotionEffect(MobEffectInstance effect) {
         int amplifier = effect.getAmplifier();
-        String text = effect.getEffect().value().getDisplayName().getString() + " (" + (amplifier + 1) + ")";
+        String text = effect.getEffect().value().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
         if (amplifier > 1) {
             text += " " + Component.translatable("potion.potency." + amplifier).getString().trim();
         }
@@ -613,7 +782,7 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
     }
 
     protected boolean tryAddRingAttribute(double mouseX, double mouseY) {
-        List<Attribute> attributes = getSharedAttributes();
+        List<Attribute> attributes = getVisibleAttributes();
         if (attributes.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             return false;
         }
@@ -788,7 +957,88 @@ abstract class ItemEditorScreenEffects extends ItemEditorScreenTrades {
                 attributes.add(attribute);
             }
         }
+        attributes.sort(Comparator.comparing(attribute -> Component.translatable(attribute.getDescriptionId()).getString(),
+                String.CASE_INSENSITIVE_ORDER));
         return attributes;
+    }
+
+    protected List<Attribute> getVisibleAttributes() {
+        List<Attribute> attributes = getSharedAttributes();
+        if (this.selectedAttributeNamespace.isBlank()) {
+            return attributes;
+        }
+
+        List<Attribute> visibleAttributes = new ArrayList<>();
+        for (Attribute attribute : attributes) {
+            Identifier id = CompatRegistries.ATTRIBUTES.getKey(attribute);
+            if (id != null && this.selectedAttributeNamespace.equals(id.getNamespace())) {
+                visibleAttributes.add(attribute);
+            }
+        }
+
+        if (visibleAttributes.isEmpty()) {
+            this.selectedAttributeNamespace = "";
+            return attributes;
+        }
+        return visibleAttributes;
+    }
+
+    protected List<AttributeGroupEntry> getFoldedAttributeGroups() {
+        if (!this.selectedAttributeNamespace.isBlank()) {
+            return List.of();
+        }
+
+        List<Attribute> attributes = getSharedAttributes();
+        Map<String, List<Attribute>> groupedAttributes = new HashMap<>();
+        for (Attribute attribute : attributes) {
+            Identifier id = CompatRegistries.ATTRIBUTES.getKey(attribute);
+            if (id != null) {
+                groupedAttributes.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(attribute);
+            }
+        }
+
+        if (!shouldFoldRegistryEntries(attributes.size(), groupedAttributes)) {
+            return List.of();
+        }
+
+        List<AttributeGroupEntry> groups = new ArrayList<>();
+        for (Map.Entry<String, List<Attribute>> entry : groupedAttributes.entrySet()) {
+            groups.add(new AttributeGroupEntry(entry.getKey(), entry.getValue()));
+        }
+        groups.sort(Comparator.comparing(AttributeGroupEntry::namespace, String.CASE_INSENSITIVE_ORDER));
+        return groups;
+    }
+
+    protected boolean trySelectRingAttributeGroup(double mouseX, double mouseY) {
+        List<AttributeGroupEntry> groups = getFoldedAttributeGroups();
+        if (groups.isEmpty() || Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
+            return false;
+        }
+
+        double angle = (2.0D * Math.PI) / groups.size();
+        int lowDist = Integer.MAX_VALUE;
+        AttributeGroupEntry closestGroup = null;
+        for (int i = 0; i < groups.size(); i++) {
+            double groupAngle = this.rotOff / 60.0D + angle * i;
+            int x = (int) (contentMidX() + getRingRadius() * Math.cos(groupAngle));
+            int y = (int) (this.midY + getRingRadius() * Math.sin(groupAngle));
+            int distX = x - (int) mouseX;
+            int distY = y - (int) mouseY;
+            int dist = (int) Math.sqrt(distX * distX + distY * distY);
+            if (dist < RING_ICON_HIT_RADIUS && dist < lowDist) {
+                lowDist = dist;
+                closestGroup = groups.get(i);
+            }
+        }
+
+        if (closestGroup == null) {
+            return false;
+        }
+
+        this.selectedAttributeNamespace = closestGroup.namespace();
+        this.status = Component.translatable(messageKey("editor_attribute_group_selected"), closestGroup.namespace());
+        rebuildWidgets();
+        return true;
     }
 
     protected boolean matchesAttributeFilter(Attribute attribute, String filter) {

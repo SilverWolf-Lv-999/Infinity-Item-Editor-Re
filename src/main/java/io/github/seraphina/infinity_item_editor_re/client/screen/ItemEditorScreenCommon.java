@@ -55,6 +55,7 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.FireworkExplosion;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -566,7 +567,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected void readMainFieldsFromStack(ItemStack stack) {
         Identifier id = CompatRegistries.ITEMS.getKey(stack.getItem());
         this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
-        this.countValue = Integer.toString(Math.max(1, Math.min(MAX_COUNT, stack.getCount())));
+        this.countValue = Integer.toString(Math.max(1, stack.getCount()));
         this.damageValue = Integer.toString(Math.max(0, Math.min(getDamageMaxForField(stack), stack.getDamageValue())));
         this.nameValue = stack.getHoverName().getString();
         this.loreValues.clear();
@@ -616,9 +617,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             CompoundTag frontText = NbtCompat.getCompound(blockEntity, SIGN_FRONT_TEXT_TAG);
             if (NbtCompat.contains(frontText, SIGN_MESSAGES_TAG, Tag.TAG_LIST)) {
                 ListTag messages = NbtCompat.getList(frontText, SIGN_MESSAGES_TAG, Tag.TAG_STRING);
-                for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
-                    readSignLine(i, NbtCompat.getString(messages, i));
-                }
+                readModernSignMessages(messages);
                 readModernMessages = !messages.isEmpty();
             }
         }
@@ -633,8 +632,54 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
     }
 
+    protected void readModernSignMessages(ListTag messages) {
+        if (isLegacyJsonSignMessageList(messages)) {
+            for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
+                readSignLine(i, NbtCompat.getString(messages, i));
+            }
+            return;
+        }
+
+        try {
+            List<Component> components = ComponentCompat.fromNbtList(messages);
+            for (int i = 0; i < SIGN_LINES && i < components.size(); i++) {
+                readSignLine(i, components.get(i));
+            }
+        } catch (RuntimeException exception) {
+            for (int i = 0; i < SIGN_LINES && i < messages.size(); i++) {
+                if (messages.get(i) instanceof StringTag stringTag) {
+                    readSignLine(i, Component.literal(stringTag.value()));
+                }
+            }
+        }
+    }
+
+    protected boolean isLegacyJsonSignMessageList(ListTag messages) {
+        if (messages.isEmpty()) {
+            return false;
+        }
+        for (Tag message : messages) {
+            if (!(message instanceof StringTag stringTag)) {
+                return false;
+            }
+            String raw = stringTag.value().stripLeading();
+            if (!(raw.startsWith("\"") || raw.startsWith("{") || raw.startsWith("["))) {
+                return false;
+            }
+            try {
+                ComponentCompat.fromJson(raw);
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected void readSignLine(int line, String raw) {
-        Component component = readSerializedComponent(raw);
+        readSignLine(line, readSerializedComponent(raw));
+    }
+
+    protected void readSignLine(int line, Component component) {
         this.signLineValues[line] = component.getString();
         if (line == 0) {
             ClickEvent clickEvent = component.getStyle().getClickEvent();
@@ -1074,6 +1119,25 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static boolean isBannerEditableItem(ItemStack stack) {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
+    }
+
+    protected static boolean isArmorTrimApplicable(ItemStack stack) {
+        return getArmorTrimEquipmentSlot(stack) != null;
+    }
+
+    protected static EquipmentSlot getArmorTrimEquipmentSlot(ItemStack stack) {
+        var equippable = stack.get(DataComponents.EQUIPPABLE);
+        if (equippable == null || !isArmorTrimSlot(equippable.slot())) {
+            return null;
+        }
+        return equippable.slot();
+    }
+
+    protected static boolean isArmorTrimSlot(EquipmentSlot slot) {
+        return slot == EquipmentSlot.HEAD
+                || slot == EquipmentSlot.CHEST
+                || slot == EquipmentSlot.LEGS
+                || slot == EquipmentSlot.FEET;
     }
 
     protected static boolean isDecoratedPotItem(ItemStack stack) {
