@@ -38,7 +38,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -47,14 +46,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,7 +67,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-abstract class ItemEditorScreenWidgets extends ItemEditorScreenActions {
+abstract class ItemEditorScreenWidgets extends ItemEditorScreenComponents {
     protected ItemEditorScreenWidgets(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(stack, targetContainerSlot, parentTradeScreen, parentTradeIndex, parentTradeSlot);
     }
@@ -109,11 +108,16 @@ protected void addItemPanel() {
             tryApplyDamage(false);
         });
 
-        addRenderableWidget(new InfinityEditorButton(this.midX - 124, 145, 80, FIELD_HEIGHT,
+        int editorButtonWidth = 72;
+        int editorButtonGap = 4;
+        int editorButtonLeft = this.midX - (editorButtonWidth * 4 + editorButtonGap * 3) / 2;
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
-        addRenderableWidget(new InfinityEditorButton(this.midX - 40, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + editorButtonWidth + editorButtonGap, 145, editorButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("components")), button -> switchPanel(Panel.COMPONENTS)));
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 2, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
-        addRenderableWidget(new InfinityEditorButton(this.midX + 44, 145, 80, FIELD_HEIGHT,
+        addRenderableWidget(new InfinityEditorButton(editorButtonLeft + (editorButtonWidth + editorButtonGap) * 3, 145, editorButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("json")), button -> openJsonEditor()));
         addRenderableWidget(new InfinityEditorButton(this.width - 75, 74, 70, FIELD_HEIGHT,
                 Component.translatable(key("hideflags")), button -> switchPanel(Panel.HIDE_FLAGS)));
@@ -169,6 +173,9 @@ protected void addItemPanel() {
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbt")), button -> switchPanel(Panel.NBT)));
+        y += 24;
+        addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
+                Component.translatable(key("components")), button -> switchPanel(Panel.COMPONENTS)));
         y += 24;
         addRenderableWidget(new InfinityEditorButton(sidebarX, y, sidebarButtonWidth, FIELD_HEIGHT,
                 Component.translatable(key("nbtadv")), button -> switchPanel(Panel.NBT_ADVANCED)));
@@ -624,6 +631,10 @@ protected void addItemPanel() {
         addFormatButtons();
     }
 
+    protected void addComponentsPanel() {
+        addComponentEditorPanel();
+    }
+
     protected void addNbtAdvancedPanel() {
         this.advancedScroll = Mth.clamp(this.advancedScroll, 0, Math.max(0, buildNbtRows().size() - getNbtAdvancedVisibleRows()));
     }
@@ -993,20 +1004,52 @@ protected void addItemPanel() {
     }
 
     protected void addDecoratedPotPanel() {
-        int width = contentLimitedWidth(190, 120, 32);
-        int x = centeredContentX(width);
-        int y = decoratedPotButtonStartY();
-        for (int i = 0; i < DECORATED_POT_UI_SIDES.length; i++) {
-            int sideIndex = DECORATED_POT_UI_SIDES[i];
-            addRenderableWidget(new InfinityEditorButton(x, y + i * 26, width, FIELD_HEIGHT,
-                    getDecoratedPotSideButtonText(sideIndex),
-                    button -> cycleDecoratedPotSherd(sideIndex, Screen.hasShiftDown() ? -1 : 1)));
+        int listX = potterySherdListX();
+        int listWidth = potterySherdListWidth();
+        this.potterySherdFilterBox = addTrackedBox(legacyTextBox(listX, sideListSearchY(), Math.min(180, listWidth), FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.search"))));
+        this.potterySherdFilterBox.setMaxLength(48);
+        this.potterySherdFilterBox.setValue(this.potterySherdFilterValue);
+        this.potterySherdFilterBox.setResponder(value -> {
+            this.potterySherdFilterValue = value.toLowerCase(Locale.ROOT);
+            this.potterySherdScroll = 0;
+            this.selectedPotterySherdIndex = 0;
+        });
+
+        int width = isSidebarUi() ? contentLimitedWidth(132, 88, 20) : 132;
+        int controlsX = rightControlsX(width, listX, listWidth);
+        int sideButtonWidth = (width - 4) / 2;
+        for (int i = 0; i < DECORATED_POT_DISPLAY_SIDES.length; i++) {
+            int side = DECORATED_POT_DISPLAY_SIDES[i];
+            int x = controlsX + (i % 2) * (sideButtonWidth + 4);
+            int y = 52 + (i / 2) * 26;
+            addDecoratedPotSideButton(x, y, sideButtonWidth, side);
         }
 
-        InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(x, y + DECORATED_POT_UI_SIDES.length * 26 + 8,
-                width, FIELD_HEIGHT, Component.translatable(key("decorated_pot.clear")),
-                button -> clearDecoratedPotSherds()));
-        clear.active = hasDecoratedPotSherdData();
+        addRenderableWidget(new InfinityEditorButton(controlsX, 104, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.apply")), button -> applySelectedPotterySherd()));
+        addRenderableWidget(new InfinityEditorButton(controlsX, 130, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.clear_side")), button -> clearDecoratedPotSide()));
+        InfinityEditorButton clearAll = addRenderableWidget(new InfinityEditorButton(controlsX, 156, width, FIELD_HEIGHT,
+                Component.translatable(key("decorated_pot.clear_all")), button -> clearDecoratedPotDecorations()));
+        clearAll.active = getDecoratedPotDecorationCount() > 0;
+
+        if (!isSidebarUi()) {
+            addRenderableWidget(new InfinityEditorButton(this.midX - 58, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal("<"), button -> cycleSelectedPotterySherd(-1)));
+            addRenderableWidget(new InfinityEditorButton(this.midX - 28, this.height - 64, 56, FIELD_HEIGHT,
+                    Component.translatable(key("decorated_pot.apply")), button -> applySelectedPotterySherd()));
+            addRenderableWidget(new InfinityEditorButton(this.midX + 30, this.height - 64, 28, FIELD_HEIGHT,
+                    Component.literal(">"), button -> cycleSelectedPotterySherd(1)));
+        }
+    }
+
+    protected void addDecoratedPotSideButton(int x, int y, int width, int side) {
+        Component text = side == this.selectedDecoratedPotSide
+                ? Component.literal("> ").append(getDecoratedPotSideName(side))
+                : getDecoratedPotSideName(side);
+        addRenderableWidget(new InfinityEditorButton(x, y, width, FIELD_HEIGHT, text,
+                button -> selectDecoratedPotSide(side)));
     }
 
     protected void addSpawnEggPanel() {

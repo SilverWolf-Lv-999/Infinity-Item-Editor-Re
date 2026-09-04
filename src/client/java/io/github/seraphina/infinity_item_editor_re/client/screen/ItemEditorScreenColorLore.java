@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -22,6 +24,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -36,7 +40,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,14 +48,15 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.component.DyedItemColor;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -125,14 +129,14 @@ protected void applyColorFromHex(boolean updateStatus) {
 
     protected int getEditorColor() {
         if (isPotionItem(this.previewStack)) {
-            return PotionUtils.getColor(this.previewStack) & 0xFFFFFF;
+            return PotionCompat.getColor(this.previewStack) & 0xFFFFFF;
         }
         if (isMapItem(this.previewStack)) {
-            CompoundTag display = this.previewStack.getTagElement(DISPLAY_TAG);
+            CompoundTag display = ItemStackNbt.getElement(this.previewStack, DISPLAY_TAG);
             return display == null ? 0 : display.getInt(MAP_COLOR_TAG) & 0xFFFFFF;
         }
-        if (this.previewStack.getItem() instanceof DyeableLeatherItem dyeableLeatherItem) {
-            return dyeableLeatherItem.getColor(this.previewStack) & 0xFFFFFF;
+        if (this.previewStack.is(ItemTags.DYEABLE)) {
+            return DyedItemColor.getOrDefault(this.previewStack, DyedItemColor.LEATHER_COLOR) & 0xFFFFFF;
         }
         return 0;
     }
@@ -140,28 +144,28 @@ protected void applyColorFromHex(boolean updateStatus) {
     protected void setEditorColor(int color) {
         color &= 0xFFFFFF;
         if (isPotionItem(this.previewStack)) {
-            this.previewStack.getOrCreateTag().putInt(CUSTOM_POTION_COLOR_TAG, color);
+            PotionCompat.setCustomColor(this.previewStack, color);
         } else if (isMapItem(this.previewStack)) {
-            CompoundTag tag = this.previewStack.getOrCreateTag();
+            CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
             CompoundTag display = tag.getCompound(DISPLAY_TAG);
             display.putInt(MAP_COLOR_TAG, color);
             tag.put(DISPLAY_TAG, display);
-        } else if (this.previewStack.getItem() instanceof DyeableLeatherItem dyeableLeatherItem) {
-            dyeableLeatherItem.setColor(this.previewStack, color);
+        } else if (this.previewStack.is(ItemTags.DYEABLE)) {
+            this.previewStack.set(DataComponents.DYED_COLOR, new DyedItemColor(color, true));
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
     }
 
     protected void addDyeToColor(DyeColor dyeColor) {
-        if (!(this.previewStack.getItem() instanceof DyeableLeatherItem dyeableLeatherItem)) {
+        if (!this.previewStack.is(ItemTags.DYEABLE)) {
             return;
         }
 
         int[] totals = new int[3];
         int totalBrightness = 0;
         int colors = 0;
-        if (dyeableLeatherItem.hasCustomColor(this.previewStack)) {
-            int current = dyeableLeatherItem.getColor(this.previewStack);
+        if (this.previewStack.has(DataComponents.DYED_COLOR)) {
+            int current = this.previewStack.getOrDefault(DataComponents.DYED_COLOR, new DyedItemColor(DyedItemColor.LEATHER_COLOR, true)).rgb();
             int red = getRed(current);
             int green = getGreen(current);
             int blue = getBlue(current);
@@ -172,10 +176,10 @@ protected void applyColorFromHex(boolean updateStatus) {
             colors++;
         }
 
-        float[] dyeRgb = dyeColor.getTextureDiffuseColors();
-        int red = (int) (dyeRgb[0] * 255.0F);
-        int green = (int) (dyeRgb[1] * 255.0F);
-        int blue = (int) (dyeRgb[2] * 255.0F);
+        int dyeRgb = dyeColor.getTextureDiffuseColor();
+        int red = getRed(dyeRgb);
+        int green = getGreen(dyeRgb);
+        int blue = getBlue(dyeRgb);
         totalBrightness += Math.max(red, Math.max(green, blue));
         totals[0] += red;
         totals[1] += green;
@@ -250,7 +254,7 @@ protected void applyColorFromHex(boolean updateStatus) {
     }
 
     protected boolean shouldShowDyeGrid() {
-        return this.previewStack.getItem() instanceof DyeableLeatherItem;
+        return this.previewStack.is(ItemTags.DYEABLE);
     }
 
     protected void ensureLorePainterRows() {

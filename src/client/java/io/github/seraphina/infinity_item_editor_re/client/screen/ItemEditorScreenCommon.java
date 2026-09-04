@@ -1,5 +1,11 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.Config;
@@ -12,6 +18,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -22,6 +29,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -36,7 +44,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,14 +52,15 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.component.FireworkExplosion;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -359,6 +367,19 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return Mth.clamp(contentWidth() / 4, Math.min(132, maxWidth), maxWidth);
     }
 
+    protected int potterySherdListX() {
+        return isSidebarUi() ? safeLeft() + 10 : 10;
+    }
+
+    protected int potterySherdListWidth() {
+        if (!isSidebarUi()) {
+            return 170;
+        }
+
+        int maxWidth = Math.max(1, Math.min(210, contentWidth() - 20));
+        return Mth.clamp(contentWidth() / 4, Math.min(150, maxWidth), maxWidth);
+    }
+
     protected int spawnEggEntityListX() {
         return isSidebarUi() ? safeLeft() + 10 : 10;
     }
@@ -370,10 +391,6 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
         int maxWidth = Math.max(1, Math.min(210, contentWidth() - 20));
         return Mth.clamp(contentWidth() / 4, Math.min(150, maxWidth), maxWidth);
-    }
-
-    protected int decoratedPotButtonStartY() {
-        return Mth.clamp(sidebarBottomButtonY() - 156, 116, 132);
     }
 
     protected int rightControlsX(int width, int listX, int listWidth) {
@@ -521,15 +538,21 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.rawNbtBox != null && this.rawNbtBox.isFocused()) {
             return this.rawNbtBox;
         }
+        if (this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox;
+        }
+        if (this.componentNbtBox != null && this.componentNbtBox.isFocused()) {
+            return this.componentNbtBox;
+        }
         return null;
     }
 
     protected List<Component> getPrettyNbtLines() {
-        return NbtFormatter.prettyLines(this.previewStack.getTag());
+        return NbtFormatter.prettyLines(ItemStackNbt.get(this.previewStack));
     }
 
     protected List<NbtRow> buildNbtRows() {
-        return NbtFormatter.rows(this.previewStack.getTag(), this.expandedNbtPaths);
+        return NbtFormatter.rows(ItemStackNbt.get(this.previewStack), this.expandedNbtPaths);
     }
 
     protected int getNbtAdvancedVisibleRows() {
@@ -538,14 +561,14 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected void readMainFieldsFromStack(ItemStack stack) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        ResourceLocation id = CompatRegistries.ITEMS.getKey(stack.getItem());
         this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
         this.countValue = Integer.toString(Math.max(1, stack.getCount()));
         this.damageValue = Integer.toString(Math.max(0, Math.min(getDamageMaxForField(stack), stack.getDamageValue())));
         this.nameValue = stack.getHoverName().getString();
         this.loreValues.clear();
 
-        CompoundTag display = stack.getTagElement(DISPLAY_TAG);
+        CompoundTag display = ItemStackNbt.getElement(stack, DISPLAY_TAG);
         if (display != null && display.contains(LORE_TAG, Tag.TAG_LIST)) {
             ListTag lore = display.getList(LORE_TAG, Tag.TAG_STRING);
             for (int i = 0; i < lore.size(); i++) {
@@ -559,14 +582,14 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         readBannerFieldsFromStack(stack);
         readFireworkFieldsFromStack(stack);
         readContainerFieldsFromStack(stack);
+        readDecoratedPotFieldsFromStack(stack);
         readSpawnEggFieldsFromStack(stack);
         readTradeFieldsFromStack(stack);
-        readDecoratedPotFieldsFromStack(stack);
     }
 
     protected String readLoreLine(String raw) {
         try {
-            Component component = Component.Serializer.fromJson(raw);
+            Component component = ComponentCompat.fromJson(raw);
             return component == null ? raw : component.getString();
         } catch (RuntimeException exception) {
             return raw;
@@ -580,7 +603,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = ItemStackNbt.getElement(stack, BLOCK_ENTITY_TAG);
         if (blockEntity == null) {
             return;
         }
@@ -626,7 +649,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) {
             return;
         }
@@ -644,7 +667,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) {
             return;
         }
@@ -691,7 +714,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return;
         }
 
-        this.fireworkExplosionType = Mth.clamp(explosion.getByte(FIREWORK_TYPE_TAG), 0, FIREWORK_EXPLOSION_TYPES - 1);
+        this.fireworkExplosionType = Mth.clamp(FireworkExplosion.Shape.byId(explosion.getByte(FIREWORK_TYPE_TAG)).getId(), 0, FIREWORK_EXPLOSION_TYPES - 1);
         this.fireworkFlicker = explosion.getBoolean(FIREWORK_FLICKER_TAG);
         this.fireworkTrail = explosion.getBoolean(FIREWORK_TRAIL_TAG);
 
@@ -716,14 +739,14 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected CompoundTag getFireworkExplosionForFields(ItemStack stack) {
         if (stack.is(Items.FIREWORK_STAR)) {
-            CompoundTag tag = stack.getTag();
+            CompoundTag tag = ItemStackNbt.get(stack);
             if (tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND)) {
                 return tag.getCompound(FIREWORK_EXPLOSION_TAG);
             }
             return null;
         }
 
-        CompoundTag fireworks = stack.getTagElement(FIREWORKS_TAG);
+        CompoundTag fireworks = ItemStackNbt.getElement(stack, FIREWORKS_TAG);
         if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return null;
         }
@@ -742,160 +765,6 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         this.bannerPatternColor = Mth.positiveModulo(this.bannerPatternColor, DyeColor.values().length);
         clampBannerPatternSelection(getFilteredBannerPatterns());
-    }
-
-    protected void readDecoratedPotFieldsFromStack(ItemStack stack) {
-        Arrays.fill(this.decoratedPotSherdValues, DECORATED_POT_DEFAULT_SHERD);
-        if (!isDecoratedPotItem(stack)) {
-            return;
-        }
-
-        CompoundTag blockEntity = stack.getTagElement(BLOCK_ENTITY_TAG);
-        if (blockEntity == null || !blockEntity.contains(DECORATED_POT_SHERDS_TAG, Tag.TAG_LIST)) {
-            return;
-        }
-
-        ListTag sherds = blockEntity.getList(DECORATED_POT_SHERDS_TAG, Tag.TAG_STRING);
-        for (int i = 0; i < DECORATED_POT_SHERD_COUNT && i < sherds.size(); i++) {
-            this.decoratedPotSherdValues[i] = normalizeDecoratedPotSherdId(sherds.getString(i));
-        }
-    }
-
-    protected void cycleDecoratedPotSherd(int sideIndex, int direction) {
-        if (!isDecoratedPotItem(this.previewStack) || !isDecoratedPotSideIndex(sideIndex)) {
-            return;
-        }
-
-        int current = getDecoratedPotSherdCatalogIndex(getDecoratedPotSherdId(sideIndex));
-        int next = Mth.positiveModulo(current + direction, DECORATED_POT_SHERD_ITEMS.length);
-        this.decoratedPotSherdValues[sideIndex] = getDecoratedPotCatalogSherdId(next);
-        applyDecoratedPotSherdsToStack();
-        this.status = Component.translatable(messageKey("editor_decorated_pot_sherd_updated"),
-                getDecoratedPotSideName(sideIndex), getDecoratedPotSherdName(sideIndex));
-        rebuildWidgets();
-    }
-
-    protected void clearDecoratedPotSherds() {
-        if (!isDecoratedPotItem(this.previewStack)) {
-            return;
-        }
-
-        Arrays.fill(this.decoratedPotSherdValues, DECORATED_POT_DEFAULT_SHERD);
-        applyDecoratedPotSherdsToStack();
-        this.status = Component.translatable(messageKey("editor_decorated_pot_cleared"));
-        rebuildWidgets();
-    }
-
-    protected boolean hasDecoratedPotSherdData() {
-        if (!isDecoratedPotItem(this.previewStack)) {
-            return false;
-        }
-
-        CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
-        if (blockEntity != null && blockEntity.contains(DECORATED_POT_SHERDS_TAG, Tag.TAG_LIST)) {
-            return true;
-        }
-
-        for (int i = 0; i < DECORATED_POT_SHERD_COUNT; i++) {
-            if (!DECORATED_POT_DEFAULT_SHERD.equals(getDecoratedPotSherdId(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected Component getDecoratedPotSideButtonText(int sideIndex) {
-        return Component.translatable(key("decorated_pot.side." + getDecoratedPotSideKey(sideIndex)),
-                getDecoratedPotSherdName(sideIndex));
-    }
-
-    protected Component getDecoratedPotSideName(int sideIndex) {
-        return Component.translatable(key("decorated_pot.side_name." + getDecoratedPotSideKey(sideIndex)));
-    }
-
-    protected Component getDecoratedPotSherdName(int sideIndex) {
-        String sherdId = getDecoratedPotSherdId(sideIndex);
-        Item item = getDecoratedPotSherdItem(sherdId);
-        if (item != null && item != Items.AIR) {
-            return new ItemStack(item).getHoverName();
-        }
-        return Component.literal(sherdId);
-    }
-
-    protected String getDecoratedPotSherdId(int sideIndex) {
-        if (!isDecoratedPotSideIndex(sideIndex)) {
-            return DECORATED_POT_DEFAULT_SHERD;
-        }
-        return normalizeDecoratedPotSherdId(this.decoratedPotSherdValues[sideIndex]);
-    }
-
-    protected void applyDecoratedPotSherdsToStack() {
-        if (!isDecoratedPotItem(this.previewStack)) {
-            return;
-        }
-
-        ListTag sherds = new ListTag();
-        boolean hasNonDefaultSherd = false;
-        for (int i = 0; i < DECORATED_POT_SHERD_COUNT; i++) {
-            String sherdId = getDecoratedPotSherdId(i);
-            this.decoratedPotSherdValues[i] = sherdId;
-            hasNonDefaultSherd |= !DECORATED_POT_DEFAULT_SHERD.equals(sherdId);
-            sherds.add(StringTag.valueOf(sherdId));
-        }
-
-        CompoundTag tag = hasNonDefaultSherd ? this.previewStack.getOrCreateTag() : this.previewStack.getTag();
-        if (tag == null) {
-            return;
-        }
-
-        CompoundTag blockEntity = tag.getCompound(BLOCK_ENTITY_TAG);
-        if (hasNonDefaultSherd) {
-            blockEntity.put(DECORATED_POT_SHERDS_TAG, sherds);
-        } else {
-            blockEntity.remove(DECORATED_POT_SHERDS_TAG);
-        }
-        cleanupBlockEntityTag(tag, blockEntity);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
-    }
-
-    protected int getDecoratedPotSherdCatalogIndex(String sherdId) {
-        String normalized = normalizeDecoratedPotSherdId(sherdId);
-        for (int i = 0; i < DECORATED_POT_SHERD_ITEMS.length; i++) {
-            if (normalized.equals(getDecoratedPotCatalogSherdId(i))) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
-    protected String getDecoratedPotCatalogSherdId(int index) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(DECORATED_POT_SHERD_ITEMS[Mth.clamp(index, 0, DECORATED_POT_SHERD_ITEMS.length - 1)]);
-        return id == null ? DECORATED_POT_DEFAULT_SHERD : id.toString();
-    }
-
-    protected Item getDecoratedPotSherdItem(String sherdId) {
-        ResourceLocation id = parseResourceLocation(normalizeDecoratedPotSherdId(sherdId));
-        return id == null ? null : BuiltInRegistries.ITEM.get(id);
-    }
-
-    protected String normalizeDecoratedPotSherdId(String sherdId) {
-        String value = sherdId == null ? "" : sherdId.trim().toLowerCase(Locale.ROOT);
-        if (value.isEmpty()) {
-            return DECORATED_POT_DEFAULT_SHERD;
-        }
-        return value.contains(":") ? value : "minecraft:" + value;
-    }
-
-    protected ResourceLocation parseResourceLocation(String value) {
-        return ResourceLocation.tryParse(value);
-    }
-
-    protected boolean isDecoratedPotSideIndex(int sideIndex) {
-        return sideIndex >= 0 && sideIndex < DECORATED_POT_SHERD_COUNT;
-    }
-
-    protected String getDecoratedPotSideKey(int sideIndex) {
-        return isDecoratedPotSideIndex(sideIndex) ? DECORATED_POT_SIDE_KEYS[sideIndex] : DECORATED_POT_SIDE_KEYS[DECORATED_POT_FRONT_INDEX];
     }
 
     protected void readSpawnEggFieldsFromStack(ItemStack stack) {
@@ -920,7 +789,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
 
         EntityType<?> type = getCurrentSpawnEggEntityType(stack);
-        ResourceLocation id = type == null ? null : BuiltInRegistries.ENTITY_TYPE.getKey(type);
+        ResourceLocation id = type == null ? null : CompatRegistries.ENTITY_TYPES.getKey(type);
         if (id == null) {
             clampSpawnEggEntitySelection(getFilteredSpawnEggEntities());
             return;
@@ -942,11 +811,11 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             return Component.empty();
         }
         try {
-            Component component = Component.Serializer.fromJson(raw);
+            Component component = ComponentCompat.fromJson(raw);
             return component == null ? Component.literal(raw) : component;
         } catch (RuntimeException exception) {
             try {
-                Component component = Component.Serializer.fromJsonLenient(raw);
+                Component component = ComponentCompat.fromJsonLenient(raw);
                 return component == null ? Component.literal(raw) : component;
             } catch (RuntimeException ignored) {
                 return Component.literal(raw);
@@ -988,6 +857,15 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         }
         if (this.rawNbtBox != null) {
             this.rawNbtValue = this.rawNbtBox.getValue();
+        }
+        if (this.componentFilterBox != null) {
+            this.componentFilterValue = this.componentFilterBox.getValue();
+        }
+        if (this.componentValueSearchBox != null) {
+            this.componentValueFilterValue = this.componentValueSearchBox.getValue();
+        }
+        if (this.componentNbtBox != null) {
+            this.componentNbtValue = this.componentNbtBox.getValue();
         }
         if (this.enchantFilterBox != null) {
             this.enchantFilterValue = this.enchantFilterBox.getValue();
@@ -1046,6 +924,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.bannerPatternFilterBox != null) {
             this.bannerPatternFilterValue = this.bannerPatternFilterBox.getValue();
         }
+        if (this.potterySherdFilterBox != null) {
+            this.potterySherdFilterValue = this.potterySherdFilterBox.getValue();
+        }
         if (this.spawnEggEntityFilterBox != null) {
             this.spawnEggEntityFilterValue = this.spawnEggEntityFilterBox.getValue();
         }
@@ -1087,7 +968,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected void cleanupEmptyDisplayTag() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return;
         }
@@ -1099,9 +980,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected void cleanupEmptyTag() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag != null && tag.isEmpty()) {
-            this.previewStack.setTag(null);
+            ItemStackNbt.set(this.previewStack, null);
         }
     }
 
@@ -1120,12 +1001,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected boolean isNameFollowingDefault(ItemStack stack) {
         String currentName = this.nameBox == null ? this.nameValue : this.nameBox.getValue();
-        return !stack.hasCustomHoverName() && Objects.equals(currentName, getDefaultHoverName(stack));
+        return !ItemStackCompat.hasCustomHoverName(stack) && Objects.equals(currentName, getDefaultHoverName(stack));
     }
 
     protected String getDefaultHoverName(ItemStack stack) {
         ItemStack withoutName = stack.copy();
-        withoutName.resetHoverName();
+        ItemStackCompat.resetHoverName(withoutName);
         return withoutName.getHoverName().getString();
     }
 
@@ -1151,12 +1032,22 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static String getInitialNbt(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         return tag == null || tag.isEmpty() ? "{}" : tag.toString();
     }
 
+    protected static String getInitialComponentsNbt(ItemStack stack) {
+        CompoundTag components = ItemStackNbt.save(stack).getCompound("components");
+        return components.isEmpty() ? "{}" : components.toString();
+    }
+
+    protected void syncNbtEditorValuesFromStack() {
+        this.rawNbtValue = getInitialNbt(this.previewStack);
+        this.componentNbtValue = getInitialComponentsNbt(this.previewStack);
+    }
+
     protected static boolean isColorApplicable(ItemStack stack) {
-        return stack.getItem() instanceof DyeableLeatherItem || isPotionItem(stack) || isMapItem(stack);
+        return stack.is(ItemTags.DYEABLE) || isPotionItem(stack) || isMapItem(stack);
     }
 
     protected static boolean canShowEnchantingButton(ItemStack stack) {
@@ -1205,8 +1096,12 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return stack.getItem() instanceof SpawnEggItem;
     }
 
+    protected static boolean isTrialSpawnerItem(ItemStack stack) {
+        return stack.is(Items.TRIAL_SPAWNER);
+    }
+
     protected static boolean isSpawnerItem(ItemStack stack) {
-        return stack.is(Items.SPAWNER);
+        return stack.is(Items.SPAWNER) || isTrialSpawnerItem(stack);
     }
 
     protected static boolean isSpawnEditorItem(ItemStack stack) {
@@ -1249,17 +1144,17 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int getBookGeneration() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         return tag == null ? 0 : Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
     }
 
     protected int getBookPageCount() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         return tag == null ? 0 : tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING).size();
     }
 
     protected Component getBookResolvedText() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         boolean resolved = tag != null && tag.getBoolean(BOOK_RESOLVED_TAG);
         return Component.translatable(key("book.resolved." + (resolved ? 1 : 0)));
     }
@@ -1272,7 +1167,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int getFireworkFlight() {
-        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
         if (fireworks == null) {
             return 1;
         }
@@ -1281,11 +1176,11 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected int getFireworkExplosionCount() {
         if (this.previewStack.is(Items.FIREWORK_STAR)) {
-            CompoundTag tag = this.previewStack.getTag();
+            CompoundTag tag = ItemStackNbt.get(this.previewStack);
             return tag != null && tag.contains(FIREWORK_EXPLOSION_TAG, Tag.TAG_COMPOUND) ? 1 : 0;
         }
 
-        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
         if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return 0;
         }
@@ -1293,7 +1188,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected boolean hasFireworkData() {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return false;
         }
@@ -1322,7 +1217,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         return color.getFireworkColor();
     }
 
-    protected static FireworkRocketItem.Shape getFireworkShape(int type) {
+    protected static FireworkExplosion.Shape getFireworkShape(int type) {
         return FIREWORK_SHAPES[Mth.clamp(type, 0, FIREWORK_SHAPES.length - 1)];
     }
 
@@ -1377,6 +1272,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
             case CHEST -> 4;
             case LEGS -> 5;
             case FEET -> 6;
+            default -> 1;
         };
     }
 
@@ -1413,14 +1309,20 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected String formatRingEnchantmentName(Enchantment enchantment) {
-        return enchantment.getFullname(getDisplayLevel(enchantment)).getString();
+        Holder<Enchantment> holder = CompatRegistries.ENCHANTMENTS.getHolder(enchantment);
+        return holder == null
+                ? enchantment.description().getString()
+                : Enchantment.getFullname(holder, getDisplayLevel(enchantment)).getString();
     }
 
     protected String formatStoredEnchantment(EnchantmentEntry entry) {
         if (entry.enchantment() == null) {
             return "Unknown ID (" + entry.id() + ") " + entry.level();
         }
-        return entry.enchantment().getFullname(entry.level()).getString();
+        Holder<Enchantment> holder = CompatRegistries.ENCHANTMENTS.getHolder(entry.enchantment());
+        return holder == null
+                ? entry.enchantment().description().getString() + " " + entry.level()
+                : Enchantment.getFullname(holder, entry.level()).getString();
     }
 
     protected static int findEnchantmentIndex(ListTag enchantments, ResourceLocation id) {

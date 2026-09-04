@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -11,6 +13,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -34,7 +37,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -43,13 +45,13 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,9 +74,12 @@ protected void updateRawNbt() {
         String raw = this.rawNbtBox == null ? this.rawNbtValue : this.rawNbtBox.getValue();
         try {
             CompoundTag tag = parseNbt(raw);
-            this.previewStack.setTag(tag);
+            this.previewStack = tag == null ? this.previewStack.copy() : ItemStackNbt.parseEditorNbt(this.previewStack, tag);
+            if (tag == null) {
+                ItemStackNbt.set(this.previewStack, null);
+            }
             readMainFieldsFromStack(this.previewStack);
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            syncNbtEditorValuesFromStack();
             this.nbtFeedbackGood = true;
             this.nbtFeedback = "Looks good";
         } catch (CommandSyntaxException exception) {
@@ -83,8 +88,41 @@ protected void updateRawNbt() {
         }
     }
 
+    protected void updateComponentNbt() {
+        String raw = this.componentNbtBox == null ? this.componentNbtValue : this.componentNbtBox.getValue();
+        try {
+            CompoundTag components = parseNbt(raw);
+            this.previewStack = parseStackWithComponents(this.previewStack, components == null ? new CompoundTag() : components);
+            readMainFieldsFromStack(this.previewStack);
+            syncNbtEditorValuesFromStack();
+            this.nbtFeedbackGood = true;
+            this.nbtFeedback = "Looks good";
+        } catch (CommandSyntaxException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage();
+        } catch (RuntimeException exception) {
+            this.nbtFeedbackGood = false;
+            this.nbtFeedback = exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage();
+        }
+    }
+
+    protected ItemStack parseStackWithComponents(ItemStack current, CompoundTag components) {
+        CompoundTag stackTag = new CompoundTag();
+        ResourceLocation id = CompatRegistries.ITEMS.getKey(current.getItem());
+        stackTag.putString("id", id == null ? "minecraft:air" : id.toString());
+        stackTag.putInt("count", Math.max(1, current.getCount()));
+        if (components != null && !components.isEmpty()) {
+            stackTag.put("components", components.copy());
+        }
+        ItemStack parsed = ItemStackNbt.parse(stackTag);
+        if (parsed.isEmpty() && !current.is(Items.AIR)) {
+            throw new IllegalArgumentException("Invalid components");
+        }
+        return parsed;
+    }
+
     protected void toggleUnbreakable() {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         boolean current = tag.getBoolean("Unbreakable");
         if (current) {
             tag.remove("Unbreakable");
@@ -97,12 +135,12 @@ protected void updateRawNbt() {
     }
 
     protected Component getUnbreakableText() {
-        boolean unbreakable = this.previewStack.getTag() != null && this.previewStack.getTag().getBoolean("Unbreakable");
+        boolean unbreakable = ItemStackNbt.get(this.previewStack) != null && ItemStackNbt.get(this.previewStack).getBoolean("Unbreakable");
         return Component.translatable(key("tag.unbreakable." + (unbreakable ? 1 : 0)));
     }
 
     protected void toggleHideFlag(HideFlag flag) {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         int value = tag.getInt(HIDE_FLAGS_TAG);
         if ((value & flag.mask()) != 0) {
             value &= ~flag.mask();
@@ -119,7 +157,7 @@ protected void updateRawNbt() {
     }
 
     protected Component getHideFlagText(HideFlag flag) {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         boolean hidden = tag != null && (tag.getInt(HIDE_FLAGS_TAG) & flag.mask()) != 0;
         return Component.translatable(key(flag.translationKey() + "." + (hidden ? 1 : 0)));
     }
@@ -162,7 +200,7 @@ protected void updateRawNbt() {
         if (removeEnchantmentAtIndex(index)) {
             Component name = entry.enchantment() == null
                     ? Component.literal(String.valueOf(entry.id()))
-                    : Component.translatable(entry.enchantment().getDescriptionId());
+                    : entry.enchantment().description();
             this.status = Component.translatable(messageKey("editor_enchantment_removed"), name);
         }
         return true;
@@ -205,7 +243,7 @@ protected void updateRawNbt() {
         }
         putEnchantment(enchantment, level);
         this.status = Component.translatable(messageKey("editor_enchantment_added"),
-                Component.translatable(enchantment.getDescriptionId()), level);
+                enchantment.description(), level);
     }
 
     protected void addMatchingEnchantments() {
@@ -256,7 +294,7 @@ protected void updateRawNbt() {
     }
 
     protected void putEnchantment(Enchantment enchantment, int level) {
-        ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
+        ResourceLocation id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
         if (id == null) {
             return;
         }
@@ -274,7 +312,7 @@ protected void updateRawNbt() {
     }
 
     protected boolean removeEnchantmentAtIndex(int index) {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return false;
         }
@@ -287,7 +325,8 @@ protected void updateRawNbt() {
 
         enchantments.remove(index);
         if (enchantments.isEmpty()) {
-            this.previewStack.removeTagKey(key);
+            tag.remove(key);
+            cleanupEmptyTag();
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
         return true;
@@ -295,7 +334,7 @@ protected void updateRawNbt() {
 
     protected ListTag getOrCreateEnchantmentsTag() {
         String key = getEnchantmentTagKey(this.previewStack);
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         if (!tag.contains(key, Tag.TAG_LIST)) {
             tag.put(key, new ListTag());
         }
@@ -307,11 +346,11 @@ protected void updateRawNbt() {
         List<Enchantment> applicableMatchingEnchantments = new ArrayList<>();
         boolean hasApplicableEnchantments = false;
         String filter = this.enchantFilterValue == null ? "" : this.enchantFilterValue.trim().toLowerCase(Locale.ROOT);
-        for (Enchantment enchantment : BuiltInRegistries.ENCHANTMENT.stream().toList()) {
+        for (Enchantment enchantment : CompatRegistries.ENCHANTMENTS.getValues()) {
             boolean applicable = canApplyEnchantment(stack, enchantment);
             hasApplicableEnchantments |= applicable;
-            ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
-            String name = Component.translatable(enchantment.getDescriptionId()).getString().toLowerCase(Locale.ROOT);
+            ResourceLocation id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
+            String name = enchantment.description().getString().toLowerCase(Locale.ROOT);
             String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
             if (filter.isEmpty() || name.contains(filter) || idString.contains(filter)) {
                 matchingEnchantments.add(enchantment);
@@ -324,7 +363,7 @@ protected void updateRawNbt() {
         List<Enchantment> enchantments = this.showAllEnchantments || !hasApplicableEnchantments
                 ? matchingEnchantments
                 : applicableMatchingEnchantments;
-        enchantments.sort(Comparator.comparing(enchantment -> Component.translatable(enchantment.getDescriptionId()).getString(),
+        enchantments.sort(Comparator.comparing(enchantment -> enchantment.description().getString(),
                 String.CASE_INSENSITIVE_ORDER));
         return enchantments;
     }
@@ -337,7 +376,7 @@ protected void updateRawNbt() {
 
         List<Enchantment> visibleEnchantments = new ArrayList<>();
         for (Enchantment enchantment : enchantments) {
-            ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
+            ResourceLocation id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
             if (id != null && this.selectedEnchantmentNamespace.equals(id.getNamespace())) {
                 visibleEnchantments.add(enchantment);
             }
@@ -358,7 +397,7 @@ protected void updateRawNbt() {
         List<Enchantment> enchantments = getFilteredEnchantments(stack);
         Map<String, List<Enchantment>> groupedEnchantments = new HashMap<>();
         for (Enchantment enchantment : enchantments) {
-            ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
+            ResourceLocation id = CompatRegistries.ENCHANTMENTS.getKey(enchantment);
             if (id != null) {
                 groupedEnchantments.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(enchantment);
             }
@@ -418,12 +457,12 @@ protected void updateRawNbt() {
     protected boolean canApplyEnchantment(ItemStack stack, Enchantment enchantment) {
         return enchantment.canEnchant(stack)
                 || stack.is(Items.BOOK)
-                || (stack.is(Items.ENCHANTED_BOOK) && enchantment.isDiscoverable());
+                || stack.is(Items.ENCHANTED_BOOK);
     }
 
     protected List<EnchantmentEntry> getStoredEnchantments(ItemStack stack) {
         List<EnchantmentEntry> entries = new ArrayList<>();
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) {
             return entries;
         }
@@ -432,7 +471,7 @@ protected void updateRawNbt() {
         for (int i = 0; i < enchantments.size(); i++) {
             CompoundTag enchantmentTag = enchantments.getCompound(i);
             ResourceLocation id = ResourceLocation.tryParse(enchantmentTag.getString("id"));
-            Enchantment enchantment = id == null ? null : BuiltInRegistries.ENCHANTMENT.get(id);
+            Enchantment enchantment = id == null ? null : CompatRegistries.ENCHANTMENTS.getValue(id);
             entries.add(new EnchantmentEntry(id, enchantment, enchantmentTag.getInt("lvl")));
         }
         return entries;
@@ -514,11 +553,16 @@ protected void updateRawNbt() {
             return false;
         }
 
-        MobEffectInstance instance = new MobEffectInstance(effect, seconds * 20, level - 1, false, this.showPotionParticles);
+        Holder<MobEffect> holder = CompatRegistries.MOB_EFFECTS.getHolder(effect);
+        if (holder == null) {
+            return false;
+        }
+
+        MobEffectInstance instance = new MobEffectInstance(holder, seconds * 20, level - 1, false, this.showPotionParticles);
         List<MobEffectInstance> effects = new ArrayList<>(getCustomPotionEffects());
-        effects.removeIf(existing -> existing.getEffect() == effect);
+        effects.removeIf(existing -> existing.getEffect().is(holder));
         effects.add(instance);
-        PotionUtils.setCustomEffects(this.previewStack, effects);
+        PotionCompat.setCustomEffects(this.previewStack, effects);
         this.rawNbtValue = getInitialNbt(this.previewStack);
         this.status = Component.translatable(messageKey("editor_potion_added"), effect.getDisplayName(), level);
         return true;
@@ -531,27 +575,27 @@ protected void updateRawNbt() {
         }
         MobEffectInstance removed = effects.remove(index);
         if (effects.isEmpty()) {
-            CompoundTag tag = this.previewStack.getTag();
+            CompoundTag tag = ItemStackNbt.get(this.previewStack);
             if (tag != null) {
                 tag.remove(CUSTOM_POTION_EFFECTS_TAG);
             }
             cleanupEmptyTag();
         } else {
-            PotionUtils.setCustomEffects(this.previewStack, effects);
+            PotionCompat.setCustomEffects(this.previewStack, effects);
         }
         this.rawNbtValue = getInitialNbt(this.previewStack);
-        this.status = Component.translatable(messageKey("editor_potion_removed"), removed.getEffect().getDisplayName());
+        this.status = Component.translatable(messageKey("editor_potion_removed"), removed.getEffect().value().getDisplayName());
     }
 
     protected List<MobEffectInstance> getCustomPotionEffects() {
-        return new ArrayList<>(PotionUtils.getCustomEffects(this.previewStack));
+        return new ArrayList<>(PotionCompat.getCustomEffects(this.previewStack));
     }
 
     protected List<MobEffect> getFilteredPotionEffects() {
         List<MobEffect> effects = new ArrayList<>();
         String filter = this.potionFilterValue == null ? "" : this.potionFilterValue.trim().toLowerCase(Locale.ROOT);
-        for (MobEffect effect : BuiltInRegistries.MOB_EFFECT.stream().toList()) {
-            ResourceLocation id = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+        for (MobEffect effect : CompatRegistries.MOB_EFFECTS.getValues()) {
+            ResourceLocation id = CompatRegistries.MOB_EFFECTS.getKey(effect);
             String name = effect.getDisplayName().getString().toLowerCase(Locale.ROOT);
             String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
             if (filter.isEmpty() || name.contains(filter) || idString.contains(filter)) {
@@ -570,7 +614,7 @@ protected void updateRawNbt() {
 
         List<MobEffect> visibleEffects = new ArrayList<>();
         for (MobEffect effect : effects) {
-            ResourceLocation id = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+            ResourceLocation id = CompatRegistries.MOB_EFFECTS.getKey(effect);
             if (id != null && this.selectedPotionNamespace.equals(id.getNamespace())) {
                 visibleEffects.add(effect);
             }
@@ -591,7 +635,7 @@ protected void updateRawNbt() {
         List<MobEffect> effects = getFilteredPotionEffects();
         Map<String, List<MobEffect>> groupedEffects = new HashMap<>();
         for (MobEffect effect : effects) {
-            ResourceLocation id = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+            ResourceLocation id = CompatRegistries.MOB_EFFECTS.getKey(effect);
             if (id != null) {
                 groupedEffects.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(effect);
             }
@@ -676,7 +720,7 @@ protected void updateRawNbt() {
 
     protected String formatPotionEffect(MobEffectInstance effect) {
         int amplifier = effect.getAmplifier();
-        String text = effect.getEffect().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
+        String text = effect.getEffect().value().getDisplayName().getString() + " (" + ((long) amplifier + 1L) + ")";
         if (amplifier > 1) {
             text += " " + Component.translatable("potion.potency." + amplifier).getString().trim();
         }
@@ -772,14 +816,17 @@ protected void updateRawNbt() {
             return;
         }
 
-        ResourceLocation id = BuiltInRegistries.ATTRIBUTE.getKey(attribute);
+        ResourceLocation id = CompatRegistries.ATTRIBUTES.getKey(attribute);
         if (id == null) {
             return;
         }
 
-        AttributeModifier modifier = new AttributeModifier(UUID.randomUUID(), id.toString(), amount, getAttributeOperation());
+        AttributeModifier.Operation operation = getAttributeOperation();
+        AttributeModifier modifier = new AttributeModifier(id.withSuffix("/" + UUID.randomUUID()), amount, operation);
         CompoundTag modifierTag = modifier.save();
         modifierTag.putString("AttributeName", id.toString());
+        modifierTag.putDouble("Amount", amount);
+        modifierTag.putInt("Operation", operation.id());
         String slotName = getAttributeSlotName(this.attributeSlot);
         if (slotName != null) {
             modifierTag.putString("Slot", slotName);
@@ -821,17 +868,17 @@ protected void updateRawNbt() {
 
     protected AttributeModifier.Operation getAttributeOperation() {
         if (this.attributeInfinity) {
-            return AttributeModifier.Operation.ADDITION;
+            return AttributeModifier.Operation.ADD_VALUE;
         }
         return switch (this.attributeOperation) {
-            case 1 -> AttributeModifier.Operation.MULTIPLY_BASE;
-            case 2 -> AttributeModifier.Operation.MULTIPLY_TOTAL;
-            default -> AttributeModifier.Operation.ADDITION;
+            case 1 -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+            case 2 -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+            default -> AttributeModifier.Operation.ADD_VALUE;
         };
     }
 
     protected ListTag getOrCreateAttributeModifiersTag() {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         if (!tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             tag.put(ATTRIBUTE_MODIFIERS_TAG, new ListTag());
         }
@@ -840,7 +887,7 @@ protected void updateRawNbt() {
 
     protected List<AttributeEntry> getAttributeModifierEntries() {
         List<AttributeEntry> entries = new ArrayList<>();
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null || !tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             return entries;
         }
@@ -859,7 +906,7 @@ protected void updateRawNbt() {
     }
 
     protected void removeAttributeModifierAt(int tagIndex) {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null || !tag.contains(ATTRIBUTE_MODIFIERS_TAG, Tag.TAG_LIST)) {
             return;
         }
@@ -894,13 +941,13 @@ protected void updateRawNbt() {
 
     protected Attribute getAttributeByName(String name) {
         ResourceLocation id = ResourceLocation.tryParse(name);
-        return id == null ? null : BuiltInRegistries.ATTRIBUTE.get(id);
+        return id == null ? null : CompatRegistries.ATTRIBUTES.getValue(id);
     }
 
     protected List<Attribute> getSharedAttributes() {
         List<Attribute> attributes = new ArrayList<>();
         String filter = this.attributeFilterValue == null ? "" : this.attributeFilterValue.trim().toLowerCase(Locale.ROOT);
-        for (Attribute attribute : BuiltInRegistries.ATTRIBUTE.stream().toList()) {
+        for (Attribute attribute : CompatRegistries.ATTRIBUTES.getValues()) {
             if (attribute != null && matchesAttributeFilter(attribute, filter)) {
                 attributes.add(attribute);
             }
@@ -918,7 +965,7 @@ protected void updateRawNbt() {
 
         List<Attribute> visibleAttributes = new ArrayList<>();
         for (Attribute attribute : attributes) {
-            ResourceLocation id = BuiltInRegistries.ATTRIBUTE.getKey(attribute);
+            ResourceLocation id = CompatRegistries.ATTRIBUTES.getKey(attribute);
             if (id != null && this.selectedAttributeNamespace.equals(id.getNamespace())) {
                 visibleAttributes.add(attribute);
             }
@@ -939,7 +986,7 @@ protected void updateRawNbt() {
         List<Attribute> attributes = getSharedAttributes();
         Map<String, List<Attribute>> groupedAttributes = new HashMap<>();
         for (Attribute attribute : attributes) {
-            ResourceLocation id = BuiltInRegistries.ATTRIBUTE.getKey(attribute);
+            ResourceLocation id = CompatRegistries.ATTRIBUTES.getKey(attribute);
             if (id != null) {
                 groupedAttributes.computeIfAbsent(id.getNamespace(), namespace -> new ArrayList<>()).add(attribute);
             }
@@ -994,7 +1041,7 @@ protected void updateRawNbt() {
             return true;
         }
 
-        ResourceLocation id = BuiltInRegistries.ATTRIBUTE.getKey(attribute);
+        ResourceLocation id = CompatRegistries.ATTRIBUTES.getKey(attribute);
         String idString = id == null ? "" : id.toString().toLowerCase(Locale.ROOT);
         String descriptionId = attribute.getDescriptionId().toLowerCase(Locale.ROOT);
         String name = Component.translatable(attribute.getDescriptionId()).getString().toLowerCase(Locale.ROOT);

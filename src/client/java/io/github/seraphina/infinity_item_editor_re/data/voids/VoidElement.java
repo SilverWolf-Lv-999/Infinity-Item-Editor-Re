@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.data.voids;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -19,11 +21,11 @@ public class VoidElement {
     }
 
     public static VoidElement readFromTag(CompoundTag tag) {
-        ItemStack readStack = ItemStack.of(tag);
+        ItemStack readStack = ItemStackNbt.parse(tag);
         ListTag ids = tag.getList("uuids", Tag.TAG_STRING);
 
         if (readStack.isEmpty() && tag.contains("stack", Tag.TAG_COMPOUND)) {
-            readStack = ItemStack.of(tag.getCompound("stack"));
+            readStack = ItemStackNbt.parse(tag.getCompound("stack"));
         }
 
         VoidElement element = new VoidElement(readStack);
@@ -34,7 +36,7 @@ public class VoidElement {
     }
 
     public CompoundTag writeToTag(CompoundTag tag) {
-        tag.put("stack", stack.save(new CompoundTag()));
+        tag.put("stack", ItemStackNbt.save(stack));
 
         if (uuids != null && !uuids.isEmpty()) {
             tag.put("uuids", uuids.copy());

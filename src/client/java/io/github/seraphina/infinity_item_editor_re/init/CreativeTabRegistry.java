@@ -1,18 +1,23 @@
 package io.github.seraphina.infinity_item_editor_re.init;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
-import io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.minecraft.core.Registry;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.DyeColor;
@@ -22,9 +27,12 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.component.FireworkExplosion;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.Blocks;
@@ -36,12 +44,12 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 public final class CreativeTabRegistry {
-    private static final FireworkRocketItem.Shape[] FIREWORK_SHAPES = {
-            FireworkRocketItem.Shape.SMALL_BALL,
-            FireworkRocketItem.Shape.LARGE_BALL,
-            FireworkRocketItem.Shape.STAR,
-            FireworkRocketItem.Shape.CREEPER,
-            FireworkRocketItem.Shape.BURST
+    private static final FireworkExplosion.Shape[] FIREWORK_SHAPES = {
+            FireworkExplosion.Shape.SMALL_BALL,
+            FireworkExplosion.Shape.LARGE_BALL,
+            FireworkExplosion.Shape.STAR,
+            FireworkExplosion.Shape.CREEPER,
+            FireworkExplosion.Shape.BURST
     };
 
     public static CreativeModeTab REALM;
@@ -52,8 +60,23 @@ public final class CreativeTabRegistry {
     public static CreativeModeTab FIREWORKS;
     public static CreativeModeTab VOID;
 
-    private static boolean registered;
+    private CreativeTabRegistry() {
+    }
 
+    public static void register() {
+        REALM = registerTab("realm", new ItemStack(Blocks.ENDER_CHEST), CreativeTabRegistry::fillRealm);
+        UNAVAILABLE = registerTab("unavailable", new ItemStack(Blocks.BARRIER), CreativeTabRegistry::fillUnavailable);
+        BANNERS = registerTab("banners", new ItemStack(Items.RED_BANNER), CreativeTabRegistry::fillBanners);
+        SKULLS = registerTab("skulls", new ItemStack(Items.PLAYER_HEAD), CreativeTabRegistry::fillSkulls);
+        THIEF = registerTab("thief", new ItemStack(Items.FEATHER), CreativeTabRegistry::fillThief);
+        FIREWORKS = registerTab("fireworks", new ItemStack(Items.FIREWORK_ROCKET), CreativeTabRegistry::fillFireworks);
+        VOID = registerTab("void", new ItemStack(Blocks.BLACK_STAINED_GLASS), CreativeTabRegistry::fillVoid);
+    }
+
+    private static CreativeModeTab registerTab(String name, ItemStack icon, CreativeModeTab.DisplayItemsGenerator generator) {
+        return Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, ResourceLocation.fromNamespaceAndPath(ModSource.MODID, name),
+                searchTab(name, () -> icon, generator));
+    }
     private static final String[] MHF_HEADS = {
             "MHF_Alex", "MHF_Blaze", "MHF_CaveSpider", "MHF_Chicken", "MHF_Cow", "MHF_Creeper",
             "MHF_Enderman", "MHF_Ghast", "MHF_Golem", "MHF_Herobrine", "MHF_LavaSlime", "MHF_MushroomCow",
@@ -65,61 +88,12 @@ public final class CreativeTabRegistry {
             "MHF_Question"
     };
 
-    private CreativeTabRegistry() {
-    }
-
-    public static void register() {
-        if (registered) {
-            return;
-        }
-
-        REALM = registerTab("realm", searchTab(
-                "realm",
-                () -> new ItemStack(Blocks.ENDER_CHEST),
-                CreativeTabRegistry::fillRealm
-        ));
-        UNAVAILABLE = registerTab("unavailable", searchTab(
-                "unavailable",
-                () -> new ItemStack(Blocks.BARRIER),
-                CreativeTabRegistry::fillUnavailable
-        ));
-        BANNERS = registerTab("banners", searchTab(
-                "banners",
-                () -> new ItemStack(Items.RED_BANNER),
-                CreativeTabRegistry::fillBanners
-        ));
-        SKULLS = registerTab("skulls", searchTab(
-                "skulls",
-                () -> new ItemStack(Items.PLAYER_HEAD),
-                CreativeTabRegistry::fillSkulls
-        ));
-        THIEF = registerTab("thief", searchTab(
-                "thief",
-                () -> new ItemStack(Items.FEATHER),
-                CreativeTabRegistry::fillThief
-        ));
-        FIREWORKS = registerTab("fireworks", searchTab(
-                "fireworks",
-                () -> new ItemStack(Items.FIREWORK_ROCKET),
-                CreativeTabRegistry::fillFireworks
-        ));
-        VOID = registerTab("void", searchTab(
-                "void",
-                () -> new ItemStack(Blocks.BLACK_STAINED_GLASS),
-                CreativeTabRegistry::fillVoid
-        ));
-
-        registered = true;
-    }
-
-    private static CreativeModeTab registerTab(String name, CreativeModeTab tab) {
-        return Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, new ResourceLocation(ModSource.MODID, name), tab);
-    }
 
     private static CreativeModeTab searchTab(String name, Supplier<ItemStack> icon, CreativeModeTab.DisplayItemsGenerator generator) {
-        return FabricItemGroup.builder()
+        return CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                 .title(Component.translatable("itemGroup." + ModSource.MODID + "." + name))
                 .icon(icon)
+
                 .displayItems(generator)
                 .build();
     }
@@ -160,6 +134,7 @@ public final class CreativeTabRegistry {
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.KNOWLEDGE_BOOK)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.LIGHT)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPAWNER)));
+        addUnique(stacks, normalizedTabStack(new ItemStack(Items.TRIAL_SPAWNER)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.PIG_SPAWN_EGG)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.POTION)));
         addUnique(stacks, normalizedTabStack(new ItemStack(Items.SPLASH_POTION)));
@@ -197,7 +172,7 @@ public final class CreativeTabRegistry {
         for (DyeColor color : DyeColor.values()) {
             addUnique(banners, normalizedTabStack(shield(color)));
         }
-        ClientCreativeTabData.addBannerVariants(banners);
+        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addBannerVariants(banners);
         output.acceptAll(banners);
     }
 
@@ -207,7 +182,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> heads = new ArrayList<>();
-        ClientCreativeTabData.addPlayerHeads(heads);
+        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addPlayerHeads(heads);
         for (String owner : MHF_HEADS) {
             addUnique(heads, createPlayerHead(owner));
         }
@@ -220,7 +195,7 @@ public final class CreativeTabRegistry {
         }
 
         List<ItemStack> stacks = new ArrayList<>();
-        ClientCreativeTabData.addThiefItems(stacks);
+        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addThiefItems(stacks);
         if (stacks.isEmpty()) {
             output.accept(Items.FEATHER);
             return;
@@ -244,7 +219,7 @@ public final class CreativeTabRegistry {
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 1)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 2)));
         addUnique(fireworks, normalizedTabStack(fireworkRocket((byte) 3)));
-        ClientCreativeTabData.addFireworkVariants(fireworks);
+        io.github.seraphina.infinity_item_editor_re.client.ClientCreativeTabData.addFireworkVariants(fireworks);
         output.acceptAll(fireworks);
     }
 
@@ -270,39 +245,39 @@ public final class CreativeTabRegistry {
 
     private static ItemStack createPlayerHead(String owner) {
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
-        stack.getOrCreateTag().putString("SkullOwner", owner);
+        ItemStackNbt.getOrCreate(stack).putString("SkullOwner", owner);
 
-        CompoundTag display = stack.getOrCreateTagElement("display");
+        CompoundTag display = ItemStackNbt.getOrCreateElement(stack, "display");
         ListTag lore = new ListTag();
-        lore.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal("Marc's Head Format"))));
+        lore.add(StringTag.valueOf(ComponentCompat.toJson(Component.literal("Marc's Head Format"))));
         display.put("Lore", lore);
         return stack;
     }
 
     private static ItemStack fireworkStar(int type, int color) {
         ItemStack stack = new ItemStack(Items.FIREWORK_STAR);
-        CompoundTag explosion = stack.getOrCreateTagElement("Explosion");
+        CompoundTag explosion = ItemStackNbt.getOrCreateElement(stack, "Explosion");
         explosion.putByte("Type", (byte) getFireworkShape(type).getId());
         explosion.putIntArray("Colors", new int[]{color});
         return stack;
     }
 
-    private static FireworkRocketItem.Shape getFireworkShape(int type) {
+    private static FireworkExplosion.Shape getFireworkShape(int type) {
         if (type < 0 || type >= FIREWORK_SHAPES.length) {
-            return FireworkRocketItem.Shape.SMALL_BALL;
+            return FireworkExplosion.Shape.SMALL_BALL;
         }
         return FIREWORK_SHAPES[type];
     }
 
     private static ItemStack fireworkRocket(byte flight) {
         ItemStack stack = new ItemStack(Items.FIREWORK_ROCKET);
-        stack.getOrCreateTagElement("Fireworks").putByte("Flight", flight);
+        ItemStackNbt.getOrCreateElement(stack, "Fireworks").putByte("Flight", flight);
         return stack;
     }
 
     private static ItemStack shield(DyeColor color) {
         ItemStack stack = new ItemStack(Items.SHIELD);
-        stack.getOrCreateTagElement("BlockEntityTag").putInt("Base", color.getId());
+        ItemStackNbt.getOrCreateElement(stack, "BlockEntityTag").putInt("Base", color.getId());
         return stack;
     }
 
@@ -321,13 +296,12 @@ public final class CreativeTabRegistry {
         }
 
         BuiltInRegistries.POTION.stream()
-                .filter(potion -> potion != Potions.EMPTY)
                 .forEach(potion -> addUnique(stacks, potionStack(item, potion)));
     }
 
     private static ItemStack potionStack(Item item, Potion potion) {
         ItemStack stack = new ItemStack(item);
-        PotionUtils.setPotion(stack, potion);
+        PotionCompat.setPotion(stack, potion);
         return normalizedTabStack(stack);
     }
 
@@ -339,11 +313,11 @@ public final class CreativeTabRegistry {
     }
 
     private static void addEnchantedBookVariants(List<ItemStack> stacks) {
-        BuiltInRegistries.ENCHANTMENT.stream()
-                .filter(Enchantment::isDiscoverable)
-                .forEach(enchantment -> {
+        CompatRegistries.ENCHANTMENTS.getHolders()
+                .forEach(enchantmentHolder -> {
+                    Enchantment enchantment = enchantmentHolder.value();
                     for (int level = enchantment.getMinLevel(); level <= enchantment.getMaxLevel(); level++) {
-                        addUnique(stacks, normalizedTabStack(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level))));
+                        addUnique(stacks, normalizedTabStack(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantmentHolder, level))));
                     }
                 });
     }
@@ -390,7 +364,7 @@ public final class CreativeTabRegistry {
         }
 
         for (ItemStack existingStack : stacks) {
-            if (ItemStack.isSameItemSameTags(existingStack, stack)) {
+            if (ItemStackCompat.isSameItemSameTags(existingStack, stack)) {
                 return;
             }
         }

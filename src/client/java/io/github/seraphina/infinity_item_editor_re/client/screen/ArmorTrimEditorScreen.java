@@ -1,13 +1,13 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
-import net.minecraft.client.Minecraft;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -21,8 +21,10 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.armortrim.ArmorTrim;
 import net.minecraft.world.item.armortrim.TrimMaterial;
 import net.minecraft.world.item.armortrim.TrimPattern;
+import net.minecraft.world.item.component.CustomData;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -53,7 +55,6 @@ final class ArmorTrimEditorScreen extends Screen {
     private static final int PREVIEW_PLAYER = 1;
     private static final int PREVIEW_ZOMBIE = 2;
     private static final String ARMOR_TRIMS_CUSTOM_DATA_TAG = "InfinityItemEditorArmorTrims";
-    private static final String ARMOR_TRIM_TAG = "Trim";
     private static final String ARMOR_TRIM_MATERIAL_TAG = "material";
     private static final String ARMOR_TRIM_PATTERN_TAG = "pattern";
 
@@ -109,7 +110,7 @@ final class ArmorTrimEditorScreen extends Screen {
         this.lastMouseY = mouseY;
         TrimEditorLayout layout = layout();
 
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, InfinityEditorButton.MAIN_COLOR);
 
         renderTrimList(guiGraphics, layout, mouseX, mouseY);
@@ -123,6 +124,10 @@ final class ArmorTrimEditorScreen extends Screen {
             drawCenteredClipped(guiGraphics, this.status, layout.previewCenterX(),
                     layout.bottom() - 14, layout.previewWidth() - 12, this.statusColor);
         }
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
@@ -198,7 +203,7 @@ final class ArmorTrimEditorScreen extends Screen {
 
         InfinityEditorButton clear = addRenderableWidget(new InfinityEditorButton(x + buttonWidth + BUTTON_GAP, secondRowY,
                 buttonWidth, BUTTON_HEIGHT, Component.translatable(key("armortrim.clear")), button -> clearTrims()));
-        clear.active = getTrimCount() > 0 || hasCurrentTrim();
+        clear.active = getTrimCount() > 0 || this.armorStack.has(DataComponents.TRIM);
 
         addRenderableWidget(new InfinityEditorButton(x, secondRowY + BUTTON_HEIGHT + BUTTON_GAP,
                 fullWidth, BUTTON_HEIGHT, Component.translatable(key("back")), button -> returnToLastScreen()));
@@ -283,10 +288,10 @@ final class ArmorTrimEditorScreen extends Screen {
             int rowY = listTop + (i - this.trimListScroll) * TRIM_ROW_HEIGHT;
             boolean hovered = isMouseIn(mouseX, mouseY, textX - 4, rowY - 2,
                     layout.leftWidth() - PANEL_PADDING * 2 + 8, TRIM_ROW_HEIGHT);
-            if (hovered || (i == 0 && hasCurrentTrim())) {
+            if (hovered || (i == 0 && this.armorStack.has(DataComponents.TRIM))) {
                 drawLegacySelection(guiGraphics, textX - 4, rowY - 2, layout.leftRight() - PANEL_PADDING + 4, rowY + 10, hovered);
             }
-            int color = i == 0 && hasCurrentTrim() ? InfinityEditorButton.CONTRAST_COLOR : TEXT_PRIMARY;
+            int color = i == 0 && this.armorStack.has(DataComponents.TRIM) ? InfinityEditorButton.CONTRAST_COLOR : TEXT_PRIMARY;
             drawClippedString(guiGraphics, rows.get(i), textX, rowY, layout.leftWidth() - PANEL_PADDING * 2, color);
         }
         guiGraphics.disableScissor();
@@ -572,7 +577,7 @@ final class ArmorTrimEditorScreen extends Screen {
         if (!isArmorTrimApplicable(this.armorStack)) {
             return;
         }
-        if (!setSelectedTrimTag()) {
+        if (!setSelectedTrimComponent()) {
             this.status = Component.translatable(key("armortrim.no_patterns"));
             this.statusColor = STATUS_BAD;
             return;
@@ -595,16 +600,17 @@ final class ArmorTrimEditorScreen extends Screen {
             return;
         }
 
-        CompoundTag tag = this.armorStack.getOrCreateTag();
-        ListTag trims = tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)
-                ? tag.getList(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy()
-                : new ListTag();
-        CompoundTag entry = new CompoundTag();
-        entry.putString(ARMOR_TRIM_MATERIAL_TAG, material.id().toString());
-        entry.putString(ARMOR_TRIM_PATTERN_TAG, pattern.id().toString());
-        trims.add(entry);
-        tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
-        setSelectedTrimTag();
+        CustomData.update(DataComponents.CUSTOM_DATA, this.armorStack, tag -> {
+            ListTag trims = tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)
+                    ? tag.getList(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy()
+                    : new ListTag();
+            CompoundTag entry = new CompoundTag();
+            entry.putString(ARMOR_TRIM_MATERIAL_TAG, material.id().toString());
+            entry.putString(ARMOR_TRIM_PATTERN_TAG, pattern.id().toString());
+            trims.add(entry);
+            tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
+        });
+        setSelectedTrimComponent();
         commitStack(Component.translatable(messageKey("editor_armor_trim_added"),
                 getPatternName(pattern, material), getMaterialName(material)), STATUS_GOOD);
     }
@@ -614,44 +620,45 @@ final class ArmorTrimEditorScreen extends Screen {
             return;
         }
 
-        ArmorTrimEntry activeEntry = null;
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag != null && tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
-            ListTag trims = tag.getList(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy();
-            if (!trims.isEmpty()) {
-                trims.remove(trims.size() - 1);
+        final ArmorTrimEntry[] activeEntry = new ArmorTrimEntry[1];
+        CustomData.update(DataComponents.CUSTOM_DATA, this.armorStack, tag -> {
+            if (!tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
+                return;
             }
 
+            ListTag trims = tag.getList(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_COMPOUND).copy();
             if (trims.isEmpty()) {
                 tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG);
-            } else {
-                tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
-                CompoundTag last = trims.getCompound(trims.size() - 1);
-                ResourceLocation materialId = ResourceLocation.tryParse(last.getString(ARMOR_TRIM_MATERIAL_TAG));
-                ResourceLocation patternId = ResourceLocation.tryParse(last.getString(ARMOR_TRIM_PATTERN_TAG));
-                if (materialId != null && patternId != null) {
-                    activeEntry = new ArmorTrimEntry(materialId, patternId);
-                }
+                return;
             }
-        }
 
-        if (activeEntry == null) {
-            removeCurrentTrimTag();
+            trims.remove(trims.size() - 1);
+            if (trims.isEmpty()) {
+                tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG);
+                return;
+            }
+
+            tag.put(ARMOR_TRIMS_CUSTOM_DATA_TAG, trims);
+            CompoundTag last = trims.getCompound(trims.size() - 1);
+            ResourceLocation materialId = ResourceLocation.tryParse(last.getString(ARMOR_TRIM_MATERIAL_TAG));
+            ResourceLocation patternId = ResourceLocation.tryParse(last.getString(ARMOR_TRIM_PATTERN_TAG));
+            if (materialId != null && patternId != null) {
+                activeEntry[0] = new ArmorTrimEntry(materialId, patternId);
+            }
+        });
+
+        if (activeEntry[0] == null) {
+            this.armorStack.remove(DataComponents.TRIM);
         } else {
-            applyTrimEntry(activeEntry);
+            applyTrimEntry(activeEntry[0]);
         }
-        cleanupEmptyRootTag();
         syncSelectionFromStack();
         commitStack(Component.translatable(messageKey("editor_armor_trim_removed")), STATUS_GOOD);
     }
 
     private void clearTrims() {
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag != null) {
-            tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG);
-            tag.remove(ARMOR_TRIM_TAG);
-        }
-        cleanupEmptyRootTag();
+        CustomData.update(DataComponents.CUSTOM_DATA, this.armorStack, tag -> tag.remove(ARMOR_TRIMS_CUSTOM_DATA_TAG));
+        this.armorStack.remove(DataComponents.TRIM);
         syncSelectionFromStack();
         commitStack(Component.translatable(messageKey("editor_armor_trim_cleared")), STATUS_GOOD);
     }
@@ -703,10 +710,10 @@ final class ArmorTrimEditorScreen extends Screen {
 
         ResourceLocation materialId = null;
         ResourceLocation patternId = null;
-        ArmorTrimEntry current = getCurrentTrimEntry();
-        if (current != null) {
-            materialId = current.materialId();
-            patternId = current.patternId();
+        ArmorTrim trim = this.armorStack.get(DataComponents.TRIM);
+        if (trim != null) {
+            materialId = CompatRegistries.TRIM_MATERIALS.getKey(trim.material().value());
+            patternId = CompatRegistries.TRIM_PATTERNS.getKey(trim.pattern().value());
         }
         if (materialId == null || patternId == null) {
             ArmorTrimEntry entry = getLastTrimEntry();
@@ -723,34 +730,26 @@ final class ArmorTrimEditorScreen extends Screen {
 
     private List<ArmorTrimMaterialEntry> getMaterials() {
         List<ArmorTrimMaterialEntry> entries = new ArrayList<>();
-        Registry<TrimMaterial> registry = getTrimMaterialRegistry();
-        if (registry == null) {
-            return entries;
+        for (var holder : CompatRegistries.TRIM_MATERIALS.getHolders()) {
+            ResourceLocation id = CompatRegistries.TRIM_MATERIALS.getKey(holder.value());
+            if (id != null) {
+                entries.add(new ArmorTrimMaterialEntry(id, holder));
+            }
         }
-        registry.holders().forEach(holder -> entries.add(new ArmorTrimMaterialEntry(holder.key().location(), holder)));
         entries.sort(Comparator.comparing(entry -> entry.id().toString()));
         return entries;
     }
 
     private List<ArmorTrimPatternEntry> getPatterns() {
         List<ArmorTrimPatternEntry> entries = new ArrayList<>();
-        Registry<TrimPattern> registry = getTrimPatternRegistry();
-        if (registry == null) {
-            return entries;
+        for (var holder : CompatRegistries.TRIM_PATTERNS.getHolders()) {
+            ResourceLocation id = CompatRegistries.TRIM_PATTERNS.getKey(holder.value());
+            if (id != null) {
+                entries.add(new ArmorTrimPatternEntry(id, holder));
+            }
         }
-        registry.holders().forEach(holder -> entries.add(new ArmorTrimPatternEntry(holder.key().location(), holder)));
         entries.sort(Comparator.comparing(entry -> entry.id().toString()));
         return entries;
-    }
-
-    private Registry<TrimMaterial> getTrimMaterialRegistry() {
-        Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.level == null ? null : minecraft.level.registryAccess().registryOrThrow(Registries.TRIM_MATERIAL);
-    }
-
-    private Registry<TrimPattern> getTrimPatternRegistry() {
-        Minecraft minecraft = Minecraft.getInstance();
-        return minecraft.level == null ? null : minecraft.level.registryAccess().registryOrThrow(Registries.TRIM_PATTERN);
     }
 
     private ArmorTrimMaterialEntry getSelectedMaterialEntry() {
@@ -763,6 +762,16 @@ final class ArmorTrimEditorScreen extends Screen {
         List<ArmorTrimPatternEntry> patterns = getPatterns();
         clampSelection(getMaterials(), patterns);
         return patterns.isEmpty() ? null : patterns.get(this.selectedPatternIndex);
+    }
+
+    private Holder<TrimMaterial> getSelectedMaterialHolder() {
+        ArmorTrimMaterialEntry entry = getSelectedMaterialEntry();
+        return entry == null ? null : entry.material();
+    }
+
+    private Holder<TrimPattern> getSelectedPatternHolder() {
+        ArmorTrimPatternEntry entry = getSelectedPatternEntry();
+        return entry == null ? null : entry.pattern();
     }
 
     private void clampSelection(List<ArmorTrimMaterialEntry> materials, List<ArmorTrimPatternEntry> patterns) {
@@ -829,8 +838,13 @@ final class ArmorTrimEditorScreen extends Screen {
     }
 
     private List<ArmorTrimEntry> getTrimEntries() {
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag == null || !tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
+        CustomData data = this.armorStack.get(DataComponents.CUSTOM_DATA);
+        if (data == null) {
+            return List.of();
+        }
+
+        CompoundTag tag = data.copyTag();
+        if (!tag.contains(ARMOR_TRIMS_CUSTOM_DATA_TAG, Tag.TAG_LIST)) {
             return List.of();
         }
 
@@ -856,61 +870,26 @@ final class ArmorTrimEditorScreen extends Screen {
         return getTrimEntries().size();
     }
 
-    private boolean setSelectedTrimTag() {
-        ArmorTrimMaterialEntry material = getSelectedMaterialEntry();
-        ArmorTrimPatternEntry pattern = getSelectedPatternEntry();
+    private boolean setSelectedTrimComponent() {
+        Holder<TrimMaterial> material = getSelectedMaterialHolder();
+        Holder<TrimPattern> pattern = getSelectedPatternHolder();
         if (material == null || pattern == null) {
             return false;
         }
 
-        setTrimTag(this.armorStack, material.id(), pattern.id());
+        this.armorStack.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
         return true;
     }
 
     private boolean applyTrimEntry(ArmorTrimEntry entry) {
-        if (findMaterialEntry(entry.materialId()) == null || findPatternEntry(entry.patternId()) == null) {
+        Holder<TrimMaterial> material = CompatRegistries.TRIM_MATERIALS.getHolder(entry.materialId());
+        Holder<TrimPattern> pattern = CompatRegistries.TRIM_PATTERNS.getHolder(entry.patternId());
+        if (material == null || pattern == null) {
             return false;
         }
 
-        setTrimTag(this.armorStack, entry.materialId(), entry.patternId());
+        this.armorStack.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
         return true;
-    }
-
-    private boolean hasCurrentTrim() {
-        return getCurrentTrimEntry() != null;
-    }
-
-    private ArmorTrimEntry getCurrentTrimEntry() {
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag == null || !tag.contains(ARMOR_TRIM_TAG, Tag.TAG_COMPOUND)) {
-            return null;
-        }
-
-        CompoundTag trim = tag.getCompound(ARMOR_TRIM_TAG);
-        ResourceLocation materialId = ResourceLocation.tryParse(trim.getString(ARMOR_TRIM_MATERIAL_TAG));
-        ResourceLocation patternId = ResourceLocation.tryParse(trim.getString(ARMOR_TRIM_PATTERN_TAG));
-        return materialId == null || patternId == null ? null : new ArmorTrimEntry(materialId, patternId);
-    }
-
-    private static void setTrimTag(ItemStack stack, ResourceLocation materialId, ResourceLocation patternId) {
-        CompoundTag trim = new CompoundTag();
-        trim.putString(ARMOR_TRIM_MATERIAL_TAG, materialId.toString());
-        trim.putString(ARMOR_TRIM_PATTERN_TAG, patternId.toString());
-        stack.getOrCreateTag().put(ARMOR_TRIM_TAG, trim);
-    }
-
-    private void removeCurrentTrimTag() {
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag != null) {
-            tag.remove(ARMOR_TRIM_TAG);
-        }
-    }
-
-    private void cleanupEmptyRootTag() {
-        CompoundTag tag = this.armorStack.getTag();
-        if (tag != null && tag.isEmpty()) {
-            this.armorStack.setTag(null);
-        }
     }
 
     private void renderArmorTrimEntityPreview(GuiGraphics guiGraphics, int left, int top, int right, int bottom) {
@@ -920,10 +899,10 @@ final class ArmorTrimEditorScreen extends Screen {
         }
 
         ItemStack trimmed = this.armorStack.copyWithCount(1);
-        ArmorTrimMaterialEntry material = getSelectedMaterialEntry();
-        ArmorTrimPatternEntry pattern = getSelectedPatternEntry();
+        Holder<TrimMaterial> material = getSelectedMaterialHolder();
+        Holder<TrimPattern> pattern = getSelectedPatternHolder();
         if (material != null && pattern != null) {
-            setTrimTag(trimmed, material.id(), pattern.id());
+            trimmed.set(DataComponents.TRIM, new ArmorTrim(material, pattern));
         }
 
         if (this.previewEntity == PREVIEW_PLAYER) {
@@ -1053,11 +1032,12 @@ final class ArmorTrimEditorScreen extends Screen {
 
     private List<String> getTrimDisplayRows() {
         List<String> rows = new ArrayList<>();
-        ArmorTrimEntry current = getCurrentTrimEntry();
+        ArmorTrim current = this.armorStack.get(DataComponents.TRIM);
         if (current != null) {
+            ResourceLocation materialId = CompatRegistries.TRIM_MATERIALS.getKey(current.material().value());
+            ResourceLocation patternId = CompatRegistries.TRIM_PATTERNS.getKey(current.pattern().value());
             rows.add(Component.translatable(key("armortrim.current"),
-                    getTrimPatternDisplayText(current.patternId(), current.materialId()),
-                    getTrimMaterialDisplayText(current.materialId())).getString());
+                    getTrimPatternDisplayText(patternId, materialId), getTrimMaterialDisplayText(materialId)).getString());
         }
 
         List<ArmorTrimEntry> entries = getTrimEntries();

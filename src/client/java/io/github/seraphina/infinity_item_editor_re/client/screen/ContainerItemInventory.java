@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -18,7 +20,7 @@ final class ContainerItemInventory implements Container {
 
     ContainerItemInventory(ItemStack containerStack) {
         this.containerStack = containerStack;
-        ContainerHelper.loadAllItems(containerStack.getOrCreateTagElement(BLOCK_ENTITY_TAG), this.items);
+        ContainerHelper.loadAllItems(ItemStackNbt.getOrCreateElement(containerStack, BLOCK_ENTITY_TAG), this.items, ItemStackNbt.provider());
     }
 
     Component getDisplayName() {
@@ -97,8 +99,8 @@ final class ContainerItemInventory implements Container {
     }
 
     private void saveToStack() {
-        CompoundTag blockEntity = this.containerStack.getOrCreateTagElement(BLOCK_ENTITY_TAG);
-        ContainerHelper.saveAllItems(blockEntity, this.items);
+        CompoundTag blockEntity = ItemStackNbt.getOrCreateElement(this.containerStack, BLOCK_ENTITY_TAG);
+        ContainerHelper.saveAllItems(blockEntity, this.items, ItemStackNbt.provider());
         if (isEmpty()) {
             blockEntity.remove(CONTAINER_ITEMS_TAG);
         }
@@ -110,7 +112,7 @@ final class ContainerItemInventory implements Container {
     }
 
     private void cleanupBlockEntityTag(CompoundTag blockEntity) {
-        CompoundTag tag = this.containerStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.containerStack);
         if (tag == null) {
             return;
         }
@@ -122,7 +124,7 @@ final class ContainerItemInventory implements Container {
         }
 
         if (tag.isEmpty()) {
-            this.containerStack.setTag(null);
+            ItemStackNbt.set(this.containerStack, null);
         }
     }
 }

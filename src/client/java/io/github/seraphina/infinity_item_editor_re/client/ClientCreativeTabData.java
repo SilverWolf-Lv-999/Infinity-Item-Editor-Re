@@ -1,5 +1,11 @@
 package io.github.seraphina.infinity_item_editor_re.client;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import io.github.seraphina.infinity_item_editor_re.client.screen.BannerPatternCatalog;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -11,26 +17,27 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BannerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.FireworkExplosion;
 
 import java.util.ArrayList;
 import java.util.List;
 public final class ClientCreativeTabData {
     private static final int HOTBAR_SIZE = 9;
     private static final int MAX_CHAT_LINKED_ITEMS = 256;
-    private static final FireworkRocketItem.Shape[] FIREWORK_SHAPES = {
-            FireworkRocketItem.Shape.SMALL_BALL,
-            FireworkRocketItem.Shape.LARGE_BALL,
-            FireworkRocketItem.Shape.STAR,
-            FireworkRocketItem.Shape.CREEPER,
-            FireworkRocketItem.Shape.BURST
+    private static final FireworkExplosion.Shape[] FIREWORK_SHAPES = {
+            FireworkExplosion.Shape.SMALL_BALL,
+            FireworkExplosion.Shape.LARGE_BALL,
+            FireworkExplosion.Shape.STAR,
+            FireworkExplosion.Shape.CREEPER,
+            FireworkExplosion.Shape.BURST
     };
     private static final List<ItemStack> CHAT_LINKED_ITEMS = new ArrayList<>();
 
@@ -76,7 +83,7 @@ public final class ClientCreativeTabData {
         ItemStack copy = stack.copy();
         copy.setCount(1);
         for (ItemStack existingStack : CHAT_LINKED_ITEMS) {
-            if (ItemStack.isSameItemSameTags(existingStack, copy)) {
+            if (ItemStackCompat.isSameItemSameTags(existingStack, copy)) {
                 return false;
             }
         }
@@ -111,7 +118,7 @@ public final class ClientCreativeTabData {
         }
 
         addRocketFlightVariants(stacks, currentRocket);
-        if (currentStar.isEmpty() || currentStar.getTagElement("Explosion") == null) {
+        if (currentStar.isEmpty() || ItemStackNbt.getElement(currentStar, "Explosion") == null) {
             addDefaultFireworkStars(stacks);
             return;
         }
@@ -191,14 +198,14 @@ public final class ClientCreativeTabData {
     }
 
     private static void addRocketFlightVariants(List<ItemStack> stacks, ItemStack currentRocket) {
-        if (currentRocket.isEmpty() || currentRocket.getTagElement("Fireworks") == null) {
+        if (currentRocket.isEmpty() || ItemStackNbt.getElement(currentRocket, "Fireworks") == null) {
             return;
         }
 
         for (byte flight = 1; flight <= 4; flight++) {
             ItemStack rocket = currentRocket.copy();
             rocket.setCount(1);
-            rocket.getOrCreateTagElement("Fireworks").putByte("Flight", flight);
+            ItemStackNbt.getOrCreateElement(rocket, "Fireworks").putByte("Flight", flight);
             addUnique(stacks, rocket);
         }
     }
@@ -207,7 +214,7 @@ public final class ClientCreativeTabData {
         for (byte type = 0; type < 5; type++) {
             for (DyeColor color : DyeColor.values()) {
                 ItemStack star = new ItemStack(Items.FIREWORK_STAR);
-                CompoundTag explosion = star.getOrCreateTagElement("Explosion");
+                CompoundTag explosion = ItemStackNbt.getOrCreateElement(star, "Explosion");
                 explosion.putByte("Type", (byte) getFireworkShape(type).getId());
                 explosion.putIntArray("Colors", new int[]{color.getFireworkColor()});
                 addUnique(stacks, star);
@@ -215,9 +222,9 @@ public final class ClientCreativeTabData {
         }
     }
 
-    private static FireworkRocketItem.Shape getFireworkShape(int type) {
+    private static FireworkExplosion.Shape getFireworkShape(int type) {
         if (type < 0 || type >= FIREWORK_SHAPES.length) {
-            return FireworkRocketItem.Shape.SMALL_BALL;
+            return FireworkExplosion.Shape.SMALL_BALL;
         }
         return FIREWORK_SHAPES[type];
     }
@@ -232,19 +239,19 @@ public final class ClientCreativeTabData {
     private static void addStarToggleVariant(List<ItemStack> stacks, ItemStack currentStar, String key, boolean enabled) {
         ItemStack star = currentStar.copy();
         star.setCount(1);
-        star.getOrCreateTagElement("Explosion").putBoolean(key, enabled);
+        ItemStackNbt.getOrCreateElement(star, "Explosion").putBoolean(key, enabled);
         addUnique(stacks, star);
     }
 
     private static void addRocketWithStar(List<ItemStack> stacks, ItemStack currentRocket, ItemStack currentStar) {
-        CompoundTag starExplosion = currentStar.getTagElement("Explosion");
+        CompoundTag starExplosion = ItemStackNbt.getElement(currentStar, "Explosion");
         if (starExplosion == null) {
             return;
         }
 
         ItemStack rocket = currentRocket.isEmpty() ? new ItemStack(Items.FIREWORK_ROCKET) : currentRocket.copy();
         rocket.setCount(1);
-        CompoundTag fireworks = rocket.getOrCreateTagElement("Fireworks");
+        CompoundTag fireworks = ItemStackNbt.getOrCreateElement(rocket, "Fireworks");
         ListTag explosions = fireworks.contains("Explosions", Tag.TAG_LIST)
                 ? fireworks.getList("Explosions", Tag.TAG_COMPOUND).copy()
                 : new ListTag();
@@ -297,7 +304,7 @@ public final class ClientCreativeTabData {
         } else {
             swapped = new ItemStack(Items.SHIELD);
             copyBannerBlockEntity(currentBanner, swapped);
-            swapped.getOrCreateTagElement("BlockEntityTag").putInt("Base", baseColor.getId());
+            ItemStackNbt.getOrCreateElement(swapped, "BlockEntityTag").putInt("Base", baseColor.getId());
         }
 
         addUnique(stacks, swapped);
@@ -309,7 +316,7 @@ public final class ClientCreativeTabData {
             for (DyeColor color : DyeColor.values()) {
                 ItemStack variant = currentBanner.copy();
                 variant.setCount(1);
-                CompoundTag blockEntity = variant.getOrCreateTagElement("BlockEntityTag");
+                CompoundTag blockEntity = ItemStackNbt.getOrCreateElement(variant, "BlockEntityTag");
                 if (variant.is(Items.SHIELD) && !blockEntity.contains("Base", Tag.TAG_INT)) {
                     blockEntity.putInt("Base", baseColor.getId());
                 }
@@ -336,7 +343,7 @@ public final class ClientCreativeTabData {
             return bannerItem.getColor();
         }
 
-        CompoundTag blockEntity = stack.getTagElement("BlockEntityTag");
+        CompoundTag blockEntity = ItemStackNbt.getElement(stack, "BlockEntityTag");
         if (blockEntity != null && blockEntity.contains("Base", Tag.TAG_INT)) {
             return DyeColor.byId(blockEntity.getInt("Base"));
         }
@@ -345,14 +352,14 @@ public final class ClientCreativeTabData {
     }
 
     private static void copyBannerBlockEntity(ItemStack source, ItemStack target) {
-        CompoundTag blockEntity = source.getTagElement("BlockEntityTag");
+        CompoundTag blockEntity = ItemStackNbt.getElement(source, "BlockEntityTag");
         if (blockEntity != null) {
-            target.getOrCreateTag().put("BlockEntityTag", blockEntity.copy());
+            ItemStackNbt.getOrCreate(target).put("BlockEntityTag", blockEntity.copy());
         }
     }
 
     private static void removeBannerBaseColor(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null) {
             return;
         }
@@ -365,27 +372,27 @@ public final class ClientCreativeTabData {
             tag.put("BlockEntityTag", blockEntity);
         }
         if (tag.isEmpty()) {
-            stack.setTag(null);
+            ItemStackNbt.set(stack, null);
         }
     }
 
     private static ItemStack createPlayerHead(String owner) {
         ItemStack stack = new ItemStack(Items.PLAYER_HEAD);
-        stack.getOrCreateTag().putString("SkullOwner", owner);
-        CompoundTag display = stack.getOrCreateTagElement("display");
-        display.putString("Name", net.minecraft.network.chat.Component.Serializer.toJson(net.minecraft.network.chat.Component.literal(owner + "'s Head")));
+        ItemStackNbt.getOrCreate(stack).putString("SkullOwner", owner);
+        CompoundTag display = ItemStackNbt.getOrCreateElement(stack, "display");
+        display.putString("Name", ComponentCompat.toJson(net.minecraft.network.chat.Component.literal(owner + "'s Head")));
         return stack;
     }
 
     private static ItemStack createNote(String noteName, String... lore) {
         ItemStack stack = new ItemStack(Items.PAPER);
-        stack.setHoverName(Component.literal(noteName));
+        ItemStackCompat.setHoverName(stack, Component.literal(noteName));
         if (lore != null && lore.length > 0) {
             ListTag loreTag = new ListTag();
             for (String line : lore) {
-                loreTag.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal(line))));
+                loreTag.add(StringTag.valueOf(ComponentCompat.toJson(Component.literal(line))));
             }
-            stack.getOrCreateTagElement("display").put("Lore", loreTag);
+            ItemStackNbt.getOrCreateElement(stack, "display").put("Lore", loreTag);
         }
         return stack;
     }
@@ -396,7 +403,7 @@ public final class ClientCreativeTabData {
         }
 
         for (ItemStack existingStack : stacks) {
-            if (ItemStack.isSameItemSameTags(existingStack, stack)) {
+            if (ItemStackCompat.isSameItemSameTags(existingStack, stack)) {
                 return true;
             }
         }
@@ -411,7 +418,7 @@ public final class ClientCreativeTabData {
         ItemStack copy = stack.copy();
         copy.setCount(1);
         for (ItemStack existingStack : stacks) {
-            if (ItemStack.isSameItemSameTags(existingStack, copy)) {
+            if (ItemStackCompat.isSameItemSameTags(existingStack, copy)) {
                 return;
             }
         }

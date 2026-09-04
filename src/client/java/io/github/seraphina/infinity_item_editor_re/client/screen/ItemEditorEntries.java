@@ -1,13 +1,14 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
-import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Holder;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.armortrim.TrimMaterial;
 import net.minecraft.world.item.armortrim.TrimPattern;
-import net.minecraft.world.item.enchantment.Enchantment;
 
 import java.util.List;
 
@@ -30,6 +31,9 @@ record NbtRow(String path, String displayText, boolean isExpandable, int depth) 
 }
 
 record BannerPatternEntry(String name, String hash) {
+}
+
+record PotterySherdEntry(String name, Item item) {
 }
 
 record SpawnEggEntityEntry(ResourceLocation id, EntityType<?> type) {

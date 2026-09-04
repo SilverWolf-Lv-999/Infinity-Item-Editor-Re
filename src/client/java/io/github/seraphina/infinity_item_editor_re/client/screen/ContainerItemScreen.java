@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -52,6 +53,16 @@ final class ContainerItemScreen extends ContainerScreen {
         super.init();
         addRenderableWidget(new InfinityEditorButton(this.leftPos + this.imageWidth + 4, this.topPos, 80, 20,
                 Component.translatable("screen." + ModSource.MODID + ".pick"), button -> openPickScreen()));
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override

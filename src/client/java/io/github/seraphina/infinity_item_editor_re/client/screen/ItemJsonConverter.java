@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -32,14 +34,13 @@ import java.util.Set;
 
 final class ItemJsonConverter {
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    private static final Set<String> STACK_ROOT_KEYS = Set.of("id", "item", "Item", "Count", "count", "tag", "nbt");
+    private static final Set<String> STACK_ROOT_KEYS = Set.of("id", "item", "Item", "Count", "count", "components", "tag", "nbt");
 
     private ItemJsonConverter() {
     }
 
     static String toJson(ItemStack stack) {
-        CompoundTag saved = new CompoundTag();
-        stack.save(saved);
+        CompoundTag saved = ItemStackNbt.save(stack);
         return PRETTY_GSON.toJson(toJsonElement(saved));
     }
 
@@ -56,7 +57,7 @@ final class ItemJsonConverter {
 
         CompoundTag saved = jsonObjectToCompound(parsed.getAsJsonObject());
         normalizeStackKeys(saved);
-        ItemStack stack = ItemStack.of(saved);
+        ItemStack stack = ItemStackNbt.parse(saved);
         if (stack.isEmpty() && !"minecraft:air".equals(saved.getString("id"))) {
             throw new JsonParseException("JSON does not describe a valid item stack.");
         }

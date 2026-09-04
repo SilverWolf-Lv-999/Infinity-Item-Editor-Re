@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -36,7 +38,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,14 +46,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,7 +77,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
         if (!entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
             entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
@@ -362,7 +363,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
     }
 
     protected ListTag getVillagerTradeRecipes(ItemStack stack) {
-        CompoundTag entityTag = stack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = ItemStackNbt.getElement(stack, ENTITY_TAG);
         if (entityTag == null || !entityTag.contains(OFFERS_TAG, Tag.TAG_COMPOUND)) {
             return new ListTag();
         }
@@ -396,7 +397,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
     }
 
     protected void putVillagerTradeRecipes(ListTag recipes) {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
         if (!recipes.isEmpty() && !entityTag.contains(ENTITY_ID_TAG, Tag.TAG_STRING)) {
             entityTag.putString(ENTITY_ID_TAG, "minecraft:villager");
@@ -433,7 +434,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         if (stack.isEmpty()) {
             recipe.remove(tagName);
         } else {
-            recipe.put(tagName, stack.save(new CompoundTag()));
+            recipe.put(tagName, ItemStackNbt.save(stack));
         }
     }
 
@@ -442,7 +443,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         if (!recipe.contains(tagName, Tag.TAG_COMPOUND)) {
             return ItemStack.EMPTY;
         }
-        return ItemStack.of(recipe.getCompound(tagName));
+        return ItemStackNbt.parse(recipe.getCompound(tagName));
     }
 
     protected String getTradeSlotTagName(int slot) {
@@ -460,7 +461,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         }
 
         CompoundTag itemTag = TagParser.parseTag(trimmed);
-        ItemStack stack = ItemStack.of(itemTag);
+        ItemStack stack = ItemStackNbt.parse(itemTag);
         if (stack.isEmpty()) {
             throw new IllegalArgumentException(Component.translatable(messageKey("editor_trade_invalid_item")).getString());
         }
@@ -471,7 +472,7 @@ abstract class ItemEditorScreenTrades extends ItemEditorScreenBannerSpawn {
         if (stack.isEmpty()) {
             return "{}";
         }
-        return stack.save(new CompoundTag()).toString();
+        return ItemStackNbt.save(stack).toString();
     }
 
     protected int parseTradeIntField(String value, String fieldSuffix, int defaultValue, int minValue, int maxValue) {

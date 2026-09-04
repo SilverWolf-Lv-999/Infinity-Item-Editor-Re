@@ -1,5 +1,10 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.screen.legacy.LegacyTextEditBox;
 import net.minecraft.ChatFormatting;
@@ -18,7 +23,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.WrittenBookItem;
+import net.minecraft.world.item.component.WritableBookContent;
 
 import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
@@ -32,8 +37,8 @@ final class BookItemScreen extends Screen {
     private static final int PAGE_TOP_OFFSET = 32;
     private static final int LINE_HEIGHT = 9;
     private static final int PAGE_LINES = TEXT_HEIGHT / LINE_HEIGHT;
-    private static final int MAX_PAGE_LENGTH = WrittenBookItem.PAGE_EDIT_LENGTH;
-    private static final int MAX_PAGES = WrittenBookItem.MAX_PAGES;
+    private static final int MAX_PAGE_LENGTH = WritableBookContent.PAGE_EDIT_LENGTH;
+    private static final int MAX_PAGES = WritableBookContent.MAX_PAGES;
     private static final int FORMAT_BUTTON_WIDTH = 13;
     private static final int FORMAT_BUTTON_HEIGHT = 15;
     private static final int FORMAT_BUTTON_Y_OFFSET = 30;
@@ -85,6 +90,12 @@ final class BookItemScreen extends Screen {
         addFormatButtons();
         updateButtonVisibility();
         focusLine(Mth.clamp(getFocusedLineIndex(), 0, this.lineBoxes.size() - 1));
+    }
+
+    @Override
+    public void tick() {
+        for (EditBox lineBox : this.lineBoxes) {
+        }
     }
 
     @Override
@@ -149,12 +160,16 @@ final class BookItemScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         int left = getBookLeft();
         guiGraphics.blit(BookViewScreen.BOOK_LOCATION, left, 2, 0, 0, IMAGE_WIDTH, IMAGE_WIDTH);
         Component pageMsg = Component.translatable("book.pageIndicator", this.currentPage + 1, Math.max(this.pages.size(), 1));
         guiGraphics.drawString(this.font, pageMsg, left - this.font.width(pageMsg) + IMAGE_WIDTH - 44, 18, 0, false);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
@@ -387,7 +402,7 @@ final class BookItemScreen extends Screen {
 
     private void readPagesFromStack() {
         this.pages.clear();
-        CompoundTag tag = this.bookStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.bookStack);
         if (tag != null && tag.contains(ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_LIST)) {
             ListTag pageTags = tag.getList(ItemEditorScreenState.BOOK_PAGES_TAG, Tag.TAG_STRING);
             for (int i = 0; i < pageTags.size(); i++) {
@@ -414,7 +429,7 @@ final class BookItemScreen extends Screen {
         List<String> savedPages = new ArrayList<>(this.pages);
         removeEmptyTrailingPages(savedPages);
 
-        CompoundTag tag = this.bookStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.bookStack);
         if (savedPages.isEmpty()) {
             tag.remove(ItemEditorScreenState.BOOK_PAGES_TAG);
         } else {
@@ -426,13 +441,13 @@ final class BookItemScreen extends Screen {
         }
         tag.remove(ItemEditorScreenState.BOOK_FILTERED_PAGES_TAG);
         if (tag.isEmpty()) {
-            this.bookStack.setTag(null);
+            ItemStackNbt.set(this.bookStack, null);
         }
     }
 
     private String writePageForStack(String page) {
         if (this.bookStack.is(Items.WRITTEN_BOOK)) {
-            return Component.Serializer.toJson(this.lastScreen.readBookPageComponent(page));
+            return ComponentCompat.toJson(this.lastScreen.readBookPageComponent(page));
         }
         return page;
     }

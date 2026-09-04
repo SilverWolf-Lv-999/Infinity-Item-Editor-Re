@@ -1,5 +1,11 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -8,6 +14,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -21,7 +28,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
@@ -37,7 +43,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -46,14 +51,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,7 +98,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(ContainerItemScreen.create((ItemEditorScreen) this, this.minecraft.player, this.previewStack));
     }
 
@@ -105,7 +110,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new BookItemScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -117,7 +122,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new ItemJsonEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -129,7 +134,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -141,7 +146,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
         this.status = Component.empty();
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.minecraft.setScreen(new ArmorTrimEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
@@ -162,7 +167,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         syncItemPanelFieldsFromStack();
     }
@@ -184,14 +189,14 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     void refreshAfterContainerEdit() {
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.containerSlotNbtValue = getContainerSelectedSlotNbt();
         this.nbtFeedback = "";
     }
 
     void refreshAfterBookEdit() {
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
     }
 
@@ -201,7 +206,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_json_applied"), this.previewStack.getHoverName());
     }
@@ -212,7 +217,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_command_block_applied"));
     }
@@ -223,7 +228,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
         this.previewStack = stack.copy();
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_armor_trim_applied"));
     }
@@ -247,7 +252,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
         this.activePanel = Panel.ITEM;
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         rebuildWidgets();
     }
 
@@ -267,13 +272,12 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
                 ? this.targetContainerSlot
                 : PlayerInventorySlots.HOTBAR_CONTAINER_SLOT_START + selected;
         ItemStack inventoryStack = this.previewStack.copy();
-        if (!PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, inventoryStack)) {
-            this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
-            return;
-        }
+        if (this.minecraft.isSingleplayer()) {
+            if (!applySingleplayerInventoryStack(containerSlot, inventoryStack)) {
+                this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
+                return;
+            }
 
-        if (this.minecraft.hasSingleplayerServer()) {
-            setSingleplayerServerStack(containerSlot, inventoryStack);
             this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
             return;
         }
@@ -287,28 +291,56 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
+        if (!PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, inventoryStack)) {
+            this.status = Component.translatable(messageKey("editor_invalid_target_slot"));
+            return;
+        }
+
         this.minecraft.gameMode.handleCreativeModeItemAdd(inventoryStack.copy(), containerSlot);
         this.status = Component.translatable(messageKey("editor_applied"), inventoryStack.getHoverName());
     }
 
-    private void setSingleplayerServerStack(int containerSlot, ItemStack stack) {
-        MinecraftServer server = this.minecraft.getSingleplayerServer();
-        if (server == null || this.minecraft.player == null) {
-            return;
+    private boolean applySingleplayerInventoryStack(int containerSlot, ItemStack stack) {
+        IntegratedServer server = this.minecraft.getSingleplayerServer();
+        if (server == null) {
+            return false;
+        }
+
+        CompoundTag serializedStack;
+        try {
+            serializedStack = ItemStackNbt.save(stack);
+        } catch (RuntimeException | LinkageError exception) {
+            return false;
+        }
+
+        if (serializedStack.isEmpty() || !PlayerInventorySlots.setStack(this.minecraft.player, containerSlot, stack)) {
+            return false;
         }
 
         UUID playerId = this.minecraft.player.getUUID();
-        ItemStack serverStack = stack.copy();
         server.execute(() -> {
             ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
-            if (serverPlayer == null || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
+            if (serverPlayer == null) {
                 return;
             }
-            serverPlayer.inventoryMenu.broadcastChanges();
+
+            ItemStack serverStack;
+            try {
+                serverStack = ItemStack.parseOptional(serverPlayer.level().registryAccess(), serializedStack.copy());
+            } catch (RuntimeException | LinkageError exception) {
+                return;
+            }
+
+            if (serverStack.isEmpty() || !PlayerInventorySlots.setStack(serverPlayer, containerSlot, serverStack)) {
+                return;
+            }
+
+            serverPlayer.containerMenu.broadcastChanges();
             if (serverPlayer.containerMenu != serverPlayer.inventoryMenu) {
-                serverPlayer.containerMenu.broadcastChanges();
+                serverPlayer.inventoryMenu.broadcastChanges();
             }
         });
+        return true;
     }
 
     protected void dropEditedStack() {
@@ -349,13 +381,15 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        if (this.activePanel == Panel.NBT) {
-            this.previewStack.setTag(new CompoundTag());
+        if (this.activePanel == Panel.COMPONENTS) {
+            this.previewStack = parseStackWithComponents(this.previewStack, new CompoundTag());
+        } else if (this.activePanel == Panel.NBT) {
+            ItemStackNbt.set(this.previewStack, new CompoundTag());
         } else {
-            this.previewStack.setTag(null);
+            ItemStackNbt.set(this.previewStack, null);
         }
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         rebuildWidgets();
     }
@@ -394,7 +428,10 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             if (this.activePanel == Panel.BANNER) {
                 readBannerFieldsFromStack(this.previewStack);
             }
-            this.rawNbtValue = getInitialNbt(this.previewStack);
+            if (this.activePanel == Panel.DECORATED_POT) {
+                readDecoratedPotFieldsFromStack(this.previewStack);
+            }
+            syncNbtEditorValuesFromStack();
             return true;
         } catch (IllegalArgumentException exception) {
             if (updateStatus) {
@@ -407,7 +444,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
     protected boolean tryApplyItemId(boolean throwOnError) {
         String idText = normalizeItemId(this.itemIdBox == null ? this.itemIdValue : this.itemIdBox.getValue());
         ResourceLocation id = ResourceLocation.tryParse(idText);
-        Item item = id == null ? null : BuiltInRegistries.ITEM.get(id);
+        Item item = id == null ? null : CompatRegistries.ITEMS.getValue(id);
         if (item == null || item == Items.AIR && !"minecraft:air".equals(idText)) {
             if (throwOnError) {
                 throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_item"), idText).getString());
@@ -421,10 +458,10 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         }
 
         boolean syncDefaultName = isNameFollowingDefault(this.previewStack);
-        CompoundTag tag = this.previewStack.getTag() == null ? null : this.previewStack.getTag().copy();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack) == null ? null : ItemStackNbt.get(this.previewStack).copy();
         int count = this.previewStack.getCount() <= 0 ? 1 : this.previewStack.getCount();
         this.previewStack = new ItemStack(item, count);
-        this.previewStack.setTag(tag);
+        ItemStackNbt.set(this.previewStack, tag);
         if (syncDefaultName) {
             this.nameValue = getDefaultHoverName(this.previewStack);
             if (this.nameBox != null) {
@@ -493,22 +530,22 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         String value = this.nameBox == null ? this.nameValue : this.nameBox.getValue();
         this.nameValue = value;
         if (value == null || value.isBlank()) {
-            this.previewStack.resetHoverName();
+            ItemStackCompat.resetHoverName(this.previewStack);
             cleanupEmptyDisplayTag();
             return;
         }
 
         ItemStack withoutName = this.previewStack.copy();
-        withoutName.resetHoverName();
-        if (!this.previewStack.hasCustomHoverName() && value.equals(withoutName.getHoverName().getString())) {
+        ItemStackCompat.resetHoverName(withoutName);
+        if (!ItemStackCompat.hasCustomHoverName(this.previewStack) && value.equals(withoutName.getHoverName().getString())) {
             return;
         }
 
-        this.previewStack.setHoverName(Component.literal(value));
+        ItemStackCompat.setHoverName(this.previewStack, Component.literal(value));
     }
 
     protected void clearCustomName() {
-        this.previewStack.resetHoverName();
+        ItemStackCompat.resetHoverName(this.previewStack);
         this.nameValue = this.previewStack.getHoverName().getString();
         if (this.nameBox != null) {
             this.nameBox.setValue(this.nameValue);
@@ -517,14 +554,14 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
     }
 
     protected void applyLoreToStack() {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag display = tag.getCompound(DISPLAY_TAG);
         if (this.loreValues.isEmpty()) {
             display.remove(LORE_TAG);
         } else {
             ListTag lore = new ListTag();
             for (String line : this.loreValues) {
-                lore.add(StringTag.valueOf(Component.Serializer.toJson(Component.literal(line))));
+                lore.add(StringTag.valueOf(ComponentCompat.toJson(Component.literal(line))));
             }
             display.put(LORE_TAG, lore);
         }
@@ -572,7 +609,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
 
     protected void copyFullTooltip() {
         if (this.minecraft != null && this.minecraft.player != null) {
-            List<Component> tooltip = this.previewStack.getTooltipLines(this.minecraft.player, this.minecraft.options.advancedItemTooltips ? net.minecraft.world.item.TooltipFlag.Default.ADVANCED : net.minecraft.world.item.TooltipFlag.Default.NORMAL);
+            List<Component> tooltip = ItemStackCompat.getTooltipLines(this.previewStack, this.minecraft.player, this.minecraft.options.advancedItemTooltips ? net.minecraft.world.item.TooltipFlag.Default.ADVANCED : net.minecraft.world.item.TooltipFlag.Default.NORMAL);
             List<String> lines = new ArrayList<>();
             for (Component component : tooltip) {
                 lines.add(component.getString());

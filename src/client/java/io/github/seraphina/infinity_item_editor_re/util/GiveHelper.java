@@ -7,9 +7,8 @@ import net.minecraft.commands.arguments.item.ItemParser;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 public final class GiveHelper {
     private GiveHelper() {
@@ -20,11 +19,11 @@ public final class GiveHelper {
             return "";
         }
 
-        ResourceLocation itemName = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        ResourceLocation itemName = CompatRegistries.ITEMS.getKey(stack.getItem());
         StringBuilder command = new StringBuilder("/give @p ");
         command.append(itemName == null ? "minecraft:air" : itemName);
 
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag != null && !tag.isEmpty()) {
             command.append(tag);
         }
@@ -36,8 +35,8 @@ public final class GiveHelper {
         return command.toString();
     }
 
-    public static ItemStack getItemStackFromString(String command, HolderLookup<Item> itemLookup) {
-        if (command == null || command.isBlank() || itemLookup == null) {
+    public static ItemStack getItemStackFromString(String command, HolderLookup.Provider lookupProvider) {
+        if (command == null || command.isBlank() || lookupProvider == null) {
             return ItemStack.EMPTY;
         }
 
@@ -48,7 +47,7 @@ public final class GiveHelper {
             }
 
             StringReader reader = new StringReader(itemArgument);
-            ItemParser.ItemResult itemResult = ItemParser.parseForItem(itemLookup, reader);
+            ItemParser.ItemResult itemResult = new ItemParser(lookupProvider).parse(reader);
             int count = 1;
             reader.skipWhitespace();
             if (reader.canRead()) {
@@ -58,7 +57,7 @@ public final class GiveHelper {
                 return ItemStack.EMPTY;
             }
 
-            return new ItemInput(itemResult.item(), itemResult.nbt()).createItemStack(count, false);
+            return new ItemInput(itemResult.item(), itemResult.components()).createItemStack(count, false);
         } catch (CommandSyntaxException exception) {
             return ItemStack.EMPTY;
         }

@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen.legacy;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.SharedConstants;
+import net.minecraft.util.StringUtil;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -85,6 +85,6 @@ public class LegacyTextEditBox extends EditBox {
     }
 
     private static boolean isLegacyAllowedCharacter(char character) {
-        return SharedConstants.isAllowedChatCharacter(character) || character == ChatFormatting.PREFIX_CODE;
+        return StringUtil.isAllowedChatCharacter(character) || character == ChatFormatting.PREFIX_CODE;
     }
 }

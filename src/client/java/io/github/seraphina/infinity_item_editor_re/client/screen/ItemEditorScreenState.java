@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import net.minecraft.world.item.component.FireworkExplosion;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -36,7 +38,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,14 +46,15 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
+import net.minecraft.world.item.component.WrittenBookContent;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,13 +74,13 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final int MAX_POTION_LEVEL = Integer.MAX_VALUE;
     protected static final int MAX_POTION_SECONDS = 99999;
     protected static final int MAX_ATTRIBUTE_INTEGER = 99999999;
-    protected static final int FOLDED_REGISTRY_ENTRY_LIMIT = 48;
     protected static final int FIELD_HEIGHT = 20;
     protected static final int OLD_BUTTON_WIDTH = 60;
     protected static final int OLD_BUTTON_HEIGHT = 20;
     protected static final int ITEM_SIZE = 16;
     protected static final int RING_ICON_HIT_RADIUS = 10;
     protected static final int RING_HOVER_WIDTH = 16;
+    protected static final int FOLDED_REGISTRY_ENTRY_LIMIT = 48;
     protected static final int CENTER_HIT_RADIUS = 15;
     protected static final int MAIN_COLOR = InfinityEditorButton.MAIN_COLOR;
     protected static final int ALT_COLOR = InfinityEditorButton.ALT_COLOR;
@@ -105,17 +107,23 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String HIDE_FLAGS_TAG = "HideFlags";
     protected static final String CUSTOM_POTION_EFFECTS_TAG = "CustomPotionEffects";
     protected static final String ATTRIBUTE_MODIFIERS_TAG = "AttributeModifiers";
-    protected static final String CUSTOM_POTION_COLOR_TAG = PotionUtils.TAG_CUSTOM_POTION_COLOR;
+    protected static final String CUSTOM_POTION_COLOR_TAG = PotionCompat.TAG_CUSTOM_POTION_COLOR;
     protected static final String MAP_COLOR_TAG = "MapColor";
     protected static final int SIGN_LINES = 4;
     protected static final String BLOCK_ENTITY_TAG = "BlockEntityTag";
     protected static final String SPAWNER_BLOCK_ENTITY_ID = "minecraft:mob_spawner";
+    protected static final String TRIAL_SPAWNER_BLOCK_ENTITY_ID = "minecraft:trial_spawner";
     protected static final String SPAWNER_SPAWN_DATA_TAG = "SpawnData";
     protected static final String SPAWNER_ENTITY_TAG = "entity";
     protected static final String SPAWNER_SPAWN_POTENTIALS_TAG = "SpawnPotentials";
     protected static final String SPAWNER_POTENTIAL_DATA_TAG = "data";
     protected static final String SPAWNER_POTENTIAL_LEGACY_ENTITY_TAG = "Entity";
     protected static final String SPAWNER_CUSTOM_SPAWN_RULES_TAG = "custom_spawn_rules";
+    protected static final String TRIAL_SPAWNER_NORMAL_CONFIG_TAG = "normal_config";
+    protected static final String TRIAL_SPAWNER_OMINOUS_CONFIG_TAG = "ominous_config";
+    protected static final String TRIAL_SPAWNER_SPAWN_DATA_TAG = "spawn_data";
+    protected static final String TRIAL_SPAWNER_SPAWN_POTENTIALS_TAG = "spawn_potentials";
+    protected static final String SPAWNER_POTENTIAL_WEIGHT_TAG = "weight";
     protected static final String SIGN_FRONT_TEXT_TAG = "front_text";
     protected static final String SIGN_MESSAGES_TAG = "messages";
     protected static final String SIGN_FILTERED_MESSAGES_TAG = "filtered_messages";
@@ -128,42 +136,17 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String BANNER_BASE_TAG = "Base";
     protected static final int BANNER_PATTERN_ROWS = 8;
     protected static final String DECORATED_POT_SHERDS_TAG = "sherds";
-    protected static final int DECORATED_POT_SHERD_COUNT = 4;
-    protected static final int DECORATED_POT_BACK_INDEX = 0;
-    protected static final int DECORATED_POT_LEFT_INDEX = 1;
-    protected static final int DECORATED_POT_RIGHT_INDEX = 2;
-    protected static final int DECORATED_POT_FRONT_INDEX = 3;
-    protected static final String DECORATED_POT_DEFAULT_SHERD = "minecraft:brick";
-    protected static final String[] DECORATED_POT_SIDE_KEYS = {"back", "left", "right", "front"};
-    protected static final int[] DECORATED_POT_UI_SIDES = {
-            DECORATED_POT_FRONT_INDEX,
-            DECORATED_POT_BACK_INDEX,
-            DECORATED_POT_LEFT_INDEX,
-            DECORATED_POT_RIGHT_INDEX
+    protected static final int DECORATED_POT_SIDE_BACK = 0;
+    protected static final int DECORATED_POT_SIDE_LEFT = 1;
+    protected static final int DECORATED_POT_SIDE_RIGHT = 2;
+    protected static final int DECORATED_POT_SIDE_FRONT = 3;
+    protected static final int[] DECORATED_POT_DISPLAY_SIDES = {
+            DECORATED_POT_SIDE_FRONT,
+            DECORATED_POT_SIDE_LEFT,
+            DECORATED_POT_SIDE_RIGHT,
+            DECORATED_POT_SIDE_BACK
     };
-    protected static final Item[] DECORATED_POT_SHERD_ITEMS = {
-            Items.BRICK,
-            Items.ANGLER_POTTERY_SHERD,
-            Items.ARCHER_POTTERY_SHERD,
-            Items.ARMS_UP_POTTERY_SHERD,
-            Items.BLADE_POTTERY_SHERD,
-            Items.BREWER_POTTERY_SHERD,
-            Items.BURN_POTTERY_SHERD,
-            Items.DANGER_POTTERY_SHERD,
-            Items.EXPLORER_POTTERY_SHERD,
-            Items.FRIEND_POTTERY_SHERD,
-            Items.HEART_POTTERY_SHERD,
-            Items.HEARTBREAK_POTTERY_SHERD,
-            Items.HOWL_POTTERY_SHERD,
-            Items.MINER_POTTERY_SHERD,
-            Items.MOURNER_POTTERY_SHERD,
-            Items.PLENTY_POTTERY_SHERD,
-            Items.PRIZE_POTTERY_SHERD,
-            Items.SHEAF_POTTERY_SHERD,
-            Items.SHELTER_POTTERY_SHERD,
-            Items.SKULL_POTTERY_SHERD,
-            Items.SNORT_POTTERY_SHERD
-    };
+    protected static final int POTTERY_SHERD_ROWS = 8;
     protected static final String BOOK_TITLE_TAG = "title";
     protected static final String BOOK_FILTERED_TITLE_TAG = "filtered_title";
     protected static final String BOOK_AUTHOR_TAG = "author";
@@ -171,7 +154,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String BOOK_RESOLVED_TAG = "resolved";
     protected static final String BOOK_PAGES_TAG = "pages";
     protected static final String BOOK_FILTERED_PAGES_TAG = "filtered_pages";
-    protected static final int MAX_BOOK_GENERATION = WrittenBookItem.MAX_GENERATION;
+    protected static final int MAX_BOOK_GENERATION = WrittenBookContent.MAX_GENERATION;
     protected static final String SKULL_OWNER_TAG = "SkullOwner";
     protected static final String SKULL_OWNER_ID_TAG = "Id";
     protected static final String SKULL_OWNER_NAME_TAG = "Name";
@@ -208,12 +191,12 @@ abstract class ItemEditorScreenState extends Screen {
     protected static final String FIREWORK_TRAIL_TAG = "Trail";
     protected static final int MAX_FIREWORK_FLIGHT = 4;
     protected static final int FIREWORK_EXPLOSION_TYPES = 5;
-    protected static final FireworkRocketItem.Shape[] FIREWORK_SHAPES = {
-            FireworkRocketItem.Shape.SMALL_BALL,
-            FireworkRocketItem.Shape.LARGE_BALL,
-            FireworkRocketItem.Shape.STAR,
-            FireworkRocketItem.Shape.CREEPER,
-            FireworkRocketItem.Shape.BURST
+    protected static final FireworkExplosion.Shape[] FIREWORK_SHAPES = {
+            FireworkExplosion.Shape.SMALL_BALL,
+            FireworkExplosion.Shape.LARGE_BALL,
+            FireworkExplosion.Shape.STAR,
+            FireworkExplosion.Shape.CREEPER,
+            FireworkExplosion.Shape.BURST
     };
     protected static final String CONTAINER_ITEMS_TAG = "Items";
     protected static final String CONTAINER_SLOT_TAG = "Slot";
@@ -264,6 +247,10 @@ abstract class ItemEditorScreenState extends Screen {
     protected String damageValue;
     protected String nameValue;
     protected String rawNbtValue;
+    protected String componentNbtValue = "";
+    protected String componentFilterValue = "";
+    protected String componentValueFilterValue = "";
+    protected String selectedComponentKey = "";
     protected String enchantFilterValue = "";
     protected String selectedEnchantmentNamespace = "";
     protected String enchantLevelValue = "1";
@@ -286,6 +273,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected String headTextureSignatureValue = "";
     protected String containerSlotNbtValue = "{}";
     protected String bannerPatternFilterValue = "";
+    protected String potterySherdFilterValue = "";
     protected String spawnEggEntityFilterValue = "";
     protected String spawnEggCustomNameValue = "";
     protected String spawnEggOwnerValue = "";
@@ -303,6 +291,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected boolean attributeInfinity;
     protected boolean attributeNegative;
     protected boolean syncingColorControls;
+    protected boolean syncingComponentValue;
+    protected boolean syncingComponentControls;
     protected boolean lorePainterDragging;
     protected boolean lorePainterPreview;
     protected boolean tradeRewardExp = true;
@@ -319,6 +309,9 @@ abstract class ItemEditorScreenState extends Screen {
     protected int bannerPatternColor = DyeColor.BLACK.getId();
     protected int bannerPatternScroll;
     protected int selectedBannerPatternIndex;
+    protected int potterySherdScroll;
+    protected int selectedPotterySherdIndex;
+    protected int selectedDecoratedPotSide = DECORATED_POT_SIDE_FRONT;
     protected int fireworkExplosionType;
     protected int fireworkColor = DyeColor.RED.getId();
     protected int fireworkFadeColor = -1;
@@ -329,6 +322,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected int selectedTradeIndex;
     protected int selectedTradeSlot;
     protected int tradeScroll;
+    protected int componentListScroll;
     protected int lorePainterWidth = 3;
     protected int lorePainterHeight = 3;
     protected boolean draggingLoreScroll;
@@ -337,24 +331,31 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected final List<String> loreValues = new ArrayList<>();
     protected final List<List<LorePixel>> lorePainterRows = new ArrayList<>();
-    protected final String[] decoratedPotSherdValues = new String[DECORATED_POT_SHERD_COUNT];
     protected final List<EditBox> tickingBoxes = new ArrayList<>();
     protected final List<EditBox> mainTextBoxes = new ArrayList<>();
     protected final List<EditBox> loreBoxes = new ArrayList<>();
     protected final List<EditBox> signBoxes = new ArrayList<>();
     protected final List<InfinityEditorButton> loreActionButtons = new ArrayList<>();
     protected final Map<String, String> spawnEggNumberValueOverrides = new HashMap<>();
+    protected final Set<String> expandedComponentGroups = new HashSet<>();
     protected final Set<String> expandedNbtPaths = new HashSet<>();
     protected final ItemStack enchantBook = new ItemStack(Items.ENCHANTED_BOOK);
     protected final ItemStack potionIcon = new ItemStack(Items.POTION);
     protected final ItemStack attributeIcon = new ItemStack(Items.PAPER);
     protected final LorePixel currentLorePixel = new LorePixel();
+    protected boolean draggingComponentListScroll;
+    protected String lastComponentGroupClick = "";
+    protected long lastComponentGroupClickMs;
 
     protected EditBox itemIdBox;
     protected EditBox countBox;
     protected EditBox damageBox;
     protected EditBox nameBox;
     protected EditBox rawNbtBox;
+    protected EditBox componentFilterBox;
+    protected EditBox componentValueSearchBox;
+    protected EditBox componentNumberBox;
+    protected EditBox componentNbtBox;
     protected EditBox enchantFilterBox;
     protected EditBox enchantLevelBox;
     protected EditBox potionFilterBox;
@@ -373,6 +374,7 @@ abstract class ItemEditorScreenState extends Screen {
     protected EditBox headTextureSignatureBox;
     protected EditBox containerSlotNbtBox;
     protected EditBox bannerPatternFilterBox;
+    protected EditBox potterySherdFilterBox;
     protected EditBox spawnEggEntityFilterBox;
     protected EditBox spawnEggCustomNameBox;
     protected EditBox spawnEggOwnerBox;
@@ -396,6 +398,9 @@ abstract class ItemEditorScreenState extends Screen {
     protected ColorSlider redSlider;
     protected ColorSlider greenSlider;
     protected ColorSlider blueSlider;
+    protected ColorSlider componentRedSlider;
+    protected ColorSlider componentGreenSlider;
+    protected ColorSlider componentBlueSlider;
 
     protected ItemEditorScreenState(ItemStack stack, int targetContainerSlot, ItemEditorScreen parentTradeScreen, int parentTradeIndex, int parentTradeSlot) {
         super(Component.translatable(key("item")));
@@ -405,6 +410,10 @@ abstract class ItemEditorScreenState extends Screen {
         this.parentTradeIndex = parentTradeIndex;
         this.parentTradeSlot = parentTradeSlot;
         this.previewStack = stack.copy();
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
 
@@ -429,6 +438,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void addNbtPanel();
 
+    protected abstract void addComponentsPanel();
+
     protected abstract void addNbtAdvancedPanel();
 
     protected abstract void addHideFlagsPanel();
@@ -452,8 +463,6 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract void addContainerPanel();
 
     protected abstract void addBannerPanel();
-
-    protected abstract void addDecoratedPotPanel();
 
     protected abstract void addSpawnEggPanel();
 
@@ -488,6 +497,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void renderNbtPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
+    protected abstract void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
+
     protected abstract void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY);
 
     protected abstract void renderHideFlagsPanel(GuiGraphics guiGraphics);
@@ -515,8 +526,6 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract void renderContainerPanel(GuiGraphics guiGraphics);
 
     protected abstract void renderBannerPanel(GuiGraphics guiGraphics);
-
-    protected abstract void renderDecoratedPotPanel(GuiGraphics guiGraphics);
 
     protected abstract void renderSpawnEggPanel(GuiGraphics guiGraphics);
 
@@ -548,11 +557,17 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract boolean handleAttributesClick(double mouseX, double mouseY);
 
+    protected abstract boolean handleComponentListClick(double mouseX, double mouseY);
+
+    protected abstract boolean scrollComponentList(double scrollY);
+
     protected abstract boolean handleColorClick(double mouseX, double mouseY);
 
     protected abstract boolean handleContainerClick(double mouseX, double mouseY);
 
     protected abstract boolean handleBannerClick(double mouseX, double mouseY);
+
+    protected abstract boolean handleDecoratedPotClick(double mouseX, double mouseY);
 
     protected abstract boolean handleSpawnEggClick(double mouseX, double mouseY);
 
@@ -771,6 +786,34 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract CompoundTag getOrCreateBannerBlockEntityTag();
 
     protected abstract BannerPatternEntry getBannerPatternEntry(String hash);
+
+    protected abstract void applySelectedPotterySherd();
+
+    protected abstract void clearDecoratedPotSide();
+
+    protected abstract void clearDecoratedPotDecorations();
+
+    protected abstract void selectDecoratedPotSide(int side);
+
+    protected abstract void cycleSelectedPotterySherd(int direction);
+
+    protected abstract void setPotterySherdScroll(int value);
+
+    protected abstract void clampPotterySherdSelection(List<PotterySherdEntry> sherds);
+
+    protected abstract int getPotterySherdRowY(int row);
+
+    protected abstract List<PotterySherdEntry> getFilteredPotterySherds();
+
+    protected abstract Component getPotterySherdName(PotterySherdEntry entry);
+
+    protected abstract Component getDecoratedPotSideName(int side);
+
+    protected abstract Component getDecoratedPotSideItemName(int side);
+
+    protected abstract int getDecoratedPotDecorationCount();
+
+    protected abstract void renderDecoratedPotSides(GuiGraphics guiGraphics);
 
     protected abstract void applySelectedSpawnEggEntity();
 
@@ -1012,6 +1055,8 @@ abstract class ItemEditorScreenState extends Screen {
 
     protected abstract void updateRawNbt();
 
+    protected abstract void updateComponentNbt();
+
     protected abstract void toggleUnbreakable();
 
     protected abstract Component getUnbreakableText();
@@ -1191,6 +1236,8 @@ abstract class ItemEditorScreenState extends Screen {
     protected abstract CompoundTag getFireworkExplosionForFields(ItemStack stack);
 
     protected abstract void readBannerFieldsFromStack(ItemStack stack);
+
+    protected abstract void readDecoratedPotFieldsFromStack(ItemStack stack);
 
     protected abstract void readSpawnEggFieldsFromStack(ItemStack stack);
 

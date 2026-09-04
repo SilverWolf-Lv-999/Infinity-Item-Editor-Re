@@ -1,6 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.client.CreativeTabRefresher;
@@ -35,7 +36,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -44,14 +44,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +83,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.expandedNbtPaths.add("tag");
         this.attributeSlot = getDefaultAttributeSlot(this.previewStack);
         readMainFieldsFromStack(this.previewStack);
-        this.rawNbtValue = getInitialNbt(this.previewStack);
+        syncNbtEditorValuesFromStack();
         this.colorHexValue = formatColorHex(getEditorColor());
         ensureLorePainterRows();
     }
@@ -104,12 +104,15 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.damageBox = null;
         this.nameBox = null;
         this.rawNbtBox = null;
+        this.componentFilterBox = null;
+        this.componentValueSearchBox = null;
+        this.componentNumberBox = null;
+        this.componentNbtBox = null;
         this.enchantFilterBox = null;
         this.enchantLevelBox = null;
         this.potionFilterBox = null;
         this.potionLevelBox = null;
         this.potionTimeBox = null;
-        this.attributeFilterBox = null;
         this.attributeAmountBox = null;
         this.attributeDecimalBox = null;
         this.colorHexBox = null;
@@ -122,6 +125,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.headTextureSignatureBox = null;
         this.containerSlotNbtBox = null;
         this.bannerPatternFilterBox = null;
+        this.potterySherdFilterBox = null;
         this.spawnEggEntityFilterBox = null;
         this.spawnEggCustomNameBox = null;
         this.spawnEggOwnerBox = null;
@@ -144,11 +148,15 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.redSlider = null;
         this.greenSlider = null;
         this.blueSlider = null;
+        this.componentRedSlider = null;
+        this.componentGreenSlider = null;
+        this.componentBlueSlider = null;
         this.copyLoreButton = null;
 
         switch (this.activePanel) {
             case ITEM -> addItemPanel();
             case NBT -> addNbtPanel();
+            case COMPONENTS -> addComponentsPanel();
             case NBT_ADVANCED -> addNbtAdvancedPanel();
             case HIDE_FLAGS -> addHideFlagsPanel();
             case ENCHANTMENTS -> addEnchantmentsPanel();
@@ -175,6 +183,9 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public void tick() {
+        for (EditBox box : this.tickingBoxes) {
+        }
+
         if ((this.activePanel == Panel.ENCHANTMENTS || this.activePanel == Panel.POTION || this.activePanel == Panel.ATTRIBUTES)
                 && Math.abs(this.mouseDist - getRingRadius()) >= RING_HOVER_WIDTH) {
             this.rotOff++;
@@ -184,9 +195,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
-            if (isSidebarUi()) {
-                renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
-            }
+            renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
             renderNbtAdvancedPanel(guiGraphics, mouseX, mouseY);
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             return;
@@ -197,6 +206,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         switch (this.activePanel) {
             case ITEM -> renderItemPanel(guiGraphics, mouseX, mouseY);
             case NBT -> renderNbtPanel(guiGraphics, mouseX, mouseY);
+            case COMPONENTS -> renderComponentsPanel(guiGraphics, mouseX, mouseY);
             case HIDE_FLAGS -> renderHideFlagsPanel(guiGraphics);
             case ENCHANTMENTS -> renderEnchantmentsPanel(guiGraphics, mouseX, mouseY, partialTick);
             case POTION -> renderPotionPanel(guiGraphics, mouseX, mouseY, partialTick);
@@ -277,8 +287,17 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         if (this.activePanel == Panel.POTION && this.potionFilterBox != null && this.potionFilterBox.isFocused()) {
             return this.potionFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
+        if (this.activePanel == Panel.COMPONENTS && this.componentFilterBox != null && this.componentFilterBox.isFocused()) {
+            return this.componentFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
+        if (this.activePanel == Panel.COMPONENTS && this.componentValueSearchBox != null && this.componentValueSearchBox.isFocused()) {
+            return this.componentValueSearchBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
         if (this.activePanel == Panel.BANNER && this.bannerPatternFilterBox != null && this.bannerPatternFilterBox.isFocused()) {
             return this.bannerPatternFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
+        }
+        if (this.activePanel == Panel.DECORATED_POT && this.potterySherdFilterBox != null && this.potterySherdFilterBox.isFocused()) {
+            return this.potterySherdFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
         }
         if (this.activePanel == Panel.SPAWN_EGG && this.spawnEggEntityFilterBox != null && this.spawnEggEntityFilterBox.isFocused()) {
             return this.spawnEggEntityFilterBox.charTyped(Character.toLowerCase(codePoint), modifiers);
@@ -307,9 +326,11 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             case ENCHANTMENTS -> handleEnchantingClick(mouseX, mouseY);
             case POTION -> handlePotionClick(mouseX, mouseY);
             case ATTRIBUTES -> handleAttributesClick(mouseX, mouseY);
+            case COMPONENTS -> handleComponentListClick(mouseX, mouseY);
             case COLOR -> handleColorClick(mouseX, mouseY);
             case CONTAINER -> handleContainerClick(mouseX, mouseY);
             case BANNER -> handleBannerClick(mouseX, mouseY);
+            case DECORATED_POT -> handleDecoratedPotClick(mouseX, mouseY);
             case SPAWN_EGG -> handleSpawnEggClick(mouseX, mouseY);
             case NBT_ADVANCED -> handleNbtAdvancedClick(mouseX, mouseY);
             case LORE -> handleLoreClick(mouseX, mouseY);
@@ -332,8 +353,17 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             return true;
         }
 
+        if (this.activePanel == Panel.COMPONENTS) {
+            return scrollComponentList(scrollY);
+        }
+
         if (this.activePanel == Panel.BANNER) {
             setBannerPatternScroll(this.bannerPatternScroll - (int) Math.signum(scrollY));
+            return true;
+        }
+
+        if (this.activePanel == Panel.DECORATED_POT) {
+            setPotterySherdScroll(this.potterySherdScroll - (int) Math.signum(scrollY));
             return true;
         }
 
@@ -358,6 +388,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             updateLoreScrollFromMouse(mouseY);
             return true;
         }
+        if (this.activePanel == Panel.COMPONENTS && this.draggingComponentListScroll) {
+            dragComponentListScrollbar(mouseY);
+            return true;
+        }
         if (this.activePanel == Panel.LORE_PAINTER && this.lorePainterDragging) {
             paintLorePainterAt(mouseX, mouseY);
             return true;
@@ -369,6 +403,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
+        this.draggingComponentListScroll = false;
         return super.mouseReleased(mouseX, mouseY, button);
     }
 

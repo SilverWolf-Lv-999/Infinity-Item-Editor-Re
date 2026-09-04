@@ -36,7 +36,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -45,14 +44,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +71,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     }
 
     protected void renderEditorBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
 
         if (!isSidebarUi()) {
             return;
@@ -130,6 +129,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         return switch (this.activePanel) {
             case ITEM -> Component.translatable(key("item"));
             case NBT -> Component.translatable(key("nbt"));
+            case COMPONENTS -> Component.translatable(key("components"));
             case NBT_ADVANCED -> Component.translatable(key("nbtadv"));
             case HIDE_FLAGS -> Component.translatable(key("hideflags"));
             case ENCHANTMENTS -> Component.translatable(key("enchanting"));
@@ -286,6 +286,11 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         if (!this.nbtFeedback.isEmpty()) {
             guiGraphics.drawCenteredString(this.font, this.nbtFeedback, this.midX, 130, this.nbtFeedbackGood ? GOOD_GREEN : BAD_RED);
         }
+    }
+
+    protected void renderComponentsPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        drawPanelTitle(guiGraphics, Component.translatable(key("components")));
+        renderComponentEditorPanel(guiGraphics, mouseX, mouseY);
     }
 
     protected void renderNbtAdvancedPanel(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -472,7 +477,7 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
                 ModernUi.fillSelection(guiGraphics, editorListTextLeft() - 4, rowY - 2,
                         editorListTextLeft() + Math.min(174, this.font.width(formatPotionEffect(effect)) + 12), rowY + 10, 4, false);
             }
-            int color = effect.getEffect().getCategory() == MobEffectCategory.HARMFUL ? BAD_RED : panelAccentColor();
+            int color = effect.getEffect().value().getCategory() == MobEffectCategory.HARMFUL ? BAD_RED : panelAccentColor();
             guiGraphics.drawString(this.font, formatPotionEffect(effect), editorListTextLeft(), rowY, color, false);
         }
 
@@ -758,17 +763,46 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         guiGraphics.renderItem(this.previewStack, -8, -8);
         guiGraphics.pose().popPose();
 
-        int width = contentLimitedWidth(190, 120, 32);
-        int x = centeredContentX(width);
-        int firstY = decoratedPotButtonStartY();
+        drawCenteredLabel(guiGraphics, Component.translatable(key("decorated_pot.search")),
+                this.potterySherdFilterBox.getX() + this.potterySherdFilterBox.getWidth() / 2,
+                this.potterySherdFilterBox.getY() - 12);
+
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        clampPotterySherdSelection(sherds);
+        int listX = potterySherdListX();
+        int listWidth = potterySherdListWidth();
         if (isSidebarUi()) {
-            ModernUi.fillPanel(guiGraphics, x - 8, firstY - 8,
-                    x + width + 8, firstY + DECORATED_POT_UI_SIDES.length * 26 + 34,
-                    8, ModernUi.SURFACE, ModernUi.BORDER);
+            ModernUi.fillPanel(guiGraphics, listX - 5, getPotterySherdRowY(0) - 7, listX + listWidth + 5,
+                    getPotterySherdRowY(POTTERY_SHERD_ROWS - 1) + 15, 8, ModernUi.SURFACE, ModernUi.BORDER);
+        }
+        if (sherds.isEmpty()) {
+            guiGraphics.drawString(this.font, Component.translatable(key("decorated_pot.no_match")),
+                    listX + 2, getPotterySherdRowY(0), BAD_RED);
+        } else {
+            int end = Math.min(sherds.size(), this.potterySherdScroll + POTTERY_SHERD_ROWS);
+            for (int i = this.potterySherdScroll; i < end; i++) {
+                int y = getPotterySherdRowY(i - this.potterySherdScroll);
+                boolean selectedSherd = i == this.selectedPotterySherdIndex;
+                int color = isSidebarUi()
+                        ? (selectedSherd ? ModernUi.ACCENT_HOVER : ModernUi.TEXT_PRIMARY)
+                        : (selectedSherd ? CONTRAST_COLOR : MAIN_COLOR);
+                Component name = getPotterySherdName(sherds.get(i));
+                drawModernListRow(guiGraphics, listX, y - 3, listX + listWidth, y + 10, selectedSherd, false);
+                guiGraphics.drawString(this.font, this.font.plainSubstrByWidth(name.getString(), listWidth - 5),
+                        listX + 2, y, color);
+            }
         }
 
-        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.patterns")),
-                this.midX, firstY - 17, panelLabelColor());
+        Component selected = sherds.isEmpty()
+                ? Component.translatable(key("decorated_pot.no_match"))
+                : getPotterySherdName(sherds.get(this.selectedPotterySherdIndex));
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.selected"), selected),
+                this.midX, this.height - 78, panelTitleColor());
+        guiGraphics.drawCenteredString(this.font, Component.translatable(key("decorated_pot.editing"),
+                getDecoratedPotSideName(this.selectedDecoratedPotSide), getDecoratedPotSideItemName(this.selectedDecoratedPotSide)),
+                this.midX, 112, panelSecondaryColor());
+
+        renderDecoratedPotSides(guiGraphics);
     }
 
     protected void renderSpawnEggPanel(GuiGraphics guiGraphics) {
@@ -1325,6 +1359,27 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
         }
 
         this.selectedBannerPatternIndex = index;
+        return true;
+    }
+
+    protected boolean handleDecoratedPotClick(double mouseX, double mouseY) {
+        if (!isMouseIn(mouseX, mouseY, potterySherdListX(), getPotterySherdRowY(0) - 1,
+                potterySherdListWidth(), POTTERY_SHERD_ROWS * 10 + 2)) {
+            return false;
+        }
+
+        List<PotterySherdEntry> sherds = getFilteredPotterySherds();
+        if (sherds.isEmpty()) {
+            return false;
+        }
+
+        int row = ((int) mouseY - getPotterySherdRowY(0)) / 10;
+        int index = this.potterySherdScroll + row;
+        if (row < 0 || row >= POTTERY_SHERD_ROWS || index < 0 || index >= sherds.size()) {
+            return false;
+        }
+
+        this.selectedPotterySherdIndex = index;
         return true;
     }
 

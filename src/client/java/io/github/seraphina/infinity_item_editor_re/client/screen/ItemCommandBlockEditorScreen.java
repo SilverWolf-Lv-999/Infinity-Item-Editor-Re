@@ -1,5 +1,8 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -101,7 +104,6 @@ final class ItemCommandBlockEditorScreen extends Screen {
     @Override
     public void tick() {
         if (this.commandBox != null) {
-            this.commandBox.tick();
         }
     }
 
@@ -131,7 +133,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 10, InfinityEditorButton.MAIN_COLOR);
         guiGraphics.renderItem(this.commandStack, 20, 12);
         guiGraphics.renderItemDecorations(this.font, this.commandStack, 20, 12);
@@ -144,6 +146,10 @@ final class ItemCommandBlockEditorScreen extends Screen {
         if (this.commandBox != null) {
             this.commandBox.renderCompletions(guiGraphics);
         }
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
@@ -262,23 +268,23 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     private String readCommand(ItemStack stack) {
-        CompoundTag commandData = stack.getTagElement(dataTagKey(stack));
+        CompoundTag commandData = ItemStackNbt.getElement(stack, dataTagKey(stack));
         return commandData == null ? "" : commandData.getString(COMMAND_TAG);
     }
 
     private boolean readUnconditional(ItemStack stack) {
-        CompoundTag blockState = stack.getTagElement(BLOCK_STATE_TAG);
+        CompoundTag blockState = ItemStackNbt.getElement(stack, BLOCK_STATE_TAG);
         return blockState == null || !"true".equalsIgnoreCase(blockState.getString(CONDITIONAL_TAG));
     }
 
     private boolean readAlwaysActive(ItemStack stack) {
-        CompoundTag commandData = stack.getTagElement(BLOCK_ENTITY_TAG);
+        CompoundTag commandData = ItemStackNbt.getElement(stack, BLOCK_ENTITY_TAG);
         return commandData != null && commandData.getBoolean(AUTO_TAG);
     }
 
     private void writeCommand(ItemStack stack, String command) {
         String tagKey = dataTagKey(stack);
-        CompoundTag rootTag = stack.getTag();
+        CompoundTag rootTag = ItemStackNbt.get(stack);
         CompoundTag commandData = rootTag == null ? new CompoundTag() : rootTag.getCompound(tagKey);
         if (command.isEmpty()) {
             commandData.remove(COMMAND_TAG);
@@ -310,7 +316,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     private void writeUnconditional(ItemStack stack, boolean unconditional) {
-        CompoundTag rootTag = stack.getTag();
+        CompoundTag rootTag = ItemStackNbt.get(stack);
         CompoundTag blockState = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_STATE_TAG);
         if (unconditional) {
             blockState.remove(CONDITIONAL_TAG);
@@ -321,7 +327,7 @@ final class ItemCommandBlockEditorScreen extends Screen {
     }
 
     private void writeAlwaysActive(ItemStack stack, boolean alwaysActive) {
-        CompoundTag rootTag = stack.getTag();
+        CompoundTag rootTag = ItemStackNbt.get(stack);
         CompoundTag commandData = rootTag == null ? new CompoundTag() : rootTag.getCompound(BLOCK_ENTITY_TAG);
         if (alwaysActive) {
             commandData.putBoolean(AUTO_TAG, true);
@@ -336,13 +342,13 @@ final class ItemCommandBlockEditorScreen extends Screen {
             if (rootTag != null) {
                 rootTag.remove(tagKey);
                 if (rootTag.isEmpty()) {
-                    stack.setTag(null);
+                    ItemStackNbt.set(stack, null);
                 }
             }
             return;
         }
 
-        stack.getOrCreateTag().put(tagKey, data);
+        ItemStackNbt.getOrCreate(stack).put(tagKey, data);
     }
 
     private void toggleUnconditional() {

@@ -2,7 +2,6 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -19,6 +18,7 @@ class FixedDigitEditBox extends EditBox {
     private final int minValue;
     private final int maxValue;
     private int digitCursor;
+    private int cursorFrame;
 
     FixedDigitEditBox(Font font, int x, int y, int width, int height, int digits, int minValue, int maxValue) {
         super(font, x, y, width, height, Component.empty());
@@ -30,6 +30,10 @@ class FixedDigitEditBox extends EditBox {
         super.setTextColor(InfinityEditorButton.MAIN_COLOR);
         super.setTextColorUneditable(DISABLED_COLOR);
         setFixedValue(minValue);
+    }
+
+    public void tick() {
+        this.cursorFrame++;
     }
 
     @Override
@@ -147,7 +151,7 @@ class FixedDigitEditBox extends EditBox {
             }
         }
 
-        if (isFocused() && Util.getMillis() / 300L % 2L == 0L) {
+        if (isFocused() && this.cursorFrame / 6 % 2 == 0) {
             guiGraphics.drawString(this.font, "_", cursorX, textY,
                     sidebarUi ? ModernUi.ACCENT_HOVER : InfinityEditorButton.CONTRAST_COLOR, !sidebarUi);
         }

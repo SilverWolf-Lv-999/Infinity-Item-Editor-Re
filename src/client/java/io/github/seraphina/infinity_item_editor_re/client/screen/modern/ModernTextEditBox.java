@@ -1,7 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen.modern;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.SharedConstants;
+import net.minecraft.util.StringUtil;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -132,6 +132,6 @@ public class ModernTextEditBox extends EditBox {
     }
 
     private static boolean isModernAllowedCharacter(char character) {
-        return SharedConstants.isAllowedChatCharacter(character) || character == ChatFormatting.PREFIX_CODE;
+        return StringUtil.isAllowedChatCharacter(character) || character == ChatFormatting.PREFIX_CODE;
     }
 }

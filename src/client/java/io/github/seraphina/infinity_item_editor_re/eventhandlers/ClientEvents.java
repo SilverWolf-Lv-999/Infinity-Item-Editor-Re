@@ -12,6 +12,7 @@ import io.github.seraphina.infinity_item_editor_re.mixin.client.AbstractContaine
 import io.github.seraphina.infinity_item_editor_re.mixin.client.ConnectionAccessor;
 import io.github.seraphina.infinity_item_editor_re.mixin.client.CreativeModeInventoryScreenAccessor;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -296,7 +297,7 @@ public final class ClientEvents {
 
         ItemStack pastedStack = GiveHelper.getItemStackFromString(
                 minecraft.keyboardHandler.getClipboard(),
-                minecraft.level.registryAccess().lookupOrThrow(Registries.ITEM)
+                minecraft.level.registryAccess()
         );
         if (pastedStack.isEmpty()) {
             return false;
@@ -396,9 +397,9 @@ public final class ClientEvents {
     }
 
     private static void addCustomNbtData(ItemStack stack, BlockEntity blockEntity) {
-        blockEntity.saveToItem(stack);
+        blockEntity.saveToItem(stack, ItemStackNbt.registryAccess());
         if (stack.getItem() instanceof PlayerHeadItem) {
-            CompoundTag stackTag = stack.getTag();
+            CompoundTag stackTag = ItemStackNbt.get(stack);
             if (stackTag != null && stackTag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
                 CompoundTag stackBlockEntityTag = stackTag.getCompound(BLOCK_ENTITY_TAG);
                 if (stackBlockEntityTag.contains(SKULL_OWNER_TAG, Tag.TAG_COMPOUND)) {
@@ -431,12 +432,12 @@ public final class ClientEvents {
     }
 
     private static boolean hasCopiedBlockEntityData(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         return tag != null && tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND);
     }
 
     private static void addCopiedNbtLore(ItemStack stack) {
-        CompoundTag displayTag = stack.getOrCreateTagElement(DISPLAY_TAG);
+        CompoundTag displayTag = ItemStackNbt.getOrCreateElement(stack, DISPLAY_TAG);
         ListTag lore = displayTag.contains(LORE_TAG, Tag.TAG_LIST)
                 ? displayTag.getList(LORE_TAG, Tag.TAG_STRING).copy()
                 : new ListTag();

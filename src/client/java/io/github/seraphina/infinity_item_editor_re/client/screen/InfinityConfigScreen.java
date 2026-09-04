@@ -62,12 +62,16 @@ public class InfinityConfigScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 12, TEXT_COLOR);
         if (!this.status.getString().isEmpty()) {
             guiGraphics.drawCenteredString(this.font, this.status, this.width / 2, this.height - 38, SAVED_TEXT_COLOR);
         }
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
@@ -135,7 +139,6 @@ public class InfinityConfigScreen extends Screen {
     private static final class ConfigList extends ObjectSelectionList<ConfigEntry> {
         private ConfigList(InfinityConfigScreen screen, Minecraft minecraft, int width, int height, int top, int bottom) {
             super(minecraft, width, bottom - top, top, ROW_HEIGHT);
-            this.setRenderBackground(false);
             this.addEntry(new ConfigEntry(screen, null));
             for (Config.BooleanEntry entry : Config.booleanEntries()) {
                 this.addEntry(new ConfigEntry(screen, entry));
@@ -150,6 +153,18 @@ public class InfinityConfigScreen extends Screen {
         @Override
         protected int getScrollbarPosition() {
             return Math.min(this.width - 8, this.getRowRight() + 6);
+        }
+
+        @Override
+        protected void renderListBackground(GuiGraphics guiGraphics) {
+        }
+
+        @Override
+        protected void renderListSeparators(GuiGraphics guiGraphics) {
+        }
+
+        @Override
+        protected void renderSelection(GuiGraphics guiGraphics, int top, int width, int height, int outerColor, int innerColor) {
         }
     }
     private static final class ConfigEntry extends ObjectSelectionList.Entry<ConfigEntry> {

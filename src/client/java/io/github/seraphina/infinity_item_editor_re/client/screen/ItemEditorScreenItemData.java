@@ -1,5 +1,9 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.util.ComponentCompat;
+
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.math.Axis;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -35,7 +39,6 @@ import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -44,14 +47,14 @@ import net.minecraft.world.item.PlayerHeadItem;
 import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,7 +79,7 @@ protected void applySignToStack() {
         }
 
         boolean hasContent = hasSignContent();
-        CompoundTag tag = hasContent ? this.previewStack.getOrCreateTag() : this.previewStack.getTag();
+        CompoundTag tag = hasContent ? ItemStackNbt.getOrCreate(this.previewStack) : ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return;
         }
@@ -93,7 +96,7 @@ protected void applySignToStack() {
         CompoundTag frontText = blockEntity.getCompound(SIGN_FRONT_TEXT_TAG);
         ListTag messages = new ListTag();
         for (int i = 0; i < SIGN_LINES; i++) {
-            messages.add(StringTag.valueOf(Component.Serializer.toJson(createSignLineComponent(i))));
+            messages.add(StringTag.valueOf(ComponentCompat.toJson(createSignLineComponent(i))));
         }
 
         frontText.put(SIGN_MESSAGES_TAG, messages);
@@ -116,7 +119,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         tag.putString(BOOK_TITLE_TAG, this.bookTitleValue == null ? "" : this.bookTitleValue);
         tag.putString(BOOK_AUTHOR_TAG, this.bookAuthorValue == null ? "" : this.bookAuthorValue);
         cleanupEmptyTag();
@@ -128,7 +131,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         int current = Mth.clamp(tag.getInt(BOOK_GENERATION_TAG), 0, MAX_BOOK_GENERATION);
         int next = Mth.positiveModulo(current + 1, MAX_BOOK_GENERATION + 1);
         if (next == 0) {
@@ -147,7 +150,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         if (tag.getBoolean(BOOK_RESOLVED_TAG)) {
             tag.remove(BOOK_RESOLVED_TAG);
         } else {
@@ -169,7 +172,7 @@ protected void applySignToStack() {
     }
 
     protected void unsignBook() {
-        CompoundTag originalTag = this.previewStack.getTag();
+        CompoundTag originalTag = ItemStackNbt.get(this.previewStack);
         this.rememberedSignedBookData = originalTag == null ? new CompoundTag() : originalTag.copy();
         ItemStack writableBook = new ItemStack(Items.WRITABLE_BOOK, Math.max(1, this.previewStack.getCount()));
         CompoundTag writableTag = originalTag == null ? null : originalTag.copy();
@@ -185,7 +188,7 @@ protected void applySignToStack() {
                 writableTag = null;
             }
         }
-        writableBook.setTag(writableTag);
+        ItemStackNbt.set(writableBook, writableTag);
         this.previewStack = writableBook;
         readMainFieldsFromStack(this.previewStack);
         this.bookTitleValue = this.rememberedSignedBookData.getString(BOOK_TITLE_TAG);
@@ -197,7 +200,7 @@ protected void applySignToStack() {
 
     protected void signBook() {
         ItemStack writtenBook = new ItemStack(Items.WRITTEN_BOOK, Math.max(1, this.previewStack.getCount()));
-        CompoundTag writableTag = this.previewStack.getTag();
+        CompoundTag writableTag = ItemStackNbt.get(this.previewStack);
         CompoundTag signedTag = writableTag == null ? new CompoundTag() : writableTag.copy();
         convertWritablePagesToWritten(signedTag);
 
@@ -223,7 +226,7 @@ protected void applySignToStack() {
             signedTag.remove(BOOK_RESOLVED_TAG);
         }
 
-        writtenBook.setTag(signedTag.isEmpty() ? null : signedTag);
+        ItemStackNbt.set(writtenBook, signedTag.isEmpty() ? null : signedTag);
         this.previewStack = writtenBook;
         this.rememberedSignedBookData = null;
         readMainFieldsFromStack(this.previewStack);
@@ -253,7 +256,7 @@ protected void applySignToStack() {
         ListTag pages = tag.getList(BOOK_PAGES_TAG, Tag.TAG_STRING);
         ListTag converted = new ListTag();
         for (int i = 0; i < pages.size(); i++) {
-            converted.add(StringTag.valueOf(Component.Serializer.toJson(readBookPageComponent(pages.getString(i)))));
+            converted.add(StringTag.valueOf(ComponentCompat.toJson(readBookPageComponent(pages.getString(i)))));
         }
         tag.put(BOOK_PAGES_TAG, converted);
     }
@@ -282,7 +285,7 @@ protected void applySignToStack() {
         String textureSignature = normalizeHeadText(this.headTextureSignatureValue);
         UUID uuid = parseUuidOrNull(uuidText);
 
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         if (ownerName.isEmpty() && uuidText.isEmpty() && textureValue.isEmpty()) {
             tag.remove(SKULL_OWNER_TAG);
             cleanupEmptyTag();
@@ -372,7 +375,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null || !tag.contains(ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
@@ -394,14 +397,14 @@ protected void applySignToStack() {
     }
 
     protected CompoundTag getOrCreateArmorStandEntityTag() {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag entityTag = tag.getCompound(ENTITY_TAG);
         tag.put(ENTITY_TAG, entityTag);
         return entityTag;
     }
 
     protected void cleanupArmorStandEntityTag(CompoundTag entityTag) {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return;
         }
@@ -420,7 +423,7 @@ protected void applySignToStack() {
     }
 
     protected boolean getArmorStandFlag(String tagKey) {
-        CompoundTag entityTag = this.previewStack.getTagElement(ENTITY_TAG);
+        CompoundTag entityTag = ItemStackNbt.getElement(this.previewStack, ENTITY_TAG);
         return entityTag != null && entityTag.getBoolean(tagKey);
     }
 
@@ -528,7 +531,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
         if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return;
         }
@@ -555,7 +558,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return;
         }
@@ -574,7 +577,7 @@ protected void applySignToStack() {
 
     protected void applyFireworkControlsToStack() {
         if (this.previewStack.is(Items.FIREWORK_STAR)) {
-            this.previewStack.getOrCreateTag().put(FIREWORK_EXPLOSION_TAG, createFireworkExplosionTag());
+            ItemStackNbt.getOrCreate(this.previewStack).put(FIREWORK_EXPLOSION_TAG, createFireworkExplosionTag());
             this.rawNbtValue = getInitialNbt(this.previewStack);
             return;
         }
@@ -583,7 +586,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag fireworks = this.previewStack.getTagElement(FIREWORKS_TAG);
+        CompoundTag fireworks = ItemStackNbt.getElement(this.previewStack, FIREWORKS_TAG);
         if (fireworks == null || !fireworks.contains(FIREWORK_EXPLOSIONS_TAG, Tag.TAG_LIST)) {
             return;
         }
@@ -615,14 +618,14 @@ protected void applySignToStack() {
     }
 
     protected CompoundTag getOrCreateFireworksTag() {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag fireworks = tag.getCompound(FIREWORKS_TAG);
         tag.put(FIREWORKS_TAG, fireworks);
         return fireworks;
     }
 
     protected void cleanupFireworksTag(CompoundTag fireworks) {
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null) {
             return;
         }
@@ -673,7 +676,7 @@ protected void applySignToStack() {
         }
 
         CompoundTag itemTag = TagParser.parseTag(trimmed);
-        ItemStack slotStack = ItemStack.of(itemTag);
+        ItemStack slotStack = ItemStackNbt.parse(itemTag);
         if (slotStack.isEmpty()) {
             throw new IllegalArgumentException(Component.translatable(messageKey("editor_container_invalid_item")).getString());
         }
@@ -696,7 +699,7 @@ protected void applySignToStack() {
             return;
         }
 
-        CompoundTag tag = this.previewStack.getTag();
+        CompoundTag tag = ItemStackNbt.get(this.previewStack);
         if (tag == null || !tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)) {
             return;
         }
@@ -710,7 +713,7 @@ protected void applySignToStack() {
     }
 
     protected void setContainerSlotItem(int slot, ItemStack slotStack) {
-        CompoundTag tag = this.previewStack.getOrCreateTag();
+        CompoundTag tag = ItemStackNbt.getOrCreate(this.previewStack);
         CompoundTag blockEntity = tag.contains(BLOCK_ENTITY_TAG, Tag.TAG_COMPOUND)
                 ? tag.getCompound(BLOCK_ENTITY_TAG)
                 : new CompoundTag();
@@ -726,7 +729,7 @@ protected void applySignToStack() {
         }
 
         if (!slotStack.isEmpty()) {
-            CompoundTag itemTag = slotStack.save(new CompoundTag());
+            CompoundTag itemTag = ItemStackNbt.save(slotStack);
             itemTag.putByte(CONTAINER_SLOT_TAG, (byte) slot);
             updatedItems.add(itemTag);
         }
@@ -756,14 +759,14 @@ protected void applySignToStack() {
         for (int i = 0; i < items.size(); i++) {
             CompoundTag itemTag = items.getCompound(i);
             if ((itemTag.getByte(CONTAINER_SLOT_TAG) & 255) == slot) {
-                found = ItemStack.of(itemTag);
+                found = ItemStackNbt.parse(itemTag);
             }
         }
         return found;
     }
 
     protected ListTag getContainerItemsList() {
-        CompoundTag blockEntity = this.previewStack.getTagElement(BLOCK_ENTITY_TAG);
+        CompoundTag blockEntity = ItemStackNbt.getElement(this.previewStack, BLOCK_ENTITY_TAG);
         if (blockEntity == null || !blockEntity.contains(CONTAINER_ITEMS_TAG, Tag.TAG_LIST)) {
             return new ListTag();
         }
@@ -788,7 +791,7 @@ protected void applySignToStack() {
         if (stack.isEmpty()) {
             return "{}";
         }
-        return stack.save(new CompoundTag()).toString();
+        return ItemStackNbt.save(stack).toString();
     }
 
     protected int getContainerGridX() {

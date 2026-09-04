@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.data.realms;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
@@ -43,7 +45,7 @@ public class RealmController {
             ListTag realm = root.getList("realm", Tag.TAG_COMPOUND);
             for (Tag tag : realm) {
                 if (tag instanceof CompoundTag stackTag) {
-                    ItemStack stack = ItemStack.of(stackTag);
+                    ItemStack stack = ItemStackNbt.parse(stackTag);
                     if (!stack.isEmpty()) {
                         stackList.add(stack);
                     }
@@ -67,7 +69,7 @@ public class RealmController {
             root.putString("realm_version", VERSION);
 
             for (ItemStack itemStack : stackList) {
-                realm.add(itemStack.save(new CompoundTag()));
+                realm.add(ItemStackNbt.save(itemStack));
             }
 
             NbtIo.writeCompressed(root, dataFile.toPath());

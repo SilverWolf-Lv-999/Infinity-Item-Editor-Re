@@ -4,7 +4,7 @@ import io.github.seraphina.infinity_item_editor_re.ModSource;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
-import net.minecraft.SharedConstants;
+import net.minecraft.util.StringUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -150,7 +150,7 @@ final class ItemPickScreen extends Screen {
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
-        if (SharedConstants.isAllowedChatCharacter(codePoint) && this.searchString.length() < 20) {
+        if (StringUtil.isAllowedChatCharacter(codePoint) && this.searchString.length() < 20) {
             this.searchString += codePoint;
             return true;
         }
@@ -215,11 +215,15 @@ final class ItemPickScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        EditorBackgrounds.render(guiGraphics, this.width, this.height);
         renderSelectedStack(guiGraphics);
         guiGraphics.drawCenteredString(this.font, this.title, this.midX, 15, InfinityEditorButton.MAIN_COLOR);
         renderPickContents(guiGraphics, mouseX, mouseY);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override

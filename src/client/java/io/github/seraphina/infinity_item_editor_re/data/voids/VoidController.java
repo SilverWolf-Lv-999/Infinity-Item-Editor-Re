@@ -1,5 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re.data.voids;
 
+import io.github.seraphina.infinity_item_editor_re.util.ItemStackNbt;
+
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.ModSource;
 import net.minecraft.core.NonNullList;
@@ -14,7 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
-import net.minecraft.core.registries.BuiltInRegistries;
+import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.io.File;
 import java.io.IOException;
@@ -178,7 +180,7 @@ public class VoidController {
     }
 
     private static boolean hasMeaningfulTag(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
+        CompoundTag tag = ItemStackNbt.get(stack);
         if (tag == null || tag.isEmpty()) {
             return false;
         }
@@ -203,8 +205,8 @@ public class VoidController {
             return false;
         }
 
-        CompoundTag firstTag = first.getTag();
-        CompoundTag secondTag = second.getTag();
+        CompoundTag firstTag = ItemStackNbt.get(first);
+        CompoundTag secondTag = ItemStackNbt.get(second);
         boolean firstTagEmpty = firstTag == null || firstTag.isEmpty();
         boolean secondTagEmpty = secondTag == null || secondTag.isEmpty();
 
@@ -221,7 +223,7 @@ public class VoidController {
             return null;
         }
 
-        ResourceLocation itemName = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        ResourceLocation itemName = CompatRegistries.ITEMS.getKey(stack.getItem());
         String fileName = (itemName == null ? "unknown" : itemName.toString().replace(':', '.')) + ".nbt";
         return new File(voidDirectory, fileName);
     }
