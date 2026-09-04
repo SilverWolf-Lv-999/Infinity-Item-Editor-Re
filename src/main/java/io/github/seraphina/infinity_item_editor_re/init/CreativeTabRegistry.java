@@ -240,8 +240,12 @@ public final class CreativeTabRegistry {
             return;
         }
 
-        List<ItemStack> stacks = new ArrayList<>();
-        VoidController.loadVoidToList(stacks);
+        List<ItemStack> loadedStacks = new ArrayList<>();
+        VoidController.loadVoidToList(loadedStacks);
+        List<ItemStack> stacks = new ArrayList<>(loadedStacks.size());
+        for (ItemStack stack : loadedStacks) {
+            addUnique(stacks, normalizedTabStack(stack));
+        }
 
         if (stacks.isEmpty()) {
             output.accept(Items.BLACK_STAINED_GLASS);
