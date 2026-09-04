@@ -57,3 +57,31 @@ jobs:
             neoforge/build/libs/*.jar
             common/build/libs/*.jar
           if-no-files-found: error
+
+  bundle:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all version jars
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: "*-jars"
+
+      - name: Collect jars
+        shell: bash
+        run: |
+          find dist -type f -name '*.jar' | sort
+
+      - name: Package all-versions zip
+        shell: bash
+        run: |
+          cd dist
+          find . -type f -name '*.jar' -print0 | sort -z | xargs -0 -r zip -q ../all-versions.zip
+
+      - name: Upload all-versions zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-versions
+          path: all-versions.zip
+          if-no-files-found: error
