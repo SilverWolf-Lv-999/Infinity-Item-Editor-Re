@@ -217,6 +217,7 @@ public final class ItemStackNbt {
         copyComponent(components, "minecraft:custom_model_data", tag, "CustomModelData");
         copyComponent(components, "minecraft:block_state", tag, "BlockStateTag");
         copyComponent(components, "minecraft:entity_data", tag, "EntityTag");
+        copyComponent(components, "minecraft:trim", tag, "Trim");
 
         hideFlags = readComponentDisplay(components, tag, hideFlags);
         hideFlags = readComponentEnchantments(components, tag, hideFlags);
@@ -336,6 +337,7 @@ public final class ItemStackNbt {
         moveComponent(customData, "CustomModelData", components, "minecraft:custom_model_data");
         moveComponent(customData, "BlockStateTag", components, "minecraft:block_state");
         writeEntityDataComponent(itemId, customData, components);
+        writeTrimComponent(customData, components, hideFlags);
 
         writeDisplayComponents(customData, components, hideFlags);
         writeEnchantmentsComponent(customData, components, "Enchantments", "minecraft:enchantments", (hideFlags & 1) != 0);
@@ -449,7 +451,7 @@ public final class ItemStackNbt {
         for (int i = 0; i < oldEnchantments.size(); i++) {
             CompoundTag enchantment = oldEnchantments.getCompound(i);
             if (enchantment.contains("id", Tag.TAG_STRING)) {
-                levels.putInt(enchantment.getString("id"), clamp(enchantment.getInt("lvl"), 0, 255));
+                levels.putInt(enchantment.getString("id"), Math.max(0, enchantment.getInt("lvl")));
             }
         }
 
@@ -660,6 +662,20 @@ public final class ItemStackNbt {
         customData.remove("EntityTag");
     }
 
+    private static void writeTrimComponent(CompoundTag customData, CompoundTag components, int hideFlags) {
+        Tag value = customData.get("Trim");
+        if (value == null) {
+            return;
+        }
+
+        Tag trim = value.copy();
+        if (trim instanceof CompoundTag trimTag && (hideFlags & 128) != 0) {
+            trimTag.putBoolean("show_in_tooltip", false);
+        }
+        components.put("minecraft:trim", trim);
+        customData.remove("Trim");
+    }
+
     private static void writeBlockEntityComponents(String itemId, CompoundTag customData, CompoundTag components) {
         if (!customData.contains("BlockEntityTag", Tag.TAG_COMPOUND)) {
             return;
@@ -742,7 +758,7 @@ public final class ItemStackNbt {
         for (String id : levels.getAllKeys()) {
             CompoundTag enchantment = new CompoundTag();
             enchantment.putString("id", id);
-            enchantment.putShort("lvl", (short) levels.getInt(id));
+            enchantment.putInt("lvl", levels.getInt(id));
             enchantments.add(enchantment);
         }
         if (!enchantments.isEmpty()) {
