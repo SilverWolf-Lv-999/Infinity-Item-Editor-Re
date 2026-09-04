@@ -567,7 +567,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected void readMainFieldsFromStack(ItemStack stack) {
         ResourceLocation id = CompatRegistries.ITEMS.getKey(stack.getItem());
         this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
-        this.countValue = Integer.toString(Math.max(1, Math.min(MAX_COUNT, stack.getCount())));
+        this.countValue = Integer.toString(Math.max(1, stack.getCount()));
         this.damageValue = Integer.toString(Math.max(0, Math.min(getDamageMaxForField(stack), stack.getDamageValue())));
         this.nameValue = stack.getHoverName().getString();
         this.loreValues.clear();
@@ -886,6 +886,9 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (this.potionTimeBox != null) {
             this.potionTimeValue = this.potionTimeBox.getValue();
         }
+        if (this.attributeFilterBox != null) {
+            this.attributeFilterValue = this.attributeFilterBox.getValue();
+        }
         if (this.attributeAmountBox != null) {
             this.attributeAmountValue = this.attributeAmountBox.getValue();
         }
@@ -1069,6 +1072,24 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected static boolean isBannerEditableItem(ItemStack stack) {
         return stack.getItem() instanceof BannerItem || stack.is(Items.SHIELD);
+    }
+
+    protected static boolean isArmorTrimApplicable(ItemStack stack) {
+        return getArmorTrimEquipmentSlot(stack) != null;
+    }
+
+    protected static EquipmentSlot getArmorTrimEquipmentSlot(ItemStack stack) {
+        if (!(stack.getItem() instanceof ArmorItem armorItem) || !isArmorTrimSlot(armorItem.getEquipmentSlot())) {
+            return null;
+        }
+        return armorItem.getEquipmentSlot();
+    }
+
+    protected static boolean isArmorTrimSlot(EquipmentSlot slot) {
+        return slot == EquipmentSlot.HEAD
+                || slot == EquipmentSlot.CHEST
+                || slot == EquipmentSlot.LEGS
+                || slot == EquipmentSlot.FEET;
     }
 
     protected static boolean isDecoratedPotItem(ItemStack stack) {

@@ -32,6 +32,8 @@ public final class CreativeTabRefresher {
             return;
         }
 
+        ModernFixCompat.clearAllCaches();
+
         CreativeModeTab.ItemDisplayParameters parameters = createParameters(minecraft);
         CreativeModeTabs.allTabs().stream()
                 .filter(tab -> tab.getType() == CreativeModeTab.Type.CATEGORY)
@@ -47,6 +49,7 @@ public final class CreativeTabRefresher {
             return;
         }
 
+        ModernFixCompat.clearCache(tab);
         tab.buildContents(createParameters(minecraft));
         refreshOpenScreen(minecraft, tab);
     }

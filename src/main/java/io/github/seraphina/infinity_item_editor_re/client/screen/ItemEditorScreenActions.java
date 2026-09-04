@@ -142,6 +142,18 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         this.minecraft.setScreen(new ItemCommandBlockEditorScreen((ItemEditorScreen) this, this.previewStack));
     }
 
+    protected void openArmorTrimEditor() {
+        if (this.minecraft == null) {
+            return;
+        }
+        if (!applyMainFieldsToStack(true) || !isArmorTrimApplicable(this.previewStack)) {
+            return;
+        }
+        this.status = Component.empty();
+        syncNbtEditorValuesFromStack();
+        this.minecraft.setScreen(new ArmorTrimEditorScreen((ItemEditorScreen) this, this.previewStack));
+    }
+
     protected void openItemPicker() {
         if (this.minecraft == null) {
             return;
@@ -212,6 +224,17 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         syncNbtEditorValuesFromStack();
         this.nbtFeedback = "";
         this.status = Component.translatable(messageKey("editor_command_block_applied"));
+    }
+
+    void applyArmorTrimEditedStack(ItemStack stack) {
+        if (stack == null) {
+            return;
+        }
+        this.previewStack = stack.copy();
+        readMainFieldsFromStack(this.previewStack);
+        syncNbtEditorValuesFromStack();
+        this.nbtFeedback = "";
+        this.status = Component.translatable(messageKey("editor_armor_trim_applied"));
     }
 
     protected void goBack() {
@@ -465,7 +488,15 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        int count = Integer.parseInt(value);
+        int count;
+        try {
+            count = Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            if (throwOnError) {
+                throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
+            }
+            return;
+        }
         if (count < 1 || count > MAX_COUNT) {
             if (throwOnError) {
                 throw new IllegalArgumentException(Component.translatable(messageKey("editor_invalid_count"), MAX_COUNT).getString());
