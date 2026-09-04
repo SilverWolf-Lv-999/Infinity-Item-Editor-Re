@@ -1,0 +1,67 @@
+name: build-all
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [master, forge-1.18.2, fabric-1.20.1, fabric-1.20.2, fabric-1.20.3, fabric-1.20.4, fabric-1.21.1, neoforge-1.21.1, neoforge-1.21.4, neoforge-1.21.10, neoforge-1.21.11, 26.1.2, 26.2]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+
+      - name: Detect Java
+        shell: bash
+        run: |
+          case "${{ matrix.branch }}" in
+            neoforge-*|fabric-1.21*) java=21 ;;
+            26.*)                        java=25 ;;
+            *)                           java=17 ;;
+          esac
+          echo "java=$java" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.java }}
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ matrix.branch }}-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', 'gradle.properties', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.branch }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Build with Gradle
+        shell: bash
+        run: bash gradlew build --no-daemon --console=plain
+
+      - name: Remove sources/javadoc jars
+        shell: bash
+        run: |
+          find . -path '*/build/libs/*-sources.jar' -delete
+          find . -path '*/build/libs/*-javadoc.jar' -delete
+          echo "remaining jars:"
+          find . -path '*/build/libs/*.jar'
+
+      - name: Upload jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.branch }}-jars
+          path: |
+            build/libs/*.jar
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
+            common/build/libs/*.jar
+          if-no-files-found: error
