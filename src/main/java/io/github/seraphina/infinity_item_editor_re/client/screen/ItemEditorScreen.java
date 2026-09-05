@@ -7,6 +7,11 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 public class ItemEditorScreen extends ItemEditorScreenRendering {
+    private static final int ADAPTIVE_BASE_WIDTH = 854;
+    private static final int ADAPTIVE_BASE_HEIGHT = 480;
+    private EditorViewport viewport = new EditorViewport(ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT, 1.0D);
+    private boolean adaptiveLayoutInitialized;
+
     public ItemEditorScreen(ItemStack stack) {
         this(stack, -1);
     }
@@ -31,6 +36,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     protected void init() {
+        updateAdaptiveLayout();
         captureFieldValues();
         this.midX = isSidebarUi() ? safeLeft() + contentWidth() / 2 : this.width / 2;
         this.midY = this.height / 2;
@@ -124,6 +130,25 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         addBottomButtons();
     }
 
+    private void updateAdaptiveLayout() {
+        if (this.adaptiveLayoutInitialized) {
+            return;
+        }
+        this.viewport = EditorViewport.fit(this.width, this.height, ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT);
+        this.width = this.viewport.width();
+        this.height = this.viewport.height();
+        this.adaptiveLayoutInitialized = true;
+    }
+
+    @Override
+    protected void repositionElements() {
+        this.adaptiveLayoutInitialized = false;
+        this.draggingLoreScroll = false;
+        this.lorePainterDragging = false;
+        setDragging(false);
+        super.repositionElements();
+    }
+
     @Override
     public void tick() {
         for (EditBox box : this.tickingBoxes) {
@@ -137,6 +162,21 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (this.viewport.scale() == 1.0D) {
+            renderEditor(guiGraphics, mouseX, mouseY, partialTick);
+            return;
+        }
+        guiGraphics.flush();
+        GuiGraphics editorGraphics = new EditorGuiGraphics(this.minecraft, guiGraphics, this.viewport);
+        try {
+            renderEditor(editorGraphics, Mth.floor(this.viewport.toLayout(mouseX)),
+                    Mth.floor(this.viewport.toLayout(mouseY)), partialTick);
+        } finally {
+            editorGraphics.flush();
+        }
+    }
+
+    private void renderEditor(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
             renderEditorBackground(guiGraphics, mouseX, mouseY, partialTick);
             renderNbtAdvancedPanel(guiGraphics, mouseX, mouseY);
@@ -250,6 +290,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         if (handled) {
             return handled;
@@ -284,6 +326,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         if (this.activePanel == Panel.NBT_ADVANCED) {
             int rows = buildNbtRows().size();
             int visible = getNbtAdvancedVisibleRows();
@@ -332,6 +376,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
+        dragX = this.viewport.toLayout(dragX);
+        dragY = this.viewport.toLayout(dragY);
         if (this.activePanel == Panel.COMPONENTS && this.draggingComponentListScroll) {
             return dragComponentListScrollbar(mouseY);
         }
@@ -348,10 +396,17 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         this.draggingComponentListScroll = false;
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
         return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        super.mouseMoved(this.viewport.toLayout(mouseX), this.viewport.toLayout(mouseY));
     }
 
     @Override
