@@ -166,13 +166,13 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             renderEditor(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
-        guiGraphics.flush();
-        GuiGraphics editorGraphics = new EditorGuiGraphics(this.minecraft, guiGraphics, this.viewport);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().scale((float) this.viewport.scale(), (float) this.viewport.scale());
         try {
-            renderEditor(editorGraphics, Mth.floor(this.viewport.toLayout(mouseX)),
+            renderEditor(guiGraphics, Mth.floor(this.viewport.toLayout(mouseX)),
                     Mth.floor(this.viewport.toLayout(mouseY)), partialTick);
         } finally {
-            editorGraphics.flush();
+            guiGraphics.pose().popMatrix();
         }
     }
 
