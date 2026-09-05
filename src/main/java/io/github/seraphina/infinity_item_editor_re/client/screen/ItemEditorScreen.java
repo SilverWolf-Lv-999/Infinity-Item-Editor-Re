@@ -76,7 +76,6 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     private static final int ADAPTIVE_BASE_WIDTH = 854;
     private static final int ADAPTIVE_BASE_HEIGHT = 480;
     private EditorViewport viewport = new EditorViewport(ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT, 1.0D);
-    private boolean adaptiveLayoutInitialized;
 
     public ItemEditorScreen(ItemStack stack) {
         this(stack, -1);
@@ -187,17 +186,14 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     }
 
     private void updateAdaptiveLayout() {
-        if (this.adaptiveLayoutInitialized) {
-            return;
-        }
-        this.viewport = EditorViewport.fit(this.width, this.height, ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT);
+        this.viewport = EditorViewport.fit(this.minecraft.getWindow().getGuiScaledWidth(),
+                this.minecraft.getWindow().getGuiScaledHeight(), ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT);
         this.width = this.viewport.width();
         this.height = this.viewport.height();
-        this.adaptiveLayoutInitialized = true;
     }
 
+    @Override
     public void resize(Minecraft minecraft, int width, int height) {
-        this.adaptiveLayoutInitialized = false;
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
         setDragging(false);
@@ -222,6 +218,12 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
     }
 
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        GuiGraphics editorGraphics = new EditorGuiGraphics(guiGraphics, this.viewport);
+        renderEditor(editorGraphics, Mth.floor(this.viewport.toLayout(mouseX)),
+                Mth.floor(this.viewport.toLayout(mouseY)), partialTick);
+    }
+
+    private void renderEditor(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (this.activePanel == Panel.NBT_ADVANCED) {
             if (isSidebarUi()) {
                 renderEditorBackground(guiGraphics);
