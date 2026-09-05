@@ -9,6 +9,7 @@ import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.util.GiveHelper;
 import io.github.seraphina.infinity_item_editor_re.util.PlayerInventorySlots;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import io.github.seraphina.infinity_item_editor_re.client.compat.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -72,6 +73,11 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @OnlyIn(Dist.CLIENT)
 public class ItemEditorScreen extends ItemEditorScreenRendering {
+    private static final int ADAPTIVE_BASE_WIDTH = 854;
+    private static final int ADAPTIVE_BASE_HEIGHT = 480;
+    private EditorViewport viewport = new EditorViewport(ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT, 1.0D);
+    private boolean adaptiveLayoutInitialized;
+
     public ItemEditorScreen(ItemStack stack) {
         this(stack, -1);
     }
@@ -96,6 +102,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     protected void init() {
+        updateAdaptiveLayout();
         captureFieldValues();
         this.midX = isSidebarUi() ? safeLeft() + contentWidth() / 2 : this.width / 2;
         this.midY = this.height / 2;
@@ -177,6 +184,24 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         }
 
         addBottomButtons();
+    }
+
+    private void updateAdaptiveLayout() {
+        if (this.adaptiveLayoutInitialized) {
+            return;
+        }
+        this.viewport = EditorViewport.fit(this.width, this.height, ADAPTIVE_BASE_WIDTH, ADAPTIVE_BASE_HEIGHT);
+        this.width = this.viewport.width();
+        this.height = this.viewport.height();
+        this.adaptiveLayoutInitialized = true;
+    }
+
+    public void resize(Minecraft minecraft, int width, int height) {
+        this.adaptiveLayoutInitialized = false;
+        this.draggingLoreScroll = false;
+        this.lorePainterDragging = false;
+        setDragging(false);
+        super.resize(minecraft, width, height);
     }
 
     @Override
@@ -302,6 +327,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         if (handled) {
             return handled;
@@ -334,6 +361,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         if (this.activePanel == Panel.NBT_ADVANCED) {
             int rows = buildNbtRows().size();
             int visible = getNbtAdvancedVisibleRows();
@@ -368,6 +397,10 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
+        dragX = this.viewport.toLayout(dragX);
+        dragY = this.viewport.toLayout(dragY);
         if (this.activePanel == Panel.LORE && this.draggingLoreScroll) {
             updateLoreScrollFromMouse(mouseY);
             return true;
@@ -381,6 +414,8 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        mouseX = this.viewport.toLayout(mouseX);
+        mouseY = this.viewport.toLayout(mouseY);
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
         return super.mouseReleased(mouseX, mouseY, button);
