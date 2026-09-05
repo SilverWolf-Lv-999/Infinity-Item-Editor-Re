@@ -145,6 +145,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         this.adaptiveLayoutInitialized = false;
         this.draggingLoreScroll = false;
         this.lorePainterDragging = false;
+        this.draggingComponentListScroll = false;
         setDragging(false);
         super.repositionElements();
     }
@@ -166,14 +167,12 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             renderEditor(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
-        guiGraphics.pose().pushMatrix();
-        guiGraphics.pose().scale((float) this.viewport.scale(), (float) this.viewport.scale());
-        try {
-            renderEditor(guiGraphics, Mth.floor(this.viewport.toLayout(mouseX)),
-                    Mth.floor(this.viewport.toLayout(mouseY)), partialTick);
-        } finally {
-            guiGraphics.pose().popMatrix();
-        }
+        int layoutMouseX = Mth.floor(this.viewport.toLayout(mouseX));
+        int layoutMouseY = Mth.floor(this.viewport.toLayout(mouseY));
+        EditorGuiGraphics editorGraphics = new EditorGuiGraphics(this.minecraft, guiGraphics, this.viewport, mouseX, mouseY);
+        renderEditor(editorGraphics, layoutMouseX, layoutMouseY, partialTick);
+        // Deferred tooltips must be extracted with the same viewport and pose as the controls.
+        editorGraphics.renderDeferredElements();
     }
 
     private void renderEditor(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
