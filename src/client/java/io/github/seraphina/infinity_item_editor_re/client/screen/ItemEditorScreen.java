@@ -223,6 +223,7 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
             renderEditor(guiGraphics, mouseX, mouseY, partialTick);
             return;
         }
+
         guiGraphics.flush();
         GuiGraphics editorGraphics = new EditorGuiGraphics(this.minecraft, guiGraphics, this.viewport);
         try {
