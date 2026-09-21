@@ -8,7 +8,6 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 
 public abstract class CompatScreen extends Screen {
     protected CompatScreen(Component title) {
@@ -17,7 +16,7 @@ public abstract class CompatScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        return keyPressed(event.key(), event.scancode(), event.modifiers());
+        return keyPressed(event.key(), event.keycode(), event.modifiers());
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -65,8 +64,8 @@ public abstract class CompatScreen extends Screen {
         if (minecraft == null || minecraft.getWindow() == null) {
             return false;
         }
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
     }
 
     public static boolean hasControlDown() {
@@ -74,8 +73,8 @@ public abstract class CompatScreen extends Screen {
         if (minecraft == null || minecraft.getWindow() == null) {
             return false;
         }
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
+        return InputConstants.isKeyDown(InputConstants.KEY_LCONTROL)
+                || InputConstants.isKeyDown(InputConstants.KEY_RCONTROL);
     }
 
     public static boolean hasAltDown() {
@@ -83,23 +82,23 @@ public abstract class CompatScreen extends Screen {
         if (minecraft == null || minecraft.getWindow() == null) {
             return false;
         }
-        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_ALT)
-                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_ALT);
+        return InputConstants.isKeyDown(InputConstants.KEY_LALT)
+                || InputConstants.isKeyDown(InputConstants.KEY_RALT);
     }
 
     public static boolean isSelectAll(int keyCode) {
-        return hasControlDown() && keyCode == GLFW.GLFW_KEY_A;
+        return hasControlDown() && keyCode == InputConstants.KEY_A;
     }
 
     public static boolean isCopy(int keyCode) {
-        return hasControlDown() && keyCode == GLFW.GLFW_KEY_C;
+        return hasControlDown() && keyCode == InputConstants.KEY_C;
     }
 
     public static boolean isPaste(int keyCode) {
-        return hasControlDown() && keyCode == GLFW.GLFW_KEY_V;
+        return hasControlDown() && keyCode == InputConstants.KEY_V;
     }
 
     public static boolean isCut(int keyCode) {
-        return hasControlDown() && keyCode == GLFW.GLFW_KEY_X;
+        return hasControlDown() && keyCode == InputConstants.KEY_X;
     }
 }

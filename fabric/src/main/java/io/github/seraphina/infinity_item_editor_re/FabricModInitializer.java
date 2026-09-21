@@ -76,7 +76,7 @@ public final class FabricModInitializer implements ModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(ClientEvents::onClientTick);
         ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             ScreenKeyboardEvents.allowKeyPress(screen).register((currentScreen, event) ->
-                    !ClientEvents.handleScreenKeyPressed(currentScreen, event.key(), event.scancode()));
+                    !ClientEvents.handleScreenKeyPressed(currentScreen, event.key(), event.keycode()));
             ScreenMouseEvents.allowMouseClick(screen).register((currentScreen, event) ->
                     !ClientEvents.handleScreenMousePressed(currentScreen, event.button()));
         });

@@ -70,7 +70,7 @@ final class ContainerItemScreen extends ContainerScreen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        return keyPressed(event.key(), event.scancode(), event.modifiers());
+        return keyPressed(event.key(), event.keycode(), event.modifiers());
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {

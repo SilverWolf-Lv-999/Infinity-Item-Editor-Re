@@ -45,9 +45,9 @@ import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.FireworkRocketItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PlayerHeadItem;
-import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -584,7 +585,11 @@ protected void addSelectedBannerPattern() {
 
         Item[] ordered = getDecoratedPotOrderedItems();
         ordered[normalizeDecoratedPotSide(side)] = item == null ? Items.BRICK : item;
-        PotDecorations decorations = new PotDecorations(ordered[0], ordered[1], ordered[2], ordered[3]);
+        PotDecorations decorations = new PotDecorations(
+                Optional.of(new ItemStackTemplate(ordered[0])),
+                Optional.of(new ItemStackTemplate(ordered[1])),
+                Optional.of(new ItemStackTemplate(ordered[2])),
+                Optional.of(new ItemStackTemplate(ordered[3])));
         this.previewStack.set(DataComponents.POT_DECORATIONS, decorations);
         syncNbtEditorValuesFromStack();
     }
@@ -595,9 +600,17 @@ protected void addSelectedBannerPattern() {
 
     protected Item[] getDecoratedPotOrderedItems() {
         Item[] items = {Items.BRICK, Items.BRICK, Items.BRICK, Items.BRICK};
-        List<Item> ordered = this.previewStack.getOrDefault(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY).ordered();
-        for (int i = 0; i < Math.min(items.length, ordered.size()); i++) {
-            items[i] = ordered.get(i) == null ? Items.BRICK : ordered.get(i);
+        PotDecorations decorations = this.previewStack.getOrDefault(DataComponents.POT_DECORATIONS, PotDecorations.EMPTY);
+        ItemStackTemplate[] ordered = {
+                decorations.back().orElse(null),
+                decorations.left().orElse(null),
+                decorations.right().orElse(null),
+                decorations.front().orElse(null)
+        };
+        for (int i = 0; i < ordered.length; i++) {
+            if (ordered[i] != null) {
+                items[i] = ordered[i].item().value();
+            }
         }
         return items;
     }

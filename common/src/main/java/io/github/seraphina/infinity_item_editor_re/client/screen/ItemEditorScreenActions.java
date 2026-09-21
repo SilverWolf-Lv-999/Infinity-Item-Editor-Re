@@ -36,6 +36,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -53,7 +54,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PlayerHeadItem;
-import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import io.github.seraphina.infinity_item_editor_re.util.PotionCompat;
@@ -398,7 +398,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         server.execute(() -> {
             ServerPlayer serverPlayer = server.getPlayerList().getPlayer(playerId);
             if (serverPlayer != null) {
-                serverPlayer.drop(ItemStackNbt.parse(stackTag, server.registryAccess()), true);
+                serverPlayer.drop(ItemStackNbt.parse(stackTag, server.registryAccess()), true, Prediction.SERVER_ONLY);
             }
         });
         return true;

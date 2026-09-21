@@ -51,7 +51,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PlayerHeadItem;
-import net.minecraft.world.item.SignItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.WrittenBookItem;
 import net.minecraft.world.item.component.CustomData;
@@ -63,6 +62,7 @@ import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
+import net.minecraft.world.level.block.SignBlock;
 import io.github.seraphina.infinity_item_editor_re.util.CompatRegistries;
 
 import java.util.ArrayList;
@@ -1123,7 +1123,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected static boolean isSignItem(ItemStack stack) {
-        return stack.getItem() instanceof SignItem;
+        return stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SignBlock;
     }
 
     protected static boolean isBannerEditableItem(ItemStack stack) {

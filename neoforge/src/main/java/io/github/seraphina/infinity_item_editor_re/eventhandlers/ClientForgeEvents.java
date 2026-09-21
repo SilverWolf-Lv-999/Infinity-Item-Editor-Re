@@ -22,7 +22,7 @@ public final class ClientForgeEvents {
 
     @SubscribeEvent
     public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
-        if (ClientEvents.handleScreenKeyPressed(event.getScreen(), event.getKeyCode(), event.getScanCode())) {
+        if (ClientEvents.handleScreenKeyPressed(event.getScreen(), event.getKey(), event.getKeycode())) {
             event.setCanceled(true);
         }
     }
