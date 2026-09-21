@@ -1,0 +1,65 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.fabricmc.fabric-loom'
+}
+
+base {
+    archivesName = "${mod_id}-fabric"
+}
+
+loom {
+    runs {
+        client {
+            client()
+            runDir = rootProject.file('run/fabric/client')
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    implementation project(':common')
+}
+
+def resourceProperties = [
+        version              : version,
+        minecraft_version    : minecraft_version,
+        fabric_loader_version: fabric_loader_version,
+        fabric_api_version   : fabric_api_version,
+        mod_id               : mod_id,
+        mod_name             : mod_name,
+        mod_license          : mod_license,
+        mod_authors          : mod_authors,
+        mod_description      : mod_description
+]
+
+processResources {
+    inputs.properties resourceProperties
+
+    filesMatching('fabric.mod.json') {
+        expand resourceProperties
+    }
+}
+
+tasks.named('jar', Jar) {
+    from project(':common').sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+}
