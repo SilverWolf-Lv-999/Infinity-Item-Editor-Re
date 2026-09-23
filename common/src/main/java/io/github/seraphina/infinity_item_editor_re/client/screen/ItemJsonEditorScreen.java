@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import com.google.gson.JsonParseException;
@@ -475,11 +476,11 @@ final class ItemJsonEditorScreen extends CompatScreen {
             if (!this.visible || !this.active) {
                 return false;
             }
-            if (button == 0 && clickCompletion(mouseX, mouseY)) {
+            if (button == InputConstants.MOUSE_BUTTON_LEFT && clickCompletion(mouseX, mouseY)) {
                 return true;
             }
             boolean handledByScroll = super.mouseClicked(mouseEvent(mouseX, mouseY, button), false);
-            if (withinContentAreaPoint(mouseX, mouseY) && button == 0) {
+            if (withinContentAreaPoint(mouseX, mouseY) && button == InputConstants.MOUSE_BUTTON_LEFT) {
                 setFocused(true);
                 seekCursor(mouseX, mouseY, CompatScreen.hasShiftDown());
                 this.draggingSelection = true;
@@ -499,7 +500,7 @@ final class ItemJsonEditorScreen extends CompatScreen {
             if (super.mouseDragged(mouseEvent(mouseX, mouseY, button), dragX, dragY)) {
                 return true;
             }
-            if (this.draggingSelection && button == 0 && isFocused()) {
+            if (this.draggingSelection && button == InputConstants.MOUSE_BUTTON_LEFT && isFocused()) {
                 seekCursor(mouseX, mouseY, true);
                 rebuildCompletions();
                 return true;

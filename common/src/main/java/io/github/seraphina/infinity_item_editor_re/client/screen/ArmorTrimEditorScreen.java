@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -136,7 +137,7 @@ final class ArmorTrimEditorScreen extends CompatScreen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && handleDropdownClick(mouseX, mouseY)) {
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && handleDropdownClick(mouseX, mouseY)) {
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);

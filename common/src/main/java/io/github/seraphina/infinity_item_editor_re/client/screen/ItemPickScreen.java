@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -164,7 +165,7 @@ final class ItemPickScreen extends CompatScreen {
         if (super.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (button != 0) {
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
 

@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import io.github.seraphina.infinity_item_editor_re.ModSource;
@@ -136,7 +137,8 @@ final class BundleItemScreen extends ContainerScreen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && isMouseOverSourceScrollBar(event.x(), event.y()) && this.sourceInventory.maxScrollOffset() > 0) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT
+                && isMouseOverSourceScrollBar(event.x(), event.y()) && this.sourceInventory.maxScrollOffset() > 0) {
             this.draggingSourceScroll = true;
             updateSourceScrollFromMouse(event.y());
             return true;
@@ -190,7 +192,7 @@ final class BundleItemScreen extends ContainerScreen {
         }
         if (clickType == ContainerInput.CLONE || clickType == ContainerInput.PICKUP) {
             ItemStack carried = sourceStack.copy();
-            if (mouseButton == 1 && clickType == ContainerInput.PICKUP) {
+            if (mouseButton == InputConstants.MOUSE_BUTTON_RIGHT && clickType == ContainerInput.PICKUP) {
                 carried.setCount(1);
             }
             this.menu.setCarried(carried);

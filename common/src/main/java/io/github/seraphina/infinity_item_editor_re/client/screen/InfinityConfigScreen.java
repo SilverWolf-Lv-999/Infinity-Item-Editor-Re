@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
@@ -236,7 +237,7 @@ public class InfinityConfigScreen extends CompatScreen {
 
         @Override
         public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-            if (event.button() != 0) {
+            if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
                 return false;
             }
             if (this.entry == null) {

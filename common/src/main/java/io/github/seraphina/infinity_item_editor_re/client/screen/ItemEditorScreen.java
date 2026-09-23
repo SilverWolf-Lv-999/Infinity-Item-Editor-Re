@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.CharacterEvent;
@@ -296,13 +297,15 @@ public class ItemEditorScreen extends ItemEditorScreenRendering {
         }
 
         updateMouseDistance((int) mouseX, (int) mouseY);
-        if (this.activePanel == Panel.TRADES && (button == 0 || button == 1)) {
+        if (this.activePanel == Panel.TRADES
+                && (button == InputConstants.MOUSE_BUTTON_LEFT || button == InputConstants.MOUSE_BUTTON_RIGHT)) {
             return handleTradesClick(mouseX, mouseY, button);
         }
-        if (this.activePanel == Panel.TRADE && (button == 0 || button == 1)) {
+        if (this.activePanel == Panel.TRADE
+                && (button == InputConstants.MOUSE_BUTTON_LEFT || button == InputConstants.MOUSE_BUTTON_RIGHT)) {
             return handleTradeClick(mouseX, mouseY);
         }
-        if (button != 0) {
+        if (button != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         return switch (this.activePanel) {

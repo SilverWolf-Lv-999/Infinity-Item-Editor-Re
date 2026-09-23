@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import io.github.seraphina.infinity_item_editor_re.util.NbtCompat;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -1414,17 +1415,17 @@ abstract class ItemEditorScreenRendering extends ItemEditorScreenWidgets {
     protected boolean handleTradesClick(double mouseX, double mouseY, int button) {
         int index = getHoveredTradeListIndex((int) mouseX, (int) mouseY);
         if (index >= 0) {
-            if (button == 0) {
+            if (button == InputConstants.MOUSE_BUTTON_LEFT) {
                 openVillagerTrade(index);
                 return true;
             }
-            if (button == 1) {
+            if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
                 removeVillagerTrade(index);
                 return true;
             }
         }
 
-        if (button == 0 && isMouseOverAddTrade((int) mouseX, (int) mouseY)) {
+        if (button == InputConstants.MOUSE_BUTTON_LEFT && isMouseOverAddTrade((int) mouseX, (int) mouseY)) {
             addVillagerTrade();
             return true;
         }
