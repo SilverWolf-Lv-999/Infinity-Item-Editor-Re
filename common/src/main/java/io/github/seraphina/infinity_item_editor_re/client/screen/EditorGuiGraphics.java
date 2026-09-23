@@ -5,7 +5,6 @@ import io.github.seraphina.infinity_item_editor_re.mixin.EditorRenderStateAccess
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-/** Shares the frame's render state while keeping tooltip bounds in editor coordinates. */
 final class EditorGuiGraphics extends GuiGraphicsExtractor {
     private final GuiGraphicsExtractor target;
     private final EditorViewport viewport;
@@ -20,12 +19,12 @@ final class EditorGuiGraphics extends GuiGraphicsExtractor {
 
     @Override
     public int guiWidth() {
-        return this.viewport.width();
+        return this.viewport == null ? super.guiWidth() : this.viewport.width();
     }
 
     @Override
     public int guiHeight() {
-        return this.viewport.height();
+        return this.viewport == null ? super.guiHeight() : this.viewport.height();
     }
 
     @Override
