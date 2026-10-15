@@ -610,7 +610,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
             return;
         }
 
-        ItemStackCompat.setHoverName(this.previewStack, Component.literal(value));
+        ItemStackCompat.setHoverName(this.previewStack, ComponentCompat.fromEditorText(value));
     }
 
     protected void clearCustomName() {
@@ -630,7 +630,7 @@ abstract class ItemEditorScreenActions extends ItemEditorScreenColorLore {
         } else {
             ListTag lore = new ListTag();
             for (String line : this.loreValues) {
-                lore.add(StringTag.valueOf(ComponentCompat.toJson(Component.literal(line))));
+                lore.add(StringTag.valueOf(ComponentCompat.toJson(ComponentCompat.fromEditorText(line))));
             }
             display.put(LORE_TAG, lore);
         }

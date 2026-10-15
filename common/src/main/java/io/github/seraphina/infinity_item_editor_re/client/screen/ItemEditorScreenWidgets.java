@@ -27,6 +27,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
@@ -595,7 +596,7 @@ protected void addItemPanel() {
         for (int i = 0; i < customColors.size(); i++) {
             int color = customColors.get(i);
             addLegacyFormatButton(startX, startY, columns, formats.length + i + 2,
-                    Component.literal(customTextColorPrefix(color) + "■"), button -> {
+                    Component.literal("■").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color))), button -> {
                         if (button.isRightClick()) {
                             ClientConfig.removeCustomColor(color);
                             rebuildWidgets();
@@ -635,7 +636,7 @@ protected void addItemPanel() {
         for (int i = 0; i < customColors.size(); i++) {
             int color = customColors.get(i);
             addSidebarFormatButton(startX, startY, columns, formats.length + i + 2,
-                    Component.literal(customTextColorPrefix(color) + "■"), button -> {
+                    Component.literal("■").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color))), button -> {
                         if (button.isRightClick()) {
                             ClientConfig.removeCustomColor(color);
                             rebuildWidgets();

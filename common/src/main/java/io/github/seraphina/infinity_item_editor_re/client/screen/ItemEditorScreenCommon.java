@@ -509,12 +509,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected String customTextColorPrefix(int color) {
-        String hex = String.format("%06X", color & 0xFFFFFF);
-        StringBuilder result = new StringBuilder("§x");
-        for (int i = 0; i < hex.length(); i++) {
-            result.append('§').append(hex.charAt(i));
-        }
-        return result.toString();
+        return String.format("§#%06X", color & 0xFFFFFF);
     }
 
     protected void stripFocusedFormatting() {
@@ -522,7 +517,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         if (focused == null) {
             return;
         }
-        focused.setValue(Objects.requireNonNullElse(ChatFormatting.stripFormatting(focused.getValue()), ""));
+        focused.setValue(ComponentCompat.fromEditorText(focused.getValue()).getString());
     }
 
     protected void insertFocusedText(String text) {
@@ -578,7 +573,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
         this.itemIdValue = id == null ? "air" : stripMinecraftNamespace(id);
         this.countValue = Integer.toString(Math.max(1, stack.getCount()));
         this.damageValue = Integer.toString(Math.max(0, Math.min(getDamageMaxForField(stack), stack.getDamageValue())));
-        this.nameValue = stack.getHoverName().getString();
+        this.nameValue = ComponentCompat.toEditorText(stack.getHoverName());
         this.loreValues.clear();
 
         CompoundTag display = ItemStackNbt.getElement(stack, DISPLAY_TAG);
@@ -603,7 +598,7 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     protected String readLoreLine(String raw) {
         try {
             Component component = ComponentCompat.fromJson(raw);
-            return component == null ? raw : component.getString();
+            return component == null ? raw : ComponentCompat.toEditorText(component);
         } catch (RuntimeException exception) {
             return raw;
         }
