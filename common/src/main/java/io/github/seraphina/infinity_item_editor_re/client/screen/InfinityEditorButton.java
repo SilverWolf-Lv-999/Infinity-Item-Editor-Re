@@ -2,12 +2,14 @@ package io.github.seraphina.infinity_item_editor_re.client.screen;
 
 import io.github.seraphina.infinity_item_editor_re.Config;
 import io.github.seraphina.infinity_item_editor_re.client.screen.modern.ModernUi;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.network.chat.Component;
 
 public class InfinityEditorButton extends AbstractButton {
@@ -19,16 +21,39 @@ public class InfinityEditorButton extends AbstractButton {
     private static final int DARK_SHADE = 0x32000000;
 
     private final PressAction onPress;
+    private final boolean acceptsRightClick;
+    private InputWithModifiers currentInput;
     private float hoverAmount;
 
     public InfinityEditorButton(int x, int y, int width, int height, Component message, PressAction onPress) {
+        this(x, y, width, height, message, onPress, false);
+    }
+
+    public InfinityEditorButton(int x, int y, int width, int height, Component message, PressAction onPress,
+                                boolean acceptsRightClick) {
         super(x, y, width, height, message);
         this.onPress = onPress;
+        this.acceptsRightClick = acceptsRightClick;
     }
 
     @Override
     public void onPress(InputWithModifiers input) {
-        this.onPress.onPress(this);
+        this.currentInput = input;
+        try {
+            this.onPress.onPress(this);
+        } finally {
+            this.currentInput = null;
+        }
+    }
+
+    @Override
+    protected boolean isValidClickButton(MouseButtonInfo buttonInfo) {
+        return buttonInfo.button() == InputConstants.MOUSE_BUTTON_LEFT
+                || this.acceptsRightClick && buttonInfo.button() == InputConstants.MOUSE_BUTTON_RIGHT;
+    }
+
+    public boolean isRightClick() {
+        return this.currentInput != null && this.currentInput.input() == InputConstants.MOUSE_BUTTON_RIGHT;
     }
 
     @Override

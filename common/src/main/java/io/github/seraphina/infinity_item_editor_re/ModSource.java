@@ -1,6 +1,7 @@
 package io.github.seraphina.infinity_item_editor_re;
 
 import com.mojang.logging.LogUtils;
+import io.github.seraphina.infinity_item_editor_re.config.ClientConfig;
 import io.github.seraphina.infinity_item_editor_re.data.realms.RealmController;
 import io.github.seraphina.infinity_item_editor_re.data.voids.VoidBuffer;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ public final class ModSource {
 
     public static synchronized void initClientStorage(File minecraftDirectory) {
         Config.load(minecraftDirectory);
+        ClientConfig.load(minecraftDirectory);
         dataDir = new File(minecraftDirectory, "infinity-data");
         ensureDirectory(dataDir);
         ensureDirectory(new File(dataDir, "void"));

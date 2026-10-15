@@ -328,7 +328,8 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
     }
 
     protected int sidebarUiModeButtonY() {
-        int formatRows = (2 + ChatFormatting.values().length + 7) / 8;
+        int formatRows = (3 + ChatFormatting.values().length
+                + io.github.seraphina.infinity_item_editor_re.config.ClientConfig.getCustomColors().size() + 7) / 8;
         int formatTop = Math.max(82, this.height - 38 - formatRows * 15);
         return Math.max(54, formatTop - 28);
     }
@@ -505,6 +506,15 @@ protected void updateMouseDistance(int mouseX, int mouseY) {
 
     protected void insertFormattingPrefix() {
         insertFocusedText(String.valueOf(ChatFormatting.PREFIX_CODE));
+    }
+
+    protected String customTextColorPrefix(int color) {
+        String hex = String.format("%06X", color & 0xFFFFFF);
+        StringBuilder result = new StringBuilder("§x");
+        for (int i = 0; i < hex.length(); i++) {
+            result.append('§').append(hex.charAt(i));
+        }
+        return result.toString();
     }
 
     protected void stripFocusedFormatting() {

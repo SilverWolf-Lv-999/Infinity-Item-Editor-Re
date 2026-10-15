@@ -1,5 +1,6 @@
 package io.github.seraphina.infinity_item_editor_re.client.screen;
 
+import io.github.seraphina.infinity_item_editor_re.config.ClientConfig;
 import io.github.seraphina.infinity_item_editor_re.util.MinecraftCompat;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -574,31 +575,48 @@ protected void addItemPanel() {
         }
 
         ChatFormatting[] formats = ChatFormatting.values();
-        int colorAmount = 2 + formats.length;
-        int columns = colorAmount / 2;
-        int startX = this.width - 1 - 13 * ((colorAmount + 2) / 2);
+        List<Integer> customColors = ClientConfig.getCustomColors();
+        int total = 3 + formats.length + customColors.size();
+        int columns = Math.max(1, (total + 1) / 2);
+        int startX = this.width - 1 - columns * 13;
+        int startY = this.height - 30;
 
-        addRenderableWidget(new InfinityEditorButton(startX + 13, this.height - 30, 13, 15,
-                Component.literal(String.valueOf(ChatFormatting.PREFIX_CODE)), button -> insertFormattingPrefix()));
-        addRenderableWidget(new InfinityEditorButton(startX + 26, this.height - 30, 13, 15,
-                Component.literal(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting()));
+        addLegacyFormatButton(startX, startY, columns, 0,
+                Component.literal(String.valueOf(ChatFormatting.PREFIX_CODE)), button -> insertFormattingPrefix());
+        addLegacyFormatButton(startX, startY, columns, 1,
+                Component.literal(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting());
 
-        for (int i = 2; i < colorAmount; i++) {
-            ChatFormatting format = formats[i - 2];
-            int x = startX + 13 * ((i % columns) + 1);
-            int y = this.height - 30 + 15 * (i / columns);
-            addRenderableWidget(new InfinityEditorButton(x, y, 13, 15,
-                    Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString())));
+        for (int i = 0; i < formats.length; i++) {
+            ChatFormatting format = formats[i];
+            addLegacyFormatButton(startX, startY, columns, i + 2,
+                    Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString()));
         }
+
+        for (int i = 0; i < customColors.size(); i++) {
+            int color = customColors.get(i);
+            addLegacyFormatButton(startX, startY, columns, formats.length + i + 2,
+                    Component.literal(customTextColorPrefix(color) + "■"), button -> {
+                        if (button.isRightClick()) {
+                            ClientConfig.removeCustomColor(color);
+                            rebuildWidgets();
+                            return;
+                        }
+                        insertFocusedText(customTextColorPrefix(color));
+                    }, true);
+        }
+
+        addLegacyFormatButton(startX, startY, columns, total - 1,
+                Component.literal("✏"), button -> MinecraftCompat.setScreen(this.minecraft, new CustomTextColorScreen(this)));
     }
 
     protected void addSidebarFormatButtons() {
         ChatFormatting[] formats = ChatFormatting.values();
+        List<Integer> customColors = ClientConfig.getCustomColors();
         int columns = 8;
         int buttonWidth = 13;
         int buttonHeight = 15;
-        int colorAmount = 2 + formats.length;
-        int rows = (colorAmount + columns - 1) / columns;
+        int total = 3 + formats.length + customColors.size();
+        int rows = (total + columns - 1) / columns;
         int paletteWidth = columns * buttonWidth;
         int paletteHeight = rows * buttonHeight;
         int startY = Math.max(82, this.height - 38 - paletteHeight);
@@ -608,18 +626,51 @@ protected void addItemPanel() {
         addSidebarFormatButton(startX, startY, columns, 1,
                 Component.literal(ChatFormatting.DARK_RED + "%"), button -> stripFocusedFormatting());
 
-        for (int i = 2; i < colorAmount; i++) {
-            ChatFormatting format = formats[i - 2];
-            addSidebarFormatButton(startX, startY, columns, i,
+        for (int i = 0; i < formats.length; i++) {
+            ChatFormatting format = formats[i];
+            addSidebarFormatButton(startX, startY, columns, i + 2,
                     Component.literal(format.toString() + MinecraftCompat.formattingCode(format)), button -> insertFocusedText(format.toString()));
         }
+
+        for (int i = 0; i < customColors.size(); i++) {
+            int color = customColors.get(i);
+            addSidebarFormatButton(startX, startY, columns, formats.length + i + 2,
+                    Component.literal(customTextColorPrefix(color) + "■"), button -> {
+                        if (button.isRightClick()) {
+                            ClientConfig.removeCustomColor(color);
+                            rebuildWidgets();
+                            return;
+                        }
+                        insertFocusedText(customTextColorPrefix(color));
+                    }, true);
+        }
+
+        addSidebarFormatButton(startX, startY, columns, total - 1,
+                Component.literal("✏"), button -> MinecraftCompat.setScreen(this.minecraft, new CustomTextColorScreen(this)));
     }
 
     protected void addSidebarFormatButton(int startX, int startY, int columns, int index,
                                           Component text, InfinityEditorButton.PressAction action) {
+        addSidebarFormatButton(startX, startY, columns, index, text, action, false);
+    }
+
+    protected void addSidebarFormatButton(int startX, int startY, int columns, int index,
+                                          Component text, InfinityEditorButton.PressAction action, boolean acceptsRightClick) {
         int x = startX + 13 * (index % columns);
         int y = startY + 15 * (index / columns);
-        addRenderableWidget(new InfinityEditorButton(x, y, 13, 15, text, action));
+        addRenderableWidget(new InfinityEditorButton(x, y, 13, 15, text, action, acceptsRightClick));
+    }
+
+    protected void addLegacyFormatButton(int startX, int startY, int columns, int index,
+                                         Component text, InfinityEditorButton.PressAction action) {
+        addLegacyFormatButton(startX, startY, columns, index, text, action, false);
+    }
+
+    protected void addLegacyFormatButton(int startX, int startY, int columns, int index,
+                                         Component text, InfinityEditorButton.PressAction action, boolean acceptsRightClick) {
+        int x = startX + 13 * (index % columns);
+        int y = startY + 15 * (index / columns);
+        addRenderableWidget(new InfinityEditorButton(x, y, 13, 15, text, action, acceptsRightClick));
     }
 
     protected void addNbtPanel() {
