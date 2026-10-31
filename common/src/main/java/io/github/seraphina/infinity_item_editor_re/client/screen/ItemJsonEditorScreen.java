@@ -75,8 +75,6 @@ final class ItemJsonEditorScreen extends CompatScreen {
             this.jsonText = value;
             this.discardArmed = false;
         });
-        setFocused(this.jsonBox);
-        this.jsonBox.setFocused(true);
 
         int buttonY = this.height - 28;
         int totalWidth = BUTTON_WIDTH * 4 + 12;
@@ -89,6 +87,15 @@ final class ItemJsonEditorScreen extends CompatScreen {
                 Component.translatable(key("reset")), button -> resetJson()));
         addRenderableWidget(new InfinityEditorButton(x + (BUTTON_WIDTH + 4) * 3, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
                 Component.translatable(key("json.apply")), button -> applyJson(false)));
+    }
+
+    @Override
+    protected void setInitialFocus() {
+        if (this.jsonBox != null) {
+            setFocused(this.jsonBox);
+            return;
+        }
+        super.setInitialFocus();
     }
 
     @Override
@@ -127,6 +134,19 @@ final class ItemJsonEditorScreen extends CompatScreen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        ModSource.LOGGER.error("JSON_SCREEN_CHAR {} focused={} boxFocused={} active={} visible={}", event.codepoint(), this.getFocused(), this.jsonBox != null && this.jsonBox.isFocused(), this.jsonBox != null && this.jsonBox.active, this.jsonBox != null && this.jsonBox.visible);
+        if (this.jsonBox != null) {
+            setFocused(this.jsonBox);
+            this.jsonBox.setFocused(true);
+            if (this.jsonBox.charTyped(event)) {
+                return true;
+            }
+        }
+        return super.charTyped(event);
     }
 
     @Override
@@ -564,11 +584,13 @@ final class ItemJsonEditorScreen extends CompatScreen {
 
         @Override
         public boolean charTyped(CharacterEvent event) {
-            return charTyped((char) event.codepoint(), 0);
+            ModSource.LOGGER.error("JSON_BOX_CHAR {} focused={} active={} visible={} textLength={} cursor={}", event.codepoint(), isFocused(), this.active, this.visible, this.text.length(), this.cursor);
+            return charTyped(event.codepoint(), 0);
         }
 
-        public boolean charTyped(char codePoint, int modifiers) {
-            if (!isFocused() || !StringUtil.isAllowedChatCharacter(codePoint)) {
+        public boolean charTyped(int codePoint, int modifiers) {
+            ModSource.LOGGER.error("JSON_BOX_INSERT {} allowed={} focused={} active={} visible={}", codePoint, StringUtil.isAllowedChatCharacter(codePoint), isFocused(), this.active, this.visible);
+            if (!StringUtil.isAllowedChatCharacter(codePoint)) {
                 return false;
             }
             normalizeCursorAndSelection();
@@ -597,7 +619,7 @@ final class ItemJsonEditorScreen extends CompatScreen {
                     moveCursorTo(this.cursor + 1, false);
                     return true;
                 }
-                insertClosingBracket(codePoint);
+                insertClosingBracket((char) codePoint);
                 return true;
             }
             insertText(Character.toString(codePoint));

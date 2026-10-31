@@ -316,7 +316,8 @@ public final class ItemStackNbt {
         readComponentProfile(components, tag);
         readComponentBlockEntity(stack, components, tag);
 
-        if (NbtCompat.contains(components, "minecraft:trim", Tag.TAG_COMPOUND)
+        if (isTooltipComponentHidden(components, "minecraft:trim")
+                || NbtCompat.contains(components, "minecraft:trim", Tag.TAG_COMPOUND)
                 && !NbtCompat.getBoolean(NbtCompat.getCompound(components, "minecraft:trim"), "show_in_tooltip")) {
             hideFlags |= 128;
         }
@@ -489,18 +490,12 @@ public final class ItemStackNbt {
             display.remove("LocName");
         }
         if (display.contains("color")) {
-            CompoundTag color = new CompoundTag();
-            color.putInt("rgb", NbtCompat.getInt(display, "color"));
+            int color = NbtCompat.getInt(display, "color");
+            components.putInt("minecraft:dyed_color", color);
             if ((hideFlags & 64) != 0) {
-                color.putBoolean("show_in_tooltip", false);
+                hideTooltipComponent(components, "minecraft:dyed_color");
             }
-            components.put("minecraft:dyed_color", color);
             display.remove("color");
-        } else if ((hideFlags & 64) != 0) {
-            CompoundTag color = new CompoundTag();
-            color.putInt("rgb", 10511680);
-            color.putBoolean("show_in_tooltip", false);
-            components.put("minecraft:dyed_color", color);
         }
         moveComponent(display, "MapColor", components, "minecraft:map_color");
 
@@ -642,10 +637,10 @@ public final class ItemStackNbt {
         }
 
         CompoundTag unbreakable = new CompoundTag();
-        if ((hideFlags & 4) != 0) {
-            unbreakable.putBoolean("show_in_tooltip", false);
-        }
         components.put("minecraft:unbreakable", unbreakable);
+        if ((hideFlags & 4) != 0) {
+            hideTooltipComponent(components, "minecraft:unbreakable");
+        }
         customData.remove("Unbreakable");
     }
 
@@ -697,9 +692,15 @@ public final class ItemStackNbt {
         readLoreComponent(components, display);
         if (components.contains("minecraft:dyed_color")) {
             Tag dyed = components.get("minecraft:dyed_color");
-            if (dyed instanceof CompoundTag dyedTag) {
+            if (dyed instanceof net.minecraft.nbt.NumericTag numericTag) {
+                display.putInt("color", numericTag.intValue());
+                if (isTooltipComponentHidden(components, "minecraft:dyed_color")) {
+                    hideFlags |= 64;
+                }
+            } else if (dyed instanceof CompoundTag dyedTag) {
                 display.putInt("color", NbtCompat.getInt(dyedTag, "rgb"));
-                if (dyedTag.contains("show_in_tooltip") && !NbtCompat.getBoolean(dyedTag, "show_in_tooltip")) {
+                if (isTooltipComponentHidden(components, "minecraft:dyed_color")
+                        || dyedTag.contains("show_in_tooltip") && !NbtCompat.getBoolean(dyedTag, "show_in_tooltip")) {
                     hideFlags |= 64;
                 }
             } else if (dyed != null) {
@@ -801,7 +802,8 @@ public final class ItemStackNbt {
         if (!oldList.isEmpty()) {
             tag.put(oldKey, oldList);
         }
-        if (component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
+        if (isTooltipComponentHidden(components, componentKey)
+                || component.contains("show_in_tooltip") && !NbtCompat.getBoolean(component, "show_in_tooltip")) {
             hideFlags |= hideMask;
         }
         return hideFlags;
@@ -826,10 +828,10 @@ public final class ItemStackNbt {
         }
         CompoundTag component = new CompoundTag();
         component.put("predicates", predicates);
-        if (hidden) {
-            component.putBoolean("show_in_tooltip", false);
-        }
         components.put(componentKey, component);
+        if (hidden) {
+            hideTooltipComponent(components, componentKey);
+        }
         customData.remove(oldKey);
     }
 
@@ -839,6 +841,7 @@ public final class ItemStackNbt {
             potion.putString("potion", NbtCompat.getString(customData, "Potion"));
         }
         moveInto(customData, potion, "CustomPotionColor", "custom_color");
+        moveInto(customData, potion, "CustomPotionName", "custom_name");
         if (NbtCompat.contains(customData, "CustomPotionEffects", Tag.TAG_LIST)) {
             potion.put("custom_effects", convertPotionEffects(NbtCompat.getList(customData, "CustomPotionEffects", Tag.TAG_COMPOUND)));
             customData.remove("CustomPotionEffects");
@@ -960,9 +963,12 @@ public final class ItemStackNbt {
 
         Tag trim = value.copy();
         if (trim instanceof CompoundTag trimTag && (hideFlags & 128) != 0) {
-            trimTag.putBoolean("show_in_tooltip", false);
+            trimTag.remove("show_in_tooltip");
         }
         components.put("minecraft:trim", trim);
+        if ((hideFlags & 128) != 0) {
+            hideTooltipComponent(components, "minecraft:trim");
+        }
         customData.remove("Trim");
     }
 
@@ -1044,7 +1050,8 @@ public final class ItemStackNbt {
         if (components.contains("minecraft:unbreakable")) {
             tag.putBoolean("Unbreakable", true);
             Tag unbreakable = components.get("minecraft:unbreakable");
-            if (unbreakable instanceof CompoundTag compoundTag
+            if (isTooltipComponentHidden(components, "minecraft:unbreakable")
+                    || unbreakable instanceof CompoundTag compoundTag
                     && compoundTag.contains("show_in_tooltip")
                     && !NbtCompat.getBoolean(compoundTag, "show_in_tooltip")) {
                 hideFlags |= 4;
@@ -1061,6 +1068,7 @@ public final class ItemStackNbt {
         CompoundTag potion = NbtCompat.getCompound(components, "minecraft:potion_contents");
         copyTag(potion, "potion", tag, "Potion");
         copyTag(potion, "custom_color", tag, "CustomPotionColor");
+        copyTag(potion, "custom_name", tag, "CustomPotionName");
         copyTag(potion, "custom_effects", tag, "CustomPotionEffects");
     }
 

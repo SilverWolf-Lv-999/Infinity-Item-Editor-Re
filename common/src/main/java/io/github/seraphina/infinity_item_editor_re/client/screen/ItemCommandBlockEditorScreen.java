@@ -105,6 +105,15 @@ final class ItemCommandBlockEditorScreen extends CompatScreen {
     }
 
     @Override
+    protected void setInitialFocus() {
+        if (this.commandBox != null) {
+            setFocused(this.commandBox);
+            return;
+        }
+        super.setInitialFocus();
+    }
+
+    @Override
     public void tick() {
         if (this.commandBox != null) {
         }
@@ -132,6 +141,18 @@ final class ItemCommandBlockEditorScreen extends CompatScreen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+        if (this.commandBox != null) {
+            setFocused(this.commandBox);
+            this.commandBox.setFocused(true);
+            if (this.commandBox.charTyped(event)) {
+                return true;
+            }
+        }
+        return super.charTyped(event);
     }
 
     @Override
